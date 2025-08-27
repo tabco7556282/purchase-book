@@ -1,12 +1,12 @@
-const VERSION = 'v1.0.0';
-const CACHE = `purchase-book-${VERSION}`;
+// ここを v2 など新しい名前にして更新を強制
+const CACHE = "shiire-cache-v2";
 
-const CORE_ASSETS = [
-  './',
-  './index.html',
-  './manifest.webmanifest',
-  './icon-192.png',
-  './icon-512.png'
+const ASSETS = [
+  "./",
+  "./index.html",
+  "./manifest.webmanifest",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png"
 ];
 
 self.addEventListener('install', (e) => {
