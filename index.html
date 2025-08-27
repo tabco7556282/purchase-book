@@ -30,25 +30,73 @@
   .chip { border:1px solid #ccc; padding:6px 10px; border-radius:999px; }
   .muted { color:#666; font-size:12px; }
   .nowrap { white-space:nowrap; }
-  /* モーダル */
+
+  /* モーダル全体 */
   .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:10; }
+
+  /* モーダル本体：高さ制限＋スクロール可 */
   .modal-content {
-  background:#fff;
-  margin:6% auto;
-  padding:12px;
-  width:92%;
-  max-width:560px;
-  border-radius:10px;
-  max-height:90vh;      /* 追加 */
-  overflow:auto;         /* 追加 */
-}
-  .modal-header { display:flex; justify-content:space-between; align-items:center; gap:8px; }
-  .checkbox-grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:8px; }
-  .actions { display:flex; gap:8px; justify-content:center; }
+    background:#fff;
+    margin:6% auto;
+    padding:12px;
+    width:92%;
+    max-width:560px;
+    border-radius:10px;
+    max-height:90vh;      /* ←ここで高さ制限 */
+    overflow:auto;         /* ←スクロール有効 */
+  }
+
+  /* 仕入先リスト：多いときに独立スクロール */
+  .checkbox-grid {
+    display:grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap:8px;
+    max-height:50vh;       /* ←高さ制限 */
+    overflow:auto;         /* ←スクロール可 */
+    padding-right:4px;     /* ←スクロールバー用余白 */
+  }
+
+  /* ボタン行を常に下に固定表示 */
+  .actions {
+    display:flex;
+    gap:8px;
+    justify-content:center;
+    position:sticky;       /* ←スクロールしても見える */
+    bottom:0;
+    background:#fff;
+    padding:8px 0;
+    box-shadow: 0 -4px 10px rgba(0,0,0,.04);
+  }
+
+  /* 削除ボタン */
   .danger { background:#ef4444; }
   .danger:hover { background:#c53737; }
 </style>
+  /* === 固定アクションバー（全画面共通） === */
+.fab-bar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 20;
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  padding: 10px env(safe-area-inset-right) calc(10px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
+  box-shadow: 0 -6px 20px rgba(0,0,0,.06);
+}
+.fab-inner {
+  display: flex; gap: 8px; max-width: 560px; margin: 0 auto;
+}
+.fab-inner > * { flex: 1; }
+
+/* コンテンツがバーの下に隠れないよう下余白を確保 */
+body { padding-bottom: 86px; } /* 必要なら数値は調整 */
 </head>
+  <!-- 画面下固定アクションバー -->
+<div class="fab-bar">
+  <div class="fab-inner">
+    <button type="button" onclick="savePurchase()">保存</button>
+    <button type="button" class="ghost" onclick="clearEntry()">入力クリア</button>
+  </div>
+</div>
 <body>
 
 <div class="nav">
