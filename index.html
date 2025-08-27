@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>仕入・商品ミニ台帳（ブラウザ保存 / CSV・税率・リカバリ対応）</title>
+<title>仕入・商品ミニ台帳（電話対応 / CSV・税率・リカバリ対応）</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#2563eb">
 <script>
@@ -14,7 +14,7 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 <style>
-  :root{--bg:#f6f7f9;--card:#fff;--ink:#111;--muted:#666;--line:#e5e7eb;--ok:#16a34a;--accent:#2563eb;--danger:#ef4444}
+  :root{--bg:#f6f7f9;--card:#fff;--ink:#111;--muted:#555;--line:#e5e7eb;--ok:#16a34a;--accent:#2563eb;--danger:#ef4444;--call:#10b981}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic UI","Meiryo",sans-serif}
   header{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--line);z-index:10}
@@ -28,29 +28,38 @@ if ('serviceWorker' in navigator) {
   .field{margin:12px 0}
   .label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
   input,select,button,textarea{font:inherit}
-  input[type="text"],input[type="number"],input[type="date"],select,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff}
+  input[type="text"],input[type="number"],input[type="date"],input[type="tel"],select,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff;min-height:44px}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
   .actions{display:flex;gap:12px;flex-wrap:wrap}
-  .btn{padding:12px 16px;border:1px solid var(--line);background:#fff;border-radius:12px;cursor:pointer}
+  .btn{padding:12px 16px;border:1px solid var(--line);background:#fff;border-radius:12px;cursor:pointer;min-height:44px}
   .btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}
   .btn.gray{background:#eef2f7}
   .btn.accent{background:var(--accent);border-color:var(--accent);color:#fff}
   .btn.danger{background:#fee2e2;border-color:#fecaca}
   .btn.link{background:transparent;border-color:transparent;color:#0b3ea8;text-decoration:underline}
+  .btn.call{background:var(--call);border-color:var(--call);color:#fff}
   .help{font-size:12px;color:var(--muted)}
   table{width:100%;border-collapse:collapse}
-  th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
+  th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;line-height:1.6}
   th{color:var(--muted);font-weight:600;white-space:nowrap}
   td.right{text-align:right}
   .muted{color:var(--muted)}
   .subtle{font-size:12px;color:var(--muted)}
+  table tbody tr:nth-child(odd){background:#fafafa}
+  .tel{font-weight:600;text-decoration:none;border-bottom:1px dotted #2563eb}
+  .tel:active{opacity:.7}
+  /* modal */
   .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);padding:16px;z-index:50}
   .modal.show{display:block}
   .panel{max-width:520px;margin:40px auto;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
   .panel header{padding:12px 16px;border-bottom:1px solid var(--line);font-weight:700}
   .panel .content{padding:16px}
   .panel .foot{display:flex;gap:10px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--line);background:#fafafa}
+  /* focus ring */
+  input:focus,select:focus,button:focus,a:focus{outline:3px solid rgba(37,99,235,.35);outline-offset:2px}
+  /* small screen */
+  @media (max-width:420px){ body{font-size:17px} .label{font-size:14px} }
 </style>
 </head>
 <body>
@@ -222,7 +231,7 @@ if ('serviceWorker' in navigator) {
     <div class="content">
       <input type="hidden" id="supFormId">
       <div class="field"><span class="label">仕入先名</span><input id="supFormName" type="text"></div>
-      <div class="field"><span class="label">TEL</span><input id="supFormTel" type="text"></div>
+      <div class="field"><span class="label">TEL</span><input id="supFormTel" type="tel" inputmode="tel" autocomplete="tel"></div>
       <div class="field"><span class="label">メモ</span><input id="supFormNote" type="text"></div>
     </div>
     <div class="foot">
@@ -264,6 +273,12 @@ let suppliers = JSON.parse(localStorage.getItem(LS.sup) || '[]');
 let items     = JSON.parse(localStorage.getItem(LS.item) || '[]');
 let purchases = JSON.parse(localStorage.getItem(LS.pur) || '[]');
 
+// 電話番号 → tel:href
+function telHref(t){
+  const s = String(t||'').replace(/[^\d+]/g,'');
+  return s ? `tel:${s}` : '';
+}
+
 function persist(withUndo=true){
   if(withUndo) takeUndoSnapshot();
   localStorage.setItem(LS.sup, JSON.stringify(suppliers));
@@ -286,7 +301,7 @@ function todayStr(){
   const d = new Date(); const z=n=>String(n).padStart(2,'0');
   return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`;
 }
-function esc(s){return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"\'":'&#39;'}[m]))}
+function esc(s){return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function fmtJPY(n){return new Intl.NumberFormat('ja-JP',{style:'currency',currency:'JPY'}).format(Math.round(+n||0))}
 function toRate(){ const r = document.querySelector('input[name="taxrate"]:checked').value; if(r==='custom'){ const p = Number($('entTaxCustom').value||0); return Math.max(0, p/100);} return Number(r); }
 function selectCustomRate(){ document.querySelector('input[name="taxrate"][value="custom"]').checked = true; }
@@ -328,7 +343,11 @@ function renderPhonebook(){
     return hay.includes(q);
   }).forEach(s=>{
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${esc(s.name)}</td><td>${esc(s.tel||'')}</td><td class="muted">${esc(s.note||'')}</td>`;
+    tr.innerHTML = `
+      <td>${esc(s.name)}</td>
+      <td>${ s.tel ? `<a class="tel" href="${telHref(s.tel)}">${esc(s.tel)}</a>` : '<span class="muted">未登録</span>' }</td>
+      <td class="muted">${esc(s.note||'')}</td>
+    `;
     rows.appendChild(tr);
   });
 }
@@ -336,11 +355,12 @@ function renderSupTable(){
   const tb = $('supRows'); tb.innerHTML='';
   suppliers.forEach(s=>{
     const tr=document.createElement('tr');
-    tr.innerHTML=`
+    tr.innerHTML = `
       <td>${esc(s.name)}</td>
-      <td>${esc(s.tel||'')}</td>
+      <td>${ s.tel ? `<a class="tel" href="${telHref(s.tel)}">${esc(s.tel)}</a>` : '<span class="muted">未登録</span>' }</td>
       <td class="muted">${esc(s.note||'')}</td>
       <td class="right">
+        ${ s.tel ? `<a class="btn call" href="${telHref(s.tel)}">電話</a>` : '' }
         <button class="btn" onclick="openSupplierEdit('${s.id}')">編集</button>
         <button class="btn danger" onclick="deleteSupplier('${s.id}')">削除</button>
       </td>`;
@@ -380,6 +400,7 @@ function openSupplierEdit(id){
   $('supFormTel').value  = s? (s.tel||'') : '';
   $('supFormNote').value = s? (s.note||'') : '';
   openModal('supplierModal');
+  setTimeout(()=> $('supFormName').focus(), 50);
 }
 function saveSupplier(){
   const id = $('supFormId').value.trim();
@@ -412,6 +433,7 @@ function openItemEdit(id){
   $('itemFormPrice').value = it? (it.price||0) : 0;
   $('itemFormNote').value  = it? (it.note||'') : '';
   openModal('itemModal');
+  setTimeout(()=> $('itemFormName').focus(), 50);
 }
 function saveItem(){
   const id = $('itemFormId').value.trim();
@@ -450,188 +472,4 @@ function onEntryItemChange(){
   const it = items.find(x=>x.id===itemId);
   $('entPrice').value = it ? (it.price||0) : 0;
 }
-function clearEntry(){
-  $('entSupplier').value=''; onEntrySupplierChange();
-  $('entQty').value='1'; $('entPrice').value='0';
-  document.querySelector('input[name="taxkind"][value="inc"]').checked = true;
-  document.querySelector('input[name="taxrate"][value="0.1"]').checked = true;
-}
-function saveEntry(){
-  const date = $('entDate').value;
-  const supplierId = $('entSupplier').value;
-  const itemId = $('entItem').value;
-  const qty = Number($('entQty').value||0);
-  const price = Number($('entPrice').value||0);
-  const taxkind = document.querySelector('input[name="taxkind"]:checked').value;
-  const rate = toRate();
-  if(!date){ alert('日付を入力してください'); return; }
-  if(!supplierId){ alert('仕入先を選択してください'); return; }
-  if(!itemId){ alert('商品を選択してください'); return; }
-  if(!(qty>0)){ alert('数量を入力してください'); return; }
-
-  purchases.push({id:uid(), date, supplierId, itemId, qty, price:isFinite(price)?price:0, taxkind, rate});
-  persist();
-  clearEntry();
-  renderSummary();
-}
-function calcLine(p){
-  const rate = Number(p.rate||0);
-  const u = Number(p.price||0);
-  const q = Number(p.qty||0);
-  if(p.taxkind==='inc'){
-    const unitNet = u/(1+rate);
-    const net = unitNet*q;
-    const tax = Math.round(net*rate);
-    return {net, tax, gross: net+tax};
-  }else{
-    const net = u*q;
-    const tax = Math.round(net*rate);
-    return {net, tax, gross: net+tax};
-  }
-}
-function renderSummary(){
-  const date = $('entDate').value;
-  const list = purchases.filter(p=>p.date===date);
-  if(list.length===0){ $('sumBox').innerHTML='<span class="muted">当日の保存データはありません。</span>'; return; }
-
-  let sumNet=0,sumTax=0,sumGross=0;
-  const rows = list.map(p=>{
-    const sup = suppliers.find(s=>s.id===p.supplierId);
-    const it  = items.find(i=>i.id===p.itemId);
-    const r = calcLine(p);
-    sumNet += r.net; sumTax += r.tax; sumGross += r.gross;
-    const ratePct = Math.round((Number(p.rate||0))*1000)/10;
-    return `<tr>
-      <td>${esc(sup?sup.name:'')}</td>
-      <td>${esc(it?it.name:'')}</td>
-      <td class="right">${p.qty}</td>
-      <td class="right">${fmtJPY(p.price)}</td>
-      <td class="right">${p.taxkind==='inc'?'税込':'税別'}</td>
-      <td class="right">${ratePct}%</td>
-      <td class="right">${fmtJPY(r.net)}</td>
-      <td class="right">${fmtJPY(r.tax)}</td>
-      <td class="right">${fmtJPY(r.gross)}</td>
-    </tr>`;
-  }).join('');
-
-  $('sumBox').innerHTML = `
-    <table>
-      <thead>
-        <tr>
-          <th>仕入先</th><th>商品</th><th class="right">数量</th><th class="right">単価</th><th class="right">区分</th>
-          <th class="right">税率</th><th class="right">税抜</th><th class="right">消費税</th><th class="right">税込</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-      <tfoot>
-        <tr><th colspan="6" class="right">合計（税抜）</th><th class="right">${fmtJPY(sumNet)}</th><th></th><th></th></tr>
-        <tr><th colspan="6" class="right">合計（消費税）</th><th></th><th class="right">${fmtJPY(sumTax)}</th><th></th></tr>
-        <tr><th colspan="6" class="right">合計（税込）</th><th></th><th></th><th class="right">${fmtJPY(sumGross)}</th></tr>
-      </tfoot>
-    </table>`;
-}
-
-/* ====== CSV / JSON ====== */
-function exportCSV(scope='today'){
-  const date = $('entDate').value;
-  const list = scope==='today' ? purchases.filter(p=>p.date===date) : purchases.slice();
-  const header = ['date','supplier','item','qty','unit_price','tax_kind','tax_rate','net','tax','gross'];
-  const rows = list.map(p=>{
-    const sup = suppliers.find(s=>s.id===p.supplierId);
-    const it  = items.find(i=>i.id===p.itemId);
-    const r = calcLine(p);
-    return [p.date, sup?sup.name:'', it?it.name:'', p.qty, p.price, p.taxkind, Number(p.rate||0), Math.round(r.net), Math.round(r.tax), Math.round(r.gross)];
-  });
-  const csv = [header].concat(rows).map(row=>row.map(cell=>{
-    const s = String(cell??''); return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
-  }).join(',')).join('\n');
-
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-  const a = document.createElement('a');
-  const ymd = date || todayStr();
-  a.href = URL.createObjectURL(blob);
-  a.download = scope==='today' ? `purchases_${ymd}.csv` : `purchases_all.csv`;
-  document.body.appendChild(a); a.click(); a.remove();
-}
-function exportMasters(kind){
-  let header, rows;
-  if(kind==='suppliers'){
-    header=['id','name','tel','note','created'];
-    rows = suppliers.map(s=>[s.id,s.name,s.tel||'',s.note||'',s.created||'']);
-  }else{
-    header=['id','name','supplier_id','supplier_name','price','note','created'];
-    rows = items.map(it=>{
-      const sup = suppliers.find(s=>s.id===it.supplierId);
-      return [it.id,it.name,it.supplierId||'', sup?sup.name:'', it.price||0, it.note||'', it.created||''];
-    });
-  }
-  const csv = [header].concat(rows).map(r=>r.map(c=>{
-    const s=String(c??''); return /[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s;
-  }).join(',')).join('\n');
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download = `${kind}.csv`;
-  document.body.appendChild(a); a.click(); a.remove();
-}
-function exportJSON(){
-  const data = {suppliers, items, purchases, exportedAt:new Date().toISOString()};
-  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='backup_purchase_book.json';
-  document.body.appendChild(a); a.click(); a.remove();
-}
-function importJSON(file){
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = e=>{
-    try{
-      const data = JSON.parse(e.target.result);
-      if(!data) throw new Error('invalid');
-      takeUndoSnapshot();
-      suppliers = Array.isArray(data.suppliers)? data.suppliers: suppliers;
-      items     = Array.isArray(data.items)? data.items: items;
-      purchases = Array.isArray(data.purchases)? data.purchases: purchases;
-      persist(false);
-      renderAll();
-      alert('JSONから復元しました');
-    }catch(err){
-      alert('JSONの読み込みに失敗しました');
-    }
-  };
-  reader.readAsText(file,'utf-8');
-}
-
-/* ====== モーダル ====== */
-function openModal(id){ $(id).classList.add('show'); }
-function closeModal(id){ $(id).classList.remove('show'); }
-window.addEventListener('click',e=>{
-  ['supplierModal','itemModal'].forEach(id=>{ if(e.target === $(id)) closeModal(id); });
-});
-
-/* ====== 初期化 ====== */
-function init(){
-  $('entDate').value = todayStr();
-  renderAll();
-}
-document.addEventListener('DOMContentLoaded', init);
-
-/* 並び替え */
-function sortSuppliers(mode){
-  if(mode==='name_asc') suppliers.sort((a,b)=>a.name.localeCompare(b.name));
-  if(mode==='name_desc') suppliers.sort((a,b)=>b.name.localeCompare(a.name));
-  if(mode==='recent') suppliers.sort((a,b)=>(b.created||0)-(a.created||0));
-  persist(); renderAll();
-}
-function sortItems(mode){
-  if(mode==='name_asc') items.sort((a,b)=>a.name.localeCompare(b.name));
-  if(mode==='name_desc') items.sort((a,b)=>b.name.localeCompare(a.name));
-  if(mode==='recent') items.sort((a,b)=>(b.created||0)-(a.created||0));
-  if(mode==='price_asc') items.sort((a,b)=>(a.price||0)-(b.price||0));
-  if(mode==='price_desc') items.sort((a,b) => (b.price||0)-(a.price||0));
-  persist(); renderAll();
-}
-</script>
-</body>
-</html>
+function
