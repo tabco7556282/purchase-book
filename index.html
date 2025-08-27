@@ -218,10 +218,11 @@ body { padding-bottom: 86px; } /* 必要なら数値は調整 */
     <input id="supContact" type="text" placeholder="例）山田さん">
     <label>電話番号</label>
     <input id="supPhone" type="tel" placeholder="090-1234-5678">
-    <div class="row" style="margin-top:8px;">
-      <button type="button" onclick="addSupplier()">登録</button>
-      <button type="button" class="ghost" onclick="resetSupplierForm()">クリア</button>
-    </div>
+    - <div class="row" style="margin-top:8px;">
++ <div class="actions" style="margin-top:8px;">
+    <button type="button" onclick="addSupplier()">登録</button>
+    <button type="button" class="ghost" onclick="resetSupplierForm()">クリア</button>
+</div>
   </div>
 </div>
 
@@ -255,8 +256,11 @@ body { padding-bottom: 86px; } /* 必要なら数値は調整 */
     </div>
     <label>商品名</label>
     <input id="itName" type="text" placeholder="例）国産もも肉 2kg">
-    <div class="row">
-      <div>
+    - <div class="row" style="margin-top:8px;">
++ <div class="actions" style="margin-top:8px;">
+    <button type="button" onclick="addItem()">登録</button>
+    <button type="button" class="ghost" onclick="resetItemForm()">クリア</button>
+  </div>
         <label>基準価格（任意）</label>
         <input id="itPrice" type="number" placeholder="0">
       </div>
