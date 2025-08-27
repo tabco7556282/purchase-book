@@ -3,6 +3,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>仕入れ管理アプリ v3（電話・編集・税率設定）</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#16a34a">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <style>
   :root{ --gap:8px; }
   body { font-family: system-ui, sans-serif; margin: 10px; }
@@ -208,6 +211,18 @@
       <h3>設定</h3>
       <button type="button" class="ghost" onclick="closeModal('settingsModal')">✕</button>
     </div>
+    <label>基本税率（8% または 10%）</label>
+    <div class="radio-group">
+      <label><input type="radio" name="baseRatePreset" value="8"> 8%</label>
+      <label><input type="radio" name="baseRatePreset" value="10"> 10%</label>
+    </div>
+    <div class="row" style="margin-top:8px;">
+      <button type="button" onclick="saveBaseTaxRate()">保存</button>
+      <button type="button" class="ghost" onclick="resetBaseTaxRate()">8%に戻す</button>
+    </div>
+    <div class="small" style="margin-top:4px;">※ この設定は税別計算に適用され、税込はそのままの金額になります。</div>
+  </div>
+</div>
     <label>基本税率（%）<span class="muted">例：8</span></label>
     <input id="baseTaxRateInput" type="number" min="0" step="0.1" placeholder="8">
     <div class="row" style="margin-top:8px;">
@@ -272,6 +287,12 @@ function init(){
 }
 
 document.addEventListener('DOMContentLoaded', init);
+// PWA: Service Worker 登録
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
 
 /* ====== ヘルパー描画 ====== */
 function renderSupplierSelect(){
@@ -523,31 +544,4 @@ function updateSupplier(){
   renderItemTable(); // 表示名更新のため
   updateSupplierQuick($('inSupplier').value);
 }
-function deleteSupplier(){
-  const id = $('editSupId').value;
-  if(!confirm('この仕入先を削除します。紐付く商品からも除外されます。よろしいですか？')) return;
-  // 削除
-  suppliers = suppliers.filter(s=>s.id!==id);
-  // 紐付きを外す
-  items = items.map(it=> ({...it, suppliers: (it.suppliers||[]).filter(sid=>sid!==id)}));
-  localStorage.setItem(LS_KEYS.suppliers, JSON.stringify(suppliers));
-  localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
-  closeModal('supplierEditModal');
-  renderSupplierSelect();
-  renderPhonebook();
-  renderSupTable();
-  renderItemTable();
-  renderItemSelect($('inSupplier').value);
-  updateSupplierQuick($('inSupplier').value);
-}
-
-/* ====== 商品：新規 ====== */
-function openItemModal(){
-  resetItemForm();
-  renderItemSupplierChecks();
-  $('itemModal').style.display = 'block';
-}
-function resetItemForm(){
-  $('itName').value=''; $('itPrice').value=''; $('itTax').value='taxIncluded';
-}
-funct
+function del
