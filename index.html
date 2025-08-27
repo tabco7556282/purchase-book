@@ -32,7 +32,16 @@
   .nowrap { white-space:nowrap; }
   /* モーダル */
   .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:10; }
-  .modal-content { background:#fff; margin:6% auto; padding:12px; width:92%; max-width:560px; border-radius:10px; }
+  .modal-content {
+  background:#fff;
+  margin:6% auto;
+  padding:12px;
+  width:92%;
+  max-width:560px;
+  border-radius:10px;
+  max-height:90vh;      /* 追加 */
+  overflow:auto;         /* 追加 */
+}
   .modal-header { display:flex; justify-content:space-between; align-items:center; gap:8px; }
   .checkbox-grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:8px; }
   .actions { display:flex; gap:8px; justify-content:center; }
