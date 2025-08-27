@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <style>
   :root{ --gap:8px; }
-  body { font-family: system-ui, sans-serif; margin: 10px; }
+  body { font-family: system-ui, sans-serif; margin: 10px; padding-bottom: 86px; }
   h2 { margin: 14px 0; }
   input, select, button { font-size: 16px; padding: 8px; width: 100%; box-sizing: border-box; }
   label { display: block; margin: 8px 0 4px; }
@@ -31,72 +31,39 @@
   .muted { color:#666; font-size:12px; }
   .nowrap { white-space:nowrap; }
 
-  /* モーダル全体 */
+  /* モーダル土台 */
   .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:10; }
-
-  /* モーダル本体：高さ制限＋スクロール可 */
+  /* モーダル本体：高さ制限＋スクロール */
   .modal-content {
-    background:#fff;
-    margin:6% auto;
-    padding:12px;
-    width:92%;
-    max-width:560px;
-    border-radius:10px;
-    max-height:90vh;      /* ←ここで高さ制限 */
-    overflow:auto;         /* ←スクロール有効 */
+    background:#fff; margin:6% auto; padding:12px; width:92%; max-width:560px; border-radius:10px;
+    max-height:90vh; overflow:auto;
   }
-
-  /* 仕入先リスト：多いときに独立スクロール */
+  /* 仕入先チェックリスト：独立スクロール */
   .checkbox-grid {
-    display:grid;
-    grid-template-columns: repeat(2, minmax(0,1fr));
-    gap:8px;
-    max-height:50vh;       /* ←高さ制限 */
-    overflow:auto;         /* ←スクロール可 */
-    padding-right:4px;     /* ←スクロールバー用余白 */
+    display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:8px;
+    max-height:50vh; overflow:auto; padding-right:4px;
   }
-
-  /* ボタン行を常に下に固定表示 */
+  /* モーダル内のボタン行を下固定 */
   .actions {
-    display:flex;
-    gap:8px;
-    justify-content:center;
-    position:sticky;       /* ←スクロールしても見える */
-    bottom:0;
-    background:#fff;
-    padding:8px 0;
+    display:flex; gap:8px; justify-content:center;
+    position:sticky; bottom:0; background:#fff; padding:8px 0;
     box-shadow: 0 -4px 10px rgba(0,0,0,.04);
   }
-
-  /* 削除ボタン */
+  .modal-header { display:flex; justify-content:space-between; align-items:center; gap:8px; }
   .danger { background:#ef4444; }
   .danger:hover { background:#c53737; }
-</style>
-  /* === 固定アクションバー（全画面共通） === */
-.fab-bar {
-  position: fixed;
-  left: 0; right: 0; bottom: 0;
-  z-index: 20;
-  background: #fff;
-  border-top: 1px solid #e5e7eb;
-  padding: 10px env(safe-area-inset-right) calc(10px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
-  box-shadow: 0 -6px 20px rgba(0,0,0,.06);
-}
-.fab-inner {
-  display: flex; gap: 8px; max-width: 560px; margin: 0 auto;
-}
-.fab-inner > * { flex: 1; }
 
-/* コンテンツがバーの下に隠れないよう下余白を確保 */
-body { padding-bottom: 86px; } /* 必要なら数値は調整 */
+  /* === 画面下固定アクションバー（全画面共通） === */
+  .fab-bar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    background: #fff; border-top: 1px solid #e5e7eb;
+    padding: 10px env(safe-area-inset-right) calc(10px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
+    box-shadow: 0 -6px 20px rgba(0,0,0,.06);
+  }
+  .fab-inner { display: flex; gap: 8px; max-width: 560px; margin: 0 auto; }
+  .fab-inner > * { flex: 1; }
+</style>
 </head>
-  <!-- 画面下固定アクションバー -->
-<div class="fab-bar">
-  <div class="fab-inner">
-    <button type="button" onclick="savePurchase()">保存</button>
-    <button type="button" class="ghost" onclick="clearEntry()">入力クリア</button>
-  </div>
-</div>
 <body>
 
 <div class="nav">
@@ -147,17 +114,12 @@ body { padding-bottom: 86px; } /* 必要なら数値は調整 */
     <span class="muted">基本税率：<b id="lblRate"></b>%（設定で変更）</span>
   </div>
 
-  <!-- 追加：基本税率のクイック切替 -->
+  <!-- 基本税率のクイック切替 -->
   <label style="margin-top:6px;">税率（8% / 10% クイック切替）</label>
   <div class="radio-group" id="baseRateRadios">
     <label><input type="radio" name="baseRateChoice" value="8"> 8%</label>
     <label><input type="radio" name="baseRateChoice" value="10"> 10%</label>
-    <span class="small">※ ここで選ぶと以後の計算に使う「基本税率」を即時更新します。</span>
-  </div>
-
-  <div class="row" style="margin-top:6px;">
-    <button type="button" onclick="savePurchase()">保存</button>
-    <button type="button" class="ghost" onclick="clearEntry()">入力クリア</button>
+    <span class="small">※ 以後の計算に使う「基本税率」を即時更新します。</span>
   </div>
 
   <h3>集計</h3>
@@ -218,11 +180,10 @@ body { padding-bottom: 86px; } /* 必要なら数値は調整 */
     <input id="supContact" type="text" placeholder="例）山田さん">
     <label>電話番号</label>
     <input id="supPhone" type="tel" placeholder="090-1234-5678">
-    - <div class="row" style="margin-top:8px;">
-+ <div class="actions" style="margin-top:8px;">
-    <button type="button" onclick="addSupplier()">登録</button>
-    <button type="button" class="ghost" onclick="resetSupplierForm()">クリア</button>
-</div>
+    <div class="actions" style="margin-top:8px;">
+      <button type="button" onclick="addSupplier()">登録</button>
+      <button type="button" class="ghost" onclick="resetSupplierForm()">クリア</button>
+    </div>
   </div>
 </div>
 
@@ -252,15 +213,12 @@ body { padding-bottom: 86px; } /* 必要なら数値は調整 */
   <div class="modal-content">
     <div class="modal-header">
       <h3>商品追加</h3>
-      <button type="button" class="ghost" onclick="closeModal('itemModal')">✕</button>
+    <button type="button" class="ghost" onclick="closeModal('itemModal')">✕</button>
     </div>
     <label>商品名</label>
     <input id="itName" type="text" placeholder="例）国産もも肉 2kg">
-    - <div class="row" style="margin-top:8px;">
-+ <div class="actions" style="margin-top:8px;">
-    <button type="button" onclick="addItem()">登録</button>
-    <button type="button" class="ghost" onclick="resetItemForm()">クリア</button>
-  </div>
+    <div class="row">
+      <div>
         <label>基準価格（任意）</label>
         <input id="itPrice" type="number" placeholder="0">
       </div>
@@ -277,7 +235,7 @@ body { padding-bottom: 86px; } /* 必要なら数値は調整 */
     <div id="itSuppliers" class="checkbox-grid"></div>
     <div class="small">※ 複数の仕入先から購入可能な商品に対応します。</div>
 
-    <div class="row" style="margin-top:8px;">
+    <div class="actions" style="margin-top:8px;">
       <button type="button" onclick="addItem()">登録</button>
       <button type="button" class="ghost" onclick="resetItemForm()">クリア</button>
     </div>
@@ -336,6 +294,14 @@ body { padding-bottom: 86px; } /* 必要なら数値は調整 */
   </div>
 </div>
 
+<!-- 画面下固定アクションバー -->
+<div class="fab-bar">
+  <div class="fab-inner">
+    <button type="button" onclick="savePurchase()">保存</button>
+    <button type="button" class="ghost" onclick="clearEntry()">入力クリア</button>
+  </div>
+</div>
+
 <script>
 /* ====== 永続化 ====== */
 const LS_KEYS = {
@@ -356,8 +322,7 @@ let purchases = JSON.parse(localStorage.getItem(LS_KEYS.purchases) || '[]'); // 
 /* ====== 税率 ====== */
 function getBaseTaxRate(){
   const v = localStorage.getItem(LS_KEYS.taxRate);
-  // 未保存なら 8% 既定
-  return v==null ? 0.08 : Number(v);
+  return v==null ? 0.08 : Number(v); // 未保存なら 8% 既定
 }
 function setBaseTaxRate(decimal){
   localStorage.setItem(LS_KEYS.taxRate, String(decimal));
@@ -369,7 +334,7 @@ function updateTaxRateLabel(){
 }
 function renderBaseRateRadios(){
   const pct = Math.round(getBaseTaxRate()*100);
-  const target = pct===10 ? '10' : '8'; // 既定は 8%
+  const target = pct===10 ? '10' : '8';
   const radios = document.querySelectorAll('input[name="baseRateChoice"]');
   radios.forEach(r=>{
     r.checked = (r.value === target);
@@ -402,8 +367,8 @@ function init(){
   updateTaxRateLabel();
   renderBaseRateRadios();
 }
-
 document.addEventListener('DOMContentLoaded', init);
+
 // PWA: Service Worker 登録
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -621,196 +586,4 @@ function resetSupplierForm(){
 function addSupplier(){
   const name = $('supName').value.trim();
   if(!name) return alert('社名を入力してください');
-  const contact = $('supContact').value.trim();
-  const phone = $('supPhone').value.trim();
-  suppliers.push({id: uid(), name, contact, phone});
-  localStorage.setItem(LS_KEYS.suppliers, JSON.stringify(suppliers));
-
-  resetSupplierForm();
-  renderSupplierSelect();
-  renderPhonebook();
-  renderSupTable();
-  renderItemSupplierChecks();
-}
-
-/* ====== 仕入先：編集 ====== */
-function openSupplierEdit(id){
-  const s = suppliers.find(x=>x.id===id);
-  if(!s) return;
-  $('editSupId').value = s.id;
-  $('editSupName').value = s.name;
-  $('editSupContact').value = s.contact||'';
-  $('editSupPhone').value = s.phone||'';
-  $('supplierEditModal').style.display = 'block';
-}
-function updateSupplier(){
-  const id = $('editSupId').value;
-  const s = suppliers.find(x=>x.id===id);
-  if(!s) return;
-  const name = $('editSupName').value.trim();
-  if(!name) return alert('社名は必須です');
-  s.name = name;
-  s.contact = $('editSupContact').value.trim();
-  s.phone = $('editSupPhone').value.trim();
-  localStorage.setItem(LS_KEYS.suppliers, JSON.stringify(suppliers));
-  closeModal('supplierEditModal');
-  renderSupplierSelect();
-  renderPhonebook();
-  renderSupTable();
-  renderItemTable(); // 表示名更新のため
-  updateSupplierQuick($('inSupplier').value);
-}
-function deleteSupplier(){
-  const id = $('editSupId').value;
-  if(!confirm('この仕入先を削除します。紐付く商品からも除外されます。よろしいですか？')) return;
-  suppliers = suppliers.filter(s=>s.id!==id);
-  items = items.map(it=> ({...it, suppliers: (it.suppliers||[]).filter(sid=>sid!==id)}));
-  localStorage.setItem(LS_KEYS.suppliers, JSON.stringify(suppliers));
-  localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
-  closeModal('supplierEditModal');
-  renderSupplierSelect();
-  renderPhonebook();
-  renderSupTable();
-  renderItemTable();
-  renderItemSelect($('inSupplier').value);
-  updateSupplierQuick($('inSupplier').value);
-}
-
-/* ====== 商品：新規 ====== */
-function openItemModal(){
-  resetItemForm();
-  renderItemSupplierChecks();
-  $('itemModal').style.display = 'block';
-}
-function resetItemForm(){
-  $('itName').value=''; $('itPrice').value=''; $('itTax').value='taxIncluded';
-}
-function renderItemSupplierChecks(target='itSuppliers'){
-  const box = $(target);
-  if(suppliers.length===0){
-    box.innerHTML = '<div class="small">仕入先がありません。先に仕入先を登録してください。</div>';
-    return;
-  }
-  box.innerHTML = suppliers.map(s=>`
-    <label style="display:flex; align-items:center; gap:6px;">
-      <input type="checkbox" value="${s.id}"> ${s.name}
-    </label>
-  `).join('');
-}
-function addItem(){
-  const name = $('itName').value.trim();
-  if(!name) return alert('商品名を入力してください');
-  const priceStr = $('itPrice').value.trim();
-  const price = priceStr==='' ? null : Number(priceStr);
-  const taxType = $('itTax').value;
-
-  const checks = Array.from($('itSuppliers').querySelectorAll('input[type="checkbox"]:checked'));
-  const supIds = checks.map(c=>c.value);
-  if(supIds.length===0) return alert('紐付ける仕入先を1つ以上選択してください');
-
-  items.push({id: uid(), name, price, taxType, suppliers: supIds});
-  localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
-
-  resetItemForm();
-  renderItemSupplierChecks();
-  renderItemSelect($('inSupplier').value);
-  renderItemTable();
-}
-
-/* ====== 商品：編集 ====== */
-function openItemEdit(id){
-  const it = items.find(x=>x.id===id);
-  if(!it) return;
-  $('editItemId').value = it.id;
-  $('editItName').value = it.name;
-  $('editItPrice').value = it.price!=null? it.price : '';
-  $('editItTax').value = it.taxType || 'taxIncluded';
-  renderItemSupplierChecks('editItSuppliers');
-  const box = $('editItSuppliers');
-  (it.suppliers||[]).forEach(sid=>{
-    const chk = box.querySelector(`input[value="${sid}"]`);
-    if(chk) chk.checked = true;
-  });
-  $('itemEditModal').style.display = 'block';
-}
-function updateItem(){
-  const id = $('editItemId').value;
-  const it = items.find(x=>x.id===id);
-  if(!it) return;
-  const name = $('editItName').value.trim();
-  if(!name) return alert('商品名は必須です');
-  it.name = name;
-  const priceStr = $('editItPrice').value.trim();
-  it.price = priceStr==='' ? null : Number(priceStr);
-  it.taxType = $('editItTax').value;
-  const checks = Array.from($('editItSuppliers').querySelectorAll('input[type="checkbox"]:checked'));
-  const supIds = checks.map(c=>c.value);
-  if(supIds.length===0) return alert('紐付け仕入先を1つ以上選択してください');
-  it.suppliers = supIds;
-  localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
-  closeModal('itemEditModal');
-  renderItemSelect($('inSupplier').value);
-  renderItemTable();
-}
-function deleteItem(){
-  const id = $('editItemId').value;
-  if(!confirm('この商品を削除します。よろしいですか？')) return;
-  items = items.filter(x=>x.id!==id);
-  localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
-  closeModal('itemEditModal');
-  renderItemSelect($('inSupplier').value);
-  renderItemTable();
-}
-
-/* ====== 設定：基本税率 ====== */
-function openSettings(){
-  const ratePct = Math.round(getBaseTaxRate()*100);
-  const target = ratePct===10 ? '10' : '8';
-  const radio = document.querySelector(`input[name="baseRatePreset"][value="${target}"]`);
-  if(radio) radio.checked = true;
-  $('settingsModal').style.display = 'block';
-}
-function saveBaseTaxRate(){
-  const sel = document.querySelector('input[name="baseRatePreset"]:checked');
-  if(!sel) { alert('税率を選択してください'); return; }
-  const v = Number(sel.value);
-  setBaseTaxRate(v/100);
-  alert(`基本税率を ${v}% に設定しました`);
-  closeModal('settingsModal');
-}
-function resetBaseTaxRate(){
-  setBaseTaxRate(0.08);
-  alert('基本税率を 8% に戻しました');
-  closeModal('settingsModal');
-}
-
-/* ====== 共通 ====== */
-function closeModal(id){ $(id).style.display='none'; }
-window.addEventListener('click', (e)=>{
-  if(e.target===$('supplierModal')) closeModal('supplierModal');
-  if(e.target===$('supplierEditModal')) closeModal('supplierEditModal');
-  if(e.target===$('itemModal')) closeModal('itemModal');
-  if(e.target===$('itemEditModal')) closeModal('itemEditModal');
-  if(e.target===$('settingsModal')) closeModal('settingsModal');
-});
-
-/* ====== 初期化系 ====== */
-function wipeAll(){
-  if(!confirm('全データ（仕入先・商品・仕入履歴）を削除します。よろしいですか？')) return;
-  suppliers=[]; items=[]; purchases=[];
-  localStorage.removeItem(LS_KEYS.suppliers);
-  localStorage.removeItem(LS_KEYS.items);
-  localStorage.removeItem(LS_KEYS.purchases);
-  // 税率は残す
-  renderSupplierSelect();
-  renderItemSelect();
-  renderListTable();
-  renderPhonebook();
-  renderSupTable();
-  renderItemTable();
-  updateSums();
-  updateSupplierQuick('');
-}
-</script>
-</body>
-</html>
+  const contact = $('supContact').value
