@@ -7,11 +7,41 @@
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#2563eb">
 <script>
+<script>
+/* --- Service Worker 登録（確実に最新を取る＆自動再読み込み） --- */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js');
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+      .then(reg => {
+        // 新版を見つけたら自動更新
+        reg.update();
+      });
+  });
+
+  // SW更新反映時に自動リロード
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    location.reload();
   });
 }
+
+/* --- 応急: URLに ?reset=1 で SW解除＆キャッシュ削除 --- */
+(async () => {
+  if (!location.search.includes('reset=1')) return;
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    if (window.caches?.keys) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+  } finally {
+    const base = location.origin + location.pathname; // クエリ無しで再入
+    location.replace(base);
+  }
+})();
+</script>
 </script>
 <style>
   :root{--bg:#f6f7f9;--card:#fff;--ink:#111;--muted:#555;--line:#e5e7eb;--ok:#16a34a;--accent:#2563eb;--danger:#ef4444;--call:#10b981}
