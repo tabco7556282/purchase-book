@@ -1,5 +1,5 @@
-// ここを v3 に変えてキャッシュを更新強制
-const CACHE = "shiire-cache-v3";
+// キャッシュ名を更新して最新を強制取得
+const CACHE = "shiire-cache-v6";
 
 const ASSETS = [
   "./",
@@ -9,12 +9,10 @@ const ASSETS = [
   "./icons/icon-512.png"
 ];
 
-// インストール時にキャッシュ
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
 });
 
-// 古いキャッシュを削除
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
@@ -23,7 +21,6 @@ self.addEventListener("activate", (e) => {
   );
 });
 
-// キャッシュ優先で取得
 self.addEventListener("fetch", (e) => {
   e.respondWith(
     caches.match(e.request).then((res) => res || fetch(e.request))
