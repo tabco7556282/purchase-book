@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="ja">
+<!DOCTYPE html>
+<html lang="ja">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -39,16 +40,22 @@
   .danger:hover { background:#c53737; }
 </style>
 </head>
-<body><div class="nav">
+<body>
+
+<div class="nav">
   <button type="button" onclick="showPage('entry')" class="ghost">仕入れ入力</button>
   <button type="button" onclick="showPage('phonebook')" class="ghost">電話帳</button>
   <button type="button" onclick="showPage('masters')" class="ghost">マスタ管理</button>
   <button type="button" onclick="openSettings()" class="ghost">⚙ 設定</button>
-</div><!-- 仕入れ入力 --><section id="page-entry">
+</div>
+
+<!-- 仕入れ入力 -->
+<section id="page-entry">
   <h2>仕入れ入力</h2>
   <label>日付</label>
-  <input type="date" id="inDate"><label>仕入先 <span class="muted">（選択すると紐付く商品のみ表示）</span></label>
+  <input type="date" id="inDate">
 
+  <label>仕入先 <span class="muted">（選択すると紐付く商品のみ表示）</span></label>
   <div class="row">
     <select id="inSupplier"></select>
     <button type="button" onclick="openSupplierModal()">＋ 仕入先追加</button>
@@ -57,12 +64,15 @@
     <button type="button" id="btnCallSupplier" class="link" style="flex:0 0 auto;">📞 この仕入先に電話</button>
     <button type="button" id="btnCopySupplier" class="ghost" style="flex:0 0 auto;">📋 電話番号コピー</button>
     <div id="supplierPhoneView" class="muted" style="flex:1 1 auto;"></div>
-  </div><label>商品名</label>
+  </div>
 
+  <label>商品名</label>
   <div class="row">
     <select id="inItem"></select>
     <button type="button" onclick="openItemModal()">＋ 商品追加</button>
-  </div>  <div class="row">
+  </div>
+
+  <div class="row">
     <div>
       <label>数量</label>
       <input type="number" id="inQty" value="1" step="0.1" min="0">
@@ -71,20 +81,27 @@
       <label>単価</label>
       <input type="number" id="inPrice" value="0" step="1" min="0">
     </div>
-  </div><label>税区分</label>
+  </div>
 
+  <label>税区分</label>
   <div class="radio-group">
     <label><input type="radio" name="inTax" value="taxIncluded" checked> 税込</label>
     <label><input type="radio" name="inTax" value="taxExcluded"> 税別</label>
     <span class="muted">基本税率：<b id="lblRate"></b>%（設定で変更）</span>
-  </div>  <div class="row" style="margin-top:6px;">
+  </div>
+
+  <div class="row" style="margin-top:6px;">
     <button type="button" onclick="savePurchase()">保存</button>
     <button type="button" class="ghost" onclick="clearEntry()">入力クリア</button>
-  </div>  <h3>集計</h3>
+  </div>
+
+  <h3>集計</h3>
   <div class="row">
     <div class="chip">日計：<b><span id="sumDaily">0</span> 円</b></div>
     <div class="chip">月計：<b><span id="sumMonthly">0</span> 円</b></div>
-  </div>  <h3>仕入れ一覧</h3>
+  </div>
+
+  <h3>仕入れ一覧</h3>
   <table id="listTable">
     <thead>
       <tr><th>日付</th><th>仕入先</th><th>商品</th><th>数量</th><th>単価</th><th>税区分</th><th>合計</th></tr>
@@ -95,23 +112,36 @@
     <button type="button" class="link" onclick="downloadCSV()">CSV ダウンロード</button>
     <button type="button" class="ghost" onclick="wipeAll()">全データ初期化</button>
   </div>
-</section><!-- 電話帳 --><section id="page-phonebook" style="display:none;">
+</section>
+
+<!-- 電話帳 -->
+<section id="page-phonebook" style="display:none;">
   <h2>仕入先電話帳</h2>
   <table id="phoneTable">
     <thead><tr><th>仕入先</th><th>担当者</th><th>電話番号</th><th>操作</th></tr></thead>
     <tbody></tbody>
   </table>
-</section><!-- マスタ管理 --><section id="page-masters" style="display:none;">
-  <h2>マスタ一覧</h2>  <h3>仕入先</h3>
+</section>
+
+<!-- マスタ管理 -->
+<section id="page-masters" style="display:none;">
+  <h2>マスタ一覧</h2>
+
+  <h3>仕入先</h3>
   <table id="supTable">
     <thead><tr><th>仕入先</th><th>担当者</th><th>電話番号</th><th>操作</th></tr></thead>
     <tbody></tbody>
-  </table>  <h3>商品（紐付け先）</h3>
+  </table>
+
+  <h3>商品（紐付け先）</h3>
   <table id="itemTable">
     <thead><tr><th>商品名</th><th>基準価格</th><th>税区分</th><th>紐付け仕入先</th><th>操作</th></tr></thead>
     <tbody></tbody>
   </table>
-</section><!-- 仕入先モーダル（新規） --><div id="supplierModal" class="modal">
+</section>
+
+<!-- 仕入先モーダル（新規） -->
+<div id="supplierModal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
       <h3>仕入先追加</h3>
@@ -128,7 +158,10 @@
       <button type="button" class="ghost" onclick="resetSupplierForm()">クリア</button>
     </div>
   </div>
-</div><!-- 仕入先モーダル（編集） --><div id="supplierEditModal" class="modal">
+</div>
+
+<!-- 仕入先モーダル（編集） -->
+<div id="supplierEditModal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
       <h3>仕入先編集</h3>
@@ -146,7 +179,10 @@
       <button type="button" class="danger" onclick="deleteSupplier()">削除</button>
     </div>
   </div>
-</div><!-- 商品モーダル（新規） --><div id="itemModal" class="modal">
+</div>
+
+<!-- 商品モーダル（新規） -->
+<div id="itemModal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
       <h3>商品追加</h3>
@@ -166,17 +202,21 @@
           <option value="taxExcluded">税別</option>
         </select>
       </div>
-    </div><label>紐付け仕入先（複数可）</label>
-<div id="itSuppliers" class="checkbox-grid"></div>
-<div class="small">※ 複数の仕入先から購入可能な商品に対応します。</div>
+    </div>
 
-<div class="row" style="margin-top:8px;">
-  <button type="button" onclick="addItem()">登録</button>
-  <button type="button" class="ghost" onclick="resetItemForm()">クリア</button>
+    <label>紐付け仕入先（複数可）</label>
+    <div id="itSuppliers" class="checkbox-grid"></div>
+    <div class="small">※ 複数の仕入先から購入可能な商品に対応します。</div>
+
+    <div class="row" style="margin-top:8px;">
+      <button type="button" onclick="addItem()">登録</button>
+      <button type="button" class="ghost" onclick="resetItemForm()">クリア</button>
+    </div>
+  </div>
 </div>
 
-  </div>
-</div><!-- 商品モーダル（編集） --><div id="itemEditModal" class="modal">
+<!-- 商品モーダル（編集） -->
+<div id="itemEditModal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
       <h3>商品編集</h3>
@@ -205,7 +245,10 @@
       <button type="button" class="danger" onclick="deleteItem()">削除</button>
     </div>
   </div>
-</div><!-- 設定モーダル（基本税率） --><div id="settingsModal" class="modal">
+</div>
+
+<!-- 設定モーダル（基本税率） -->
+<div id="settingsModal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
       <h3>設定</h3>
@@ -230,7 +273,9 @@
       <button type="button" class="ghost" onclick="resetBaseTaxRate()">8%に戻す</button>
     </div>
   </div>
-</div><script>
+</div>
+
+<script>
 /* ====== 永続化 ====== */
 const LS_KEYS = {
   suppliers: 'suppliers_v2',
@@ -541,7 +586,4 @@ function updateSupplier(){
   renderSupplierSelect();
   renderPhonebook();
   renderSupTable();
-  renderItemTable(); // 表示名更新のため
-  updateSupplierQuick($('inSupplier').value);
-}
-function del
+  renderItemTa
