@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>仕入・商品ミニ台帳（安定版・左のUI）</title>
+<title>仕入・商品ミニ台帳 v2（安定・左UI）</title>
 <style>
   :root{--bg:#f6f7f9;--card:#fff;--ink:#111;--muted:#555;--line:#e5e7eb;--ok:#16a34a;--accent:#2563eb;--danger:#ef4444;--call:#10b981}
   *{box-sizing:border-box}
@@ -42,6 +42,12 @@
   .tel:active{opacity:.7}
   input:focus,select:focus,button:focus,a:focus{outline:3px solid rgba(37,99,235,.35);outline-offset:2px}
   @media (max-width:420px){ body{font-size:17px} .label{font-size:14px} }
+  /* 簡易モーダル */
+  .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);padding:16px;z-index:50}
+  .panel{max-width:520px;margin:40px auto;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .panel header{padding:12px 16px;border-bottom:1px solid var(--line);font-weight:700}
+  .panel .content{padding:16px}
+  .panel .foot{display:flex;gap:10px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--line);background:#fafafa}
 </style>
 </head>
 <body>
@@ -207,27 +213,27 @@
 </main>
 
 <!-- 仕入先 追加/編集 -->
-<div id="supplierModal" class="modal" aria-hidden="true" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);padding:16px;z-index:50">
-  <div class="panel" style="max-width:520px;margin:40px auto;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden">
-    <header style="padding:12px 16px;border-bottom:1px solid var(--line);font-weight:700">仕入先</header>
-    <div class="content" style="padding:16px">
+<div id="supplierModal" class="modal" aria-hidden="true">
+  <div class="panel">
+    <header>仕入先</header>
+    <div class="content">
       <input type="hidden" id="supFormId">
       <div class="field"><span class="label">仕入先名</span><input id="supFormName" type="text"></div>
       <div class="field"><span class="label">TEL</span><input id="supFormTel" type="tel" inputmode="tel" autocomplete="tel"></div>
       <div class="field"><span class="label">メモ</span><input id="supFormNote" type="text"></div>
     </div>
-    <div class="foot" style="display:flex;gap:10px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--line);background:#fafafa">
+    <div class="foot">
       <button class="btn" onclick="closeModal('supplierModal')">閉じる</button>
       <button class="btn ok" onclick="saveSupplier()">保存</button>
     </div>
   </div>
 </div>
 
-<!-- 商品 追加/編集 -->
-<div id="itemModal" class="modal" aria-hidden="true" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);padding:16px;z-index:50">
-  <div class="panel" style="max-width:520px;margin:40px auto;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden">
-    <header style="padding:12px 16px;border-bottom:1px solid var(--line);font-weight:700">商品</header>
-    <div class="content" style="padding:16px">
+<!-- 商品 追加/編集（仕入先に紐付け） -->
+<div id="itemModal" class="modal" aria-hidden="true">
+  <div class="panel">
+    <header>商品</header>
+    <div class="content">
       <input type="hidden" id="itemFormId">
       <div class="field"><span class="label">商品名</span><input id="itemFormName" type="text"></div>
       <div class="field">
@@ -239,7 +245,7 @@
         <div class="field"><span class="label">メモ</span><input id="itemFormNote" type="text"></div>
       </div>
     </div>
-    <div class="foot" style="display:flex;gap:10px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--line);background:#fafafa">
+    <div class="foot">
       <button class="btn" onclick="closeModal('itemModal')">閉じる</button>
       <button class="btn ok" onclick="saveItem()">保存</button>
     </div>
@@ -322,7 +328,8 @@ function renderPhonebook(){
     return hay.includes(q);
   }).forEach(s=>{
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${esc(s.name)}</td>
+    tr.innerHTML=`
+      <td>${esc(s.name)}</td>
       <td>${ s.tel ? `<a class="tel" href="${telHref(s.tel)}">${esc(s.tel)}</a>` : '<span class="muted">未登録</span>' }</td>
       <td class="muted">${esc(s.note||'')}</td>`;
     rows.appendChild(tr);
@@ -436,4 +443,13 @@ function onEntrySupplierChange(){
   $('entItem').value = '';
   $('entPrice').value = 0;
 }
-funct
+function onEntryItemChange(){
+  const itemId = $('entItem').value;
+  const it = items.find(x=>x.id===itemId);
+  $('entPrice').value = it ? (it.price||0) : 0;
+}
+function clearEntry(){
+  $('entSupplier').value=''; onEntrySupplierChange();
+  $('entQty').value='1'; $('entPrice').value='0';
+  document.querySelector('input[name="taxkind"][value="inc"]').checked = true;
+  document.quer
