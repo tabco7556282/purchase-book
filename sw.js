@@ -1,5 +1,5 @@
-// キャッシュ名を更新して最新を強制取得
-const CACHE = "shiire-cache-v6";
+// ここを v7 に上げる（任意の新しい名前ならOK）
+const CACHE = "shiire-cache-v7";
 
 const ASSETS = [
   "./",
