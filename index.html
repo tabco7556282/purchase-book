@@ -429,6 +429,14 @@ function clearEntry(){
   $('inPrice').value = 0;
   document.querySelector('input[name="inTax"][value="taxIncluded"]').checked = true;
 }
+// 直近の「仕入先×商品」の単価を後ろから探索して取得
+function getLastPriceFor(supplierId, itemId){
+  for (let i = purchases.length - 1; i >= 0; i--) {
+    const p = purchases[i];
+    if (p.supplierId === supplierId && p.itemId === itemId) return p.price;
+  }
+  return null;
+}
 
 /* ====== 保存・計算 ====== */
 function savePurchase(){
