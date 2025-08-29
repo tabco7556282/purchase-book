@@ -539,7 +539,7 @@ function downloadCSV(){
   a.href = url; a.download = '仕入れデータ.csv'; a.click();
   URL.revokeObjectURL(url);
 }
-  function downloadJSON(){
+ function downloadJSON(){
   const data = {
     version: 1,
     savedAt: new Date().toISOString(),
@@ -549,7 +549,8 @@ function downloadCSV(){
   const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'shiire-backup.json';
+  // ← 日付入りにして整理しやすく
+  a.download = `shiire-backup_${new Date().toISOString().slice(0,10)}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
 }
@@ -559,16 +560,21 @@ function restoreJSON(file){
   r.onload = ()=>{
     try{
       const data = JSON.parse(r.result);
-      if(!data || !data.suppliers || !data.items || !data.purchases) throw new Error('形式不正');
+      if(!data || !data.suppliers || !data.items || !data.purchases)
+        throw new Error('形式不正');
       suppliers = data.suppliers; items = data.items; purchases = data.purchases;
-      if(data.taxRate!=null) localStorage.setItem(LS_KEYS.taxRate, String(data.taxRate));
+      if(data.taxRate!=null)
+        localStorage.setItem(LS_KEYS.taxRate, String(data.taxRate));
       localStorage.setItem(LS_KEYS.suppliers, JSON.stringify(suppliers));
       localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
       localStorage.setItem(LS_KEYS.purchases, JSON.stringify(purchases));
       renderSupplierSelect(); renderItemSelect(); renderListTable();
-      renderPhonebook(); renderSupTable(); renderItemTable(); updateSums(); updateTaxRateLabel();
+      renderPhonebook(); renderSupTable(); renderItemTable();
+      updateSums(); updateTaxRateLabel();
       alert('復元しました');
-    }catch(e){ alert('復元に失敗: ' + e.message); }
+    }catch(e){
+      alert('復元に失敗: ' + e.message);
+    }
   };
   r.readAsText(file);
 }
