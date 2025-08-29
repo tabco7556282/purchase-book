@@ -149,6 +149,13 @@
 
     <button type="button" class="link" onclick="downloadCSV()">CSV ダウンロード</button>
     <button type="button" class="ghost" onclick="wipeAll()">全データ初期化</button>
+    <div class="row" style="margin-top:6px;">
+  <button type="button" class="ghost" onclick="downloadJSON()">JSONバックアップ</button>
+  <button type="button" class="ghost" onclick="document.getElementById('restoreInput').click()">JSON復元</button>
+  <input id="restoreInput" type="file" accept="application/json" style="display:none"
+         onchange="if(this.files[0]) restoreJSON(this.files[0])">
+</div>
+
   </div>
 </section>
 
