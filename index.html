@@ -413,14 +413,22 @@ function renderItemSelect(supplierId=''){
   sel.innerHTML = '<option value="">-- 商品を選択 --</option>' +
     list.map(i=> `<option value="${i.id}">${i.name}</option>`).join('');
   sel.onchange = ()=>{
-    const it = items.find(x=>x.id===sel.value);
-    if(it){
-      if(it.price!=null) $('inPrice').value = it.price;
-      const tsel = document.querySelector('input[name="inTax"][value="'+(it.taxType||'taxIncluded')+'"]');
-      if(tsel) tsel.checked = true;
+  const it = items.find(x=>x.id===sel.value);
+  if(it){
+    // ① 仕入先×商品の直近価格を最優先で反映
+    const last = getLastPriceFor($('inSupplier').value, it.id);
+    if (last!=null) {
+      $('inPrice').value = last;
+    } else if (it.price!=null) {
+      // ② なければ商品の基準価格
+      $('inPrice').value = it.price;
     }
-  };
-}
+    // 税区分も商品既定を反映
+    const tsel = document.querySelector('input[name="inTax"][value="'+(it.taxType||'taxIncluded')+'"]');
+    if(tsel) tsel.checked = true;
+  }
+};
+
 
 /* ====== 入力エリア ====== */
 function clearEntry(){
