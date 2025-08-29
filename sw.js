@@ -1,5 +1,5 @@
 // ここを v7 に上げる（任意の新しい名前ならOK）
-const CACHE = "shiire-cache-v7";
+const CACHE = "shiire-cache-v10";
 
 const ASSETS = [
   "./",
