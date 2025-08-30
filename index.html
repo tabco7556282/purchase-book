@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>仕入れ管理アプリ v3（電話・編集・税率設定）</title>
+<title>仕入れ管理アプリ v3（電話・編集・税率設定・バックアップ）</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#16a34a">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -43,7 +43,7 @@
     display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:8px;
     max-height:50vh; overflow:auto; padding-right:4px;
   }
-  /* モーダル内のボタン行を下固定（.actions でも .row 最終でも効く） */
+  /* モーダル内のボタン行を下固定 */
   .actions,
   #supplierModal .modal-content > .row:last-child,
   #itemModal .modal-content > .row:last-child {
@@ -55,7 +55,7 @@
   .danger { background:#ef4444; }
   .danger:hover { background:#c53737; }
 
-  /* === 画面下固定アクションバー（全画面共通） === */
+  /* 画面下固定アクションバー */
   .fab-bar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
     background: #fff; border-top: 1px solid #e5e7eb;
@@ -137,25 +137,19 @@
     </thead>
     <tbody></tbody>
   </table>
-  <div class="row">
-    <div class="row" style="margin-top:6px;">
-  <button type="button" class="ghost" onclick="downloadJSON()">JSONバックアップ</button>
-  <label class="ghost" style="display:inline-block; text-align:center; border-radius:8px; padding:8px; cursor:pointer;">
-    JSON復元
-    <input type="file" accept="application/json" style="display:none"
-      onchange="if(this.files[0]) restoreJSON(this.files[0])">
-  </label>
-</div>
 
+  <!-- CSV / 初期化 -->
+  <div class="row">
     <button type="button" class="link" onclick="downloadCSV()">CSV ダウンロード</button>
     <button type="button" class="ghost" onclick="wipeAll()">全データ初期化</button>
-    <div class="row" style="margin-top:6px;">
-  <button type="button" class="ghost" onclick="downloadJSON()">JSONバックアップ</button>
-  <button type="button" class="ghost" onclick="document.getElementById('restoreInput').click()">JSON復元</button>
-  <input id="restoreInput" type="file" accept="application/json" style="display:none"
-         onchange="if(this.files[0]) restoreJSON(this.files[0])">
-</div>
+  </div>
 
+  <!-- JSON バックアップ / 復元（安全版） -->
+  <div class="row" style="margin-top:6px;">
+    <button type="button" class="ghost" onclick="downloadJSON()">JSONバックアップ</button>
+    <button type="button" class="ghost" onclick="document.getElementById('restoreInput').click()">JSON復元</button>
+    <input id="restoreInput" type="file" accept="application/json" style="display:none"
+           onchange="if(this.files[0]) restoreJSON(this.files[0])">
   </div>
 </section>
 
@@ -259,6 +253,7 @@
     </div>
   </div>
 </div>
+
 <!-- 商品モーダル（編集） -->
 <div id="itemEditModal" class="modal">
   <div class="modal-content">
@@ -339,7 +334,7 @@ let purchases = JSON.parse(localStorage.getItem(LS_KEYS.purchases) || '[]');
 /* ====== 税率 ====== */
 function getBaseTaxRate(){
   const v = localStorage.getItem(LS_KEYS.taxRate);
-  return v==null ? 0.08 : Number(v); // 既定は8%
+  return v==null ? 0.08 : Number(v);
 }
 function setBaseTaxRate(decimal){
   localStorage.setItem(LS_KEYS.taxRate, String(decimal));
@@ -385,13 +380,12 @@ function init(){
 }
 document.addEventListener('DOMContentLoaded', init);
 
-// PWA Service Worker
+// PWA: Service Worker（バージョン付きで強制更新）
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=13').catch(()=>{});
+    navigator.serviceWorker.register('./sw.js?v=14').catch(()=>{});
   });
 }
-
 
 /* ====== ヘルパー描画 ====== */
 function renderSupplierSelect(){
@@ -430,22 +424,17 @@ function renderItemSelect(supplierId=''){
   sel.innerHTML = '<option value="">-- 商品を選択 --</option>' +
     list.map(i=> `<option value="${i.id}">${i.name}</option>`).join('');
   sel.onchange = ()=>{
-  const it = items.find(x=>x.id===sel.value);
-  if(it){
-    // ① 仕入先×商品の直近価格を最優先で反映
-    const last = getLastPriceFor($('inSupplier').value, it.id);
-    if (last!=null) {
-      $('inPrice').value = last;
-    } else if (it.price!=null) {
-      // ② なければ商品の基準価格
-      $('inPrice').value = it.price;
+    const it = items.find(x=>x.id===sel.value);
+    if(it){
+      // 直近価格（仕入先×商品）を最優先
+      const last = getLastPriceFor($('inSupplier').value, it.id);
+      if (last!=null) $('inPrice').value = last;
+      else if (it.price!=null) $('inPrice').value = it.price; // 基準価格
+      const tsel = document.querySelector('input[name="inTax"][value="'+(it.taxType||'taxIncluded')+'"]');
+      if(tsel) tsel.checked = true;
     }
-    // 税区分も商品既定を反映
-    const tsel = document.querySelector('input[name="inTax"][value="'+(it.taxType||'taxIncluded')+'"]');
-    if(tsel) tsel.checked = true;
-  }
-};
-
+  };
+}
 
 /* ====== 入力エリア ====== */
 function clearEntry(){
@@ -454,7 +443,8 @@ function clearEntry(){
   $('inPrice').value = 0;
   document.querySelector('input[name="inTax"][value="taxIncluded"]').checked = true;
 }
-// 直近の「仕入先×商品」の単価を後ろから探索して取得
+
+/* ====== 直近価格取得 ====== */
 function getLastPriceFor(supplierId, itemId){
   for (let i = purchases.length - 1; i >= 0; i--) {
     const p = purchases[i];
@@ -539,7 +529,9 @@ function downloadCSV(){
   a.href = url; a.download = '仕入れデータ.csv'; a.click();
   URL.revokeObjectURL(url);
 }
- function downloadJSON(){
+
+/* ====== JSON バックアップ／復元 ====== */
+function downloadJSON(){
   const data = {
     version: 1,
     savedAt: new Date().toISOString(),
@@ -549,36 +541,28 @@ function downloadCSV(){
   const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  // ← 日付入りにして整理しやすく
   a.download = `shiire-backup_${new Date().toISOString().slice(0,10)}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
 }
-
 function restoreJSON(file){
   const r = new FileReader();
   r.onload = ()=>{
     try{
       const data = JSON.parse(r.result);
-      if(!data || !data.suppliers || !data.items || !data.purchases)
-        throw new Error('形式不正');
+      if(!data || !data.suppliers || !data.items || !data.purchases) throw new Error('形式不正');
       suppliers = data.suppliers; items = data.items; purchases = data.purchases;
-      if(data.taxRate!=null)
-        localStorage.setItem(LS_KEYS.taxRate, String(data.taxRate));
+      if(data.taxRate!=null) localStorage.setItem(LS_KEYS.taxRate, String(data.taxRate));
       localStorage.setItem(LS_KEYS.suppliers, JSON.stringify(suppliers));
       localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
       localStorage.setItem(LS_KEYS.purchases, JSON.stringify(purchases));
       renderSupplierSelect(); renderItemSelect(); renderListTable();
-      renderPhonebook(); renderSupTable(); renderItemTable();
-      updateSums(); updateTaxRateLabel();
+      renderPhonebook(); renderSupTable(); renderItemTable(); updateSums(); updateTaxRateLabel();
       alert('復元しました');
-    }catch(e){
-      alert('復元に失敗: ' + e.message);
-    }
+    }catch(e){ alert('復元に失敗: ' + e.message); }
   };
   r.readAsText(file);
 }
-
 
 /* ====== 電話帳 ====== */
 function renderPhonebook(){
@@ -602,7 +586,6 @@ function renderPhonebook(){
     tb.appendChild(tr);
   });
 }
-
 async function copyPhone(num){
   if(!num){ alert('電話番号が未登録です'); return; }
   try{
@@ -670,7 +653,6 @@ function addSupplier(){
   renderSupTable();
   renderItemSupplierChecks();
 }
-
 function openSupplierEdit(id){
   const s = suppliers.find(x=>x.id===id);
   if(!s) return;
@@ -755,7 +737,6 @@ function addItem(){
   renderItemSelect($('inSupplier').value);
   renderItemTable();
 }
-
 function openItemEdit(id){
   const it = items.find(x=>x.id===id);
   if(!it) return;
@@ -863,8 +844,5 @@ function wipeAll(){
   updateSupplierQuick('');
 }
 </script>
-</body>
-</html>
-
 </body>
 </html>
