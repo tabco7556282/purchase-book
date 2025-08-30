@@ -355,7 +355,8 @@ function renderBaseRateRadios(){
     r.onchange = ()=> setBaseTaxRate(Number(r.value)/100);
   });
 }
-  function ensureBaseRateChecked(){
+// ★ 必ず8%か10%のどちらかにチェックを入れる
+function ensureBaseRateChecked(){
   const radios = document.querySelectorAll('input[name="baseRateChoice"]');
   const any = Array.from(radios).some(r => r.checked);
   if(!any){
@@ -366,7 +367,6 @@ function renderBaseRateRadios(){
   }
 }
 
-
 /* ====== ページ切替 ====== */
 function showPage(which){
   $('page-entry').style.display = which==='entry' ? 'block':'none';
@@ -374,6 +374,7 @@ function showPage(which){
   $('page-masters').style.display = which==='masters' ? 'block':'none';
   if(which==='phonebook') renderPhonebook();
   if(which==='masters')  { renderSupTable(); renderItemTable(); }
+  if(which==='entry')    ensureBaseRateChecked(); // entry表示時にも保証
 }
 
 /* ====== 初期描画 ====== */
@@ -384,8 +385,9 @@ function init(){
   const dd = ('0'+today.getDate()).slice(-2);
   $('inDate').value = `${yyyy}-${mm}-${dd}`;
 
-  // デフォルトは税別
-document.querySelector('input[name="inTax"][value="taxExcluded"]').checked = true;
+  // ★デフォルトは税別
+  const defTax = document.querySelector('input[name="inTax"][value="taxExcluded"]');
+  if(defTax) defTax.checked = true;
 
   renderSupplierSelect();
   renderItemSelect();
@@ -393,14 +395,14 @@ document.querySelector('input[name="inTax"][value="taxExcluded"]').checked = tru
   updateSums();
   updateTaxRateLabel();
   renderBaseRateRadios();
-  ensureBaseRateChecked();
+  ensureBaseRateChecked(); // ←ここで必ず保証
 }
 document.addEventListener('DOMContentLoaded', init);
 
-// PWA: Service Worker（バージョン付きで強制更新）
+// PWA: Service Worker（キャッシュ強制更新）
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=15.3').catch(()=>{});
+    navigator.serviceWorker.register('./sw.js?v=15-4').catch(()=>{});
   });
 }
 
@@ -443,14 +445,12 @@ function renderItemSelect(supplierId=''){
   sel.onchange = ()=>{
     const it = items.find(x=>x.id===sel.value);
     if(it){
-      // 直近価格（仕入先×商品）を最優先
       const last = getLastPriceFor($('inSupplier').value, it.id);
       if (last!=null) $('inPrice').value = last;
-      else if (it.price!=null) $('inPrice').value = it.price; // 基準価格
+      else if (it.price!=null) $('inPrice').value = it.price;
       const defaultTax = it.taxType || 'taxExcluded';
-const tsel = document.querySelector('input[name="inTax"][value="'+ defaultTax +'"]');
-if (tsel) tsel.checked = true;
-
+      const tsel = document.querySelector('input[name="inTax"][value="'+ defaultTax +'"]');
+      if (tsel) tsel.checked = true;
     }
   };
 }
@@ -460,10 +460,7 @@ function clearEntry(){
   $('inItem').value = '';
   $('inQty').value = 1;
   $('inPrice').value = 0;
-  // 既定を税別に
   document.querySelector('input[name="inTax"][value="taxExcluded"]').checked = true;
-}
-
 }
 
 /* ====== 直近価格取得 ====== */
@@ -482,9 +479,9 @@ function savePurchase(){
   const itemId = $('inItem').value;
   const qty = Number($('inQty').value || 0);
   const price = Number($('inPrice').value || 0);
- const selTax = document.querySelector('input[name="inTax"]:checked');
-const taxType = selTax ? selTax.value : 'taxExcluded'; // 未選択なら税別を採用
 
+  const selTax = document.querySelector('input[name="inTax"]:checked');
+  const taxType = selTax ? selTax.value : 'taxExcluded';
 
   if(!date) return alert('日付を入力してください');
   if(!supplierId) return alert('仕入先を選択してください');
@@ -654,195 +651,8 @@ function renderItemTable(){
   });
 }
 
-/* ====== 仕入先：新規/編集 ====== */
-function openSupplierModal(){
-  resetSupplierForm();
-  $('supplierModal').style.display = 'block';
-  setFabVisible(false);
-}
-function resetSupplierForm(){
-  $('supName').value=''; $('supContact').value=''; $('supPhone').value='';
-}
-function addSupplier(){
-  const name = $('supName').value.trim();
-  if(!name) return alert('社名を入力してください');
-  const contact = $('supContact').value.trim();
-  const phone = $('supPhone').value.trim();
-  suppliers.push({id: uid(), name, contact, phone});
-  localStorage.setItem(LS_KEYS.suppliers, JSON.stringify(suppliers));
-
-  resetSupplierForm();
-  renderSupplierSelect();
-  renderPhonebook();
-  renderSupTable();
-  renderItemSupplierChecks();
-}
-function openSupplierEdit(id){
-  const s = suppliers.find(x=>x.id===id);
-  if(!s) return;
-  $('editSupId').value = s.id;
-  $('editSupName').value = s.name;
-  $('editSupContact').value = s.contact||'';
-  $('editSupPhone').value = s.phone||'';
-  $('supplierEditModal').style.display = 'block';
-  setFabVisible(false);
-}
-function updateSupplier(){
-  const id = $('editSupId').value;
-  const s = suppliers.find(x=>x.id===id);
-  if(!s) return;
-  const name = $('editSupName').value.trim();
-  if(!name) return alert('社名は必須です');
-  s.name = name;
-  s.contact = $('editSupContact').value.trim();
-  s.phone = $('editSupPhone').value.trim();
-  localStorage.setItem(LS_KEYS.suppliers, JSON.stringify(suppliers));
-  closeModal('supplierEditModal');
-  renderSupplierSelect();
-  renderPhonebook();
-  renderSupTable();
-  renderItemTable();
-  updateSupplierQuick($('inSupplier').value);
-}
-function deleteSupplier(){
-  const id = $('editSupId').value;
-  if(!confirm('この仕入先を削除します。紐付く商品からも除外されます。よろしいですか？')) return;
-  suppliers = suppliers.filter(s=>s.id!==id);
-  items = items.map(it=> ({...it, suppliers: (it.suppliers||[]).filter(sid=>sid!==id)}));
-  localStorage.setItem(LS_KEYS.suppliers, JSON.stringify(suppliers));
-  localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
-  closeModal('supplierEditModal');
-  renderSupplierSelect();
-  renderPhonebook();
-  renderSupTable();
-  renderItemTable();
-  renderItemSelect($('inSupplier').value);
-  updateSupplierQuick($('inSupplier').value);
-}
-
-/* ====== 商品：新規/編集 ====== */
-function openItemModal(){
-  resetItemForm();
-  renderItemSupplierChecks();
-  $('itemModal').style.display = 'block';
-  setFabVisible(false);
-}
-function resetItemForm(){
-  $('itName').value=''; $('itPrice').value=''; $('itTax').value='taxIncluded';
-}
-function renderItemSupplierChecks(target='itSuppliers'){
-  const box = $(target);
-  if(suppliers.length===0){
-    box.innerHTML = '<div class="small">仕入先がありません。先に仕入先を登録してください。</div>';
-    return;
-  }
-  box.innerHTML = suppliers.map(s=>`
-    <label style="display:flex; align-items:center; gap:6px;">
-      <input type="checkbox" value="${s.id}"> ${s.name}
-    </label>
-  `).join('');
-}
-function addItem(){
-  const name = $('itName').value.trim();
-  if(!name) return alert('商品名を入力してください');
-  const priceStr = $('itPrice').value.trim();
-  const price = priceStr==='' ? null : Number(priceStr);
-  const taxType = $('itTax').value;
-
-  const checks = Array.from($('itSuppliers').querySelectorAll('input[type="checkbox"]:checked'));
-  const supIds = checks.map(c=>c.value);
-  if(supIds.length===0) return alert('紐付ける仕入先を1つ以上選択してください');
-
-  items.push({id: uid(), name, price, taxType, suppliers: supIds});
-  localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
-
-  resetItemForm();
-  renderItemSupplierChecks();
-  renderItemSelect($('inSupplier').value);
-  renderItemTable();
-}
-function openItemEdit(id){
-  const it = items.find(x=>x.id===id);
-  if(!it) return;
-  $('editItemId').value = it.id;
-  $('editItName').value = it.name;
-  $('editItPrice').value = it.price!=null? it.price : '';
-  $('editItTax').value = it.taxType || 'taxIncluded';
-  renderItemSupplierChecks('editItSuppliers');
-  const box = $('editItSuppliers');
-  (it.suppliers||[]).forEach(sid=>{
-    const chk = box.querySelector(`input[value="${sid}"]`);
-    if(chk) chk.checked = true;
-  });
-  $('itemEditModal').style.display = 'block';
-  setFabVisible(false);
-}
-function updateItem(){
-  const id = $('editItemId').value;
-  const it = items.find(x=>x.id===id);
-  if(!it) return;
-  const name = $('editItName').value.trim();
-  if(!name) return alert('商品名は必須です');
-  it.name = name;
-  const priceStr = $('editItPrice').value.trim();
-  it.price = priceStr==='' ? null : Number(priceStr);
-  it.taxType = $('editItTax').value;
-  const checks = Array.from($('editItSuppliers').querySelectorAll('input[type="checkbox"]:checked'));
-  const supIds = checks.map(c=>c.value);
-  if(supIds.length===0) return alert('紐付け仕入先を1つ以上選択してください');
-  it.suppliers = supIds;
-  localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
-  closeModal('itemEditModal');
-  renderItemSelect($('inSupplier').value);
-  renderItemTable();
-}
-function deleteItem(){
-  const id = $('editItemId').value;
-  if(!confirm('この商品を削除します。よろしいですか？')) return;
-  items = items.filter(x=>x.id!==id);
-  localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
-  closeModal('itemEditModal');
-  renderItemSelect($('inSupplier').value);
-  renderItemTable();
-}
-
-/* ====== 設定：基本税率 ====== */
-function openSettings(){
-  const ratePct = Math.round(getBaseTaxRate()*100);
-  const target = ratePct===10 ? '10' : '8';
-  const radio = document.querySelector(`input[name="baseRatePreset"][value="${target}"]`);
-  if(radio) radio.checked = true;
-  $('settingsModal').style.display = 'block';
-  setFabVisible(false);
-}
-function saveBaseTaxRate(){
-  const sel = document.querySelector('input[name="baseRatePreset"]:checked');
-  if(!sel) { alert('税率を選択してください'); return; }
-  const v = Number(sel.value);
-  setBaseTaxRate(v/100);
-  alert(`基本税率を ${v}% に設定しました`);
-  closeModal('settingsModal');
-}
-function resetBaseTaxRate(){
-  setBaseTaxRate(0.08);
-  alert('基本税率を 8% に戻しました');
-  closeModal('settingsModal');
-}
-
-/* ====== 固定バーの表示制御／モーダル ====== */
-function setFabVisible(show){
-  const bar = document.querySelector('.fab-bar');
-  if(!bar) return;
-  bar.style.display = show ? 'block' : 'none';
-}
-function anyModalOpen(){
-  return ['supplierModal','supplierEditModal','itemModal','itemEditModal','settingsModal']
-    .some(id => document.getElementById(id).style.display === 'block');
-}
-function closeModal(id){
-  $(id).style.display='none';
-  if(!anyModalOpen()) setFabVisible(true);
-}
+/* ====== モーダル共通 ====== */
+function closeModal(id){ $(id).style.display='none'; }
 window.addEventListener('click', (e)=>{
   if(e.target===$('supplierModal')) closeModal('supplierModal');
   if(e.target===$('supplierEditModal')) closeModal('supplierEditModal');
