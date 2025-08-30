@@ -121,7 +121,7 @@
   <!-- 基本税率のクイック切替 -->
   <label style="margin-top:6px;">税率（8% / 10% クイック切替）</label>
   <div class="radio-group" id="baseRateRadios">
-    <label><input type="radio" name="baseRateChoice" value="8"> 8%</label>
+    <label><input type="radio" name="baseRateChoice" value="8" checked> 8%</label>
     <label><input type="radio" name="baseRateChoice" value="10"> 10%</label>
     <span class="small">※ 以後の計算に使う「基本税率」を即時更新します。</span>
   </div>
@@ -355,6 +355,17 @@ function renderBaseRateRadios(){
     r.onchange = ()=> setBaseTaxRate(Number(r.value)/100);
   });
 }
+  function ensureBaseRateChecked(){
+  const radios = document.querySelectorAll('input[name="baseRateChoice"]');
+  const any = Array.from(radios).some(r => r.checked);
+  if(!any){
+    const pct = Math.round(getBaseTaxRate()*100);
+    const target = pct===10 ? '10' : '8';
+    const r = document.querySelector(`input[name="baseRateChoice"][value="${target}"]`);
+    if(r) r.checked = true;
+  }
+}
+
 
 /* ====== ページ切替 ====== */
 function showPage(which){
@@ -382,13 +393,14 @@ document.querySelector('input[name="inTax"][value="taxExcluded"]').checked = tru
   updateSums();
   updateTaxRateLabel();
   renderBaseRateRadios();
+  ensureBaseRateChecked();
 }
 document.addEventListener('DOMContentLoaded', init);
 
 // PWA: Service Worker（バージョン付きで強制更新）
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=15.2').catch(()=>{});
+    navigator.serviceWorker.register('./sw.js?v=15.3').catch(()=>{});
   });
 }
 
