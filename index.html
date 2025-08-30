@@ -385,7 +385,7 @@ document.addEventListener('DOMContentLoaded', init);
 // PWA: Service Worker（バージョン付きで強制更新）
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=15').catch(()=>{});
+    navigator.serviceWorker.register('./sw.js?v=15.1').catch(()=>{});
   });
 }
 
