@@ -1,5 +1,5 @@
 // 強制更新用のキャッシュ名
-const CACHE = "shiire-cache-v14";
+const CACHE = "shiire-cache-v15";
 
 const ASSETS = [
   "./",
