@@ -1,5 +1,5 @@
-// ここを v7 に上げる（任意の新しい名前ならOK）
-const CACHE = "shiire-cache-v13";
+// 強制更新用のキャッシュ名
+const CACHE = "shiire-cache-v14";
 
 const ASSETS = [
   "./",
@@ -10,6 +10,7 @@ const ASSETS = [
 ];
 
 self.addEventListener("install", (e) => {
+  self.skipWaiting();
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
 });
 
@@ -17,7 +18,7 @@ self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    )
+    ).then(()=> self.clients.claim())
   );
 });
 
