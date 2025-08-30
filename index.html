@@ -373,6 +373,9 @@ function init(){
   const dd = ('0'+today.getDate()).slice(-2);
   $('inDate').value = `${yyyy}-${mm}-${dd}`;
 
+  // デフォルトは税別
+document.querySelector('input[name="inTax"][value="taxExcluded"]').checked = true;
+
   renderSupplierSelect();
   renderItemSelect();
   renderListTable();
@@ -432,8 +435,10 @@ function renderItemSelect(supplierId=''){
       const last = getLastPriceFor($('inSupplier').value, it.id);
       if (last!=null) $('inPrice').value = last;
       else if (it.price!=null) $('inPrice').value = it.price; // 基準価格
-      const tsel = document.querySelector('input[name="inTax"][value="'+(it.taxType||'taxIncluded')+'"]');
-      if(tsel) tsel.checked = true;
+      const defaultTax = it.taxType || 'taxExcluded';
+const tsel = document.querySelector('input[name="inTax"][value="'+ defaultTax +'"]');
+if (tsel) tsel.checked = true;
+
     }
   };
 }
@@ -443,7 +448,10 @@ function clearEntry(){
   $('inItem').value = '';
   $('inQty').value = 1;
   $('inPrice').value = 0;
-  document.querySelector('input[name="inTax"][value="taxIncluded"]').checked = true;
+  // 既定を税別に
+  document.querySelector('input[name="inTax"][value="taxExcluded"]').checked = true;
+}
+
 }
 
 /* ====== 直近価格取得 ====== */
@@ -462,7 +470,9 @@ function savePurchase(){
   const itemId = $('inItem').value;
   const qty = Number($('inQty').value || 0);
   const price = Number($('inPrice').value || 0);
-  const taxType = document.querySelector('input[name="inTax"]:checked').value;
+ const selTax = document.querySelector('input[name="inTax"]:checked');
+const taxType = selTax ? selTax.value : 'taxExcluded'; // 未選択なら税別を採用
+
 
   if(!date) return alert('日付を入力してください');
   if(!supplierId) return alert('仕入先を選択してください');
