@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>仕入れ管理アプリ v19.1</title>
+<title>仕入れ管理アプリ v19.2</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#16a34a">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -103,7 +103,7 @@
   <button type="button" onclick="showPage('phonebook')" class="ghost">電話帳</button>
   <button type="button" onclick="showPage('masters')" class="ghost">マスタ管理</button>
   <button type="button" onclick="openSettings()" class="ghost">⚙ 設定</button>
-  <span id="appVersion" class="muted" style="margin-left:auto;">v19.1</span>
+  <span id="appVersion" class="muted" style="margin-left:auto;">v19.2</span>
 </div>
 
 <!-- 仕入れ入力 -->
@@ -401,7 +401,7 @@ const LS_KEYS = {
   taxRate: 'base_tax_rate_v1'
 };
 
-  const APP_VERSION = 'v18'; // ←ここだけ更新すればOK
+  const APP_VERSION = 'v19.2'; // ←ここだけ更新すればOK
 
 document.addEventListener('DOMContentLoaded', ()=>{
   const el = document.getElementById('appVersion');
@@ -490,7 +490,7 @@ document.addEventListener('DOMContentLoaded', init);
 // PWA: Service Worker（強制更新）
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=19.1').catch(()=>{});
+    navigator.serviceWorker.register('./sw.js?v=19.2').catch(()=>{});
   });
 }
 
