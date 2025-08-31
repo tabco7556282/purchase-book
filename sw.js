@@ -1,19 +1,10 @@
-// 強制更新用キャッシュ
-const CACHE = "shiire-cache-v16-2";
-
-const ASSETS = [
-  "./",
-  "./index.html",
-  "./manifest.webmanifest",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png"
-];
+const CACHE = "shiire-cache-v17";
+const ASSETS = ["./","./index.html","./manifest.webmanifest","./icons/icon-192.png","./icons/icon-512.png"];
 
 self.addEventListener("install", (e) => {
   self.skipWaiting();
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
 });
-
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
@@ -21,9 +12,6 @@ self.addEventListener("activate", (e) => {
     ).then(()=> self.clients.claim())
   );
 });
-
 self.addEventListener("fetch", (e) => {
-  e.respondWith(
-    caches.match(e.request).then((res) => res || fetch(e.request))
-  );
+  e.respondWith(caches.match(e.request).then((res) => res || fetch(e.request)));
 });
