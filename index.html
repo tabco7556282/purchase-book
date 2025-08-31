@@ -135,13 +135,14 @@
   <div class="row">
     <button type="button" class="link" onclick="downloadCSV()">CSV ダウンロード</button>
     <button type="button" class="ghost" onclick="wipeAll()">全データ初期化</button>
-  </div>
-  <div class="row" style="margin-top:6px;">
-    <button type="button" class="ghost" onclick="downloadJSON()">JSONバックアップ</button>
-    <button type="button" class="ghost" onclick="document.getElementById('restoreInput').click()">JSON復元</button>
-    <input id="restoreInput" type="file" accept="application/json" style="display:none"
-           onchange="if(this.files[0]) restoreJSON(this.files[0])">
-  </div>
+ <div class="row" style="margin-top:6px;">
+  <button type="button" class="link" onclick="backupToCloud()">OneDriveにバックアップ</button>
+  <button type="button" class="ghost" onclick="document.getElementById('restoreInput').click()">JSON復元</button>
+  <input id="restoreInput" type="file" accept="application/json" style="display:none"
+         onchange="if(this.files[0]) restoreJSON(this.files[0])">
+</div>
+
+
 </section>
 
 <!-- 電話帳 -->
@@ -379,7 +380,7 @@ document.addEventListener('DOMContentLoaded', init);
 // PWA: Service Worker（強制更新）
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=16').catch(()=>{});
+    navigator.serviceWorker.register('./sw.js?v=16-2').catch(()=>{});
   });
 }
 
@@ -482,6 +483,58 @@ function downloadCSV(){
 
 /* ====== JSON バックアップ／復元 ====== */
 function downloadJSON(){
+async function backupToCloud(){
+  const data = {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    suppliers, items, purchases,
+    taxRate: localStorage.getItem(LS_KEYS.taxRate)
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const fileName = `shiire-backup_${new Date().toISOString().slice(0,10)}.json`;
+  const file = new File([blob], fileName, {type:'application/json'});
+
+  // 1) 共有シートでOneDriveへ
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try{
+      await navigator.share({
+        title: '仕入れバックアップ',
+        text: '仕入れ管理アプリのバックアップJSONです。',
+        files: [file]
+      });
+      return; // 共有成功なら終了
+    }catch(e){
+      if(e.name === 'AbortError') return; // キャンセルなら静かに終了
+    }
+  }
+
+  // 2) PC向け：ファイル保存ダイアログ（OneDrive同期フォルダを選べる）
+  if ('showSaveFilePicker' in window) {
+    try{
+      const handle = await window.showSaveFilePicker({
+        suggestedName: fileName,
+        types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+      });
+      const w = await handle.createWritable();
+      await w.write(blob);
+      await w.close();
+      alert('保存しました。OneDrive同期フォルダを選べば自動でクラウドへ同期されます。');
+      return;
+    }catch(e){
+      if(e.name === 'AbortError') return;
+    }
+  }
+
+  // 3) フォールバック：通常ダウンロード
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  alert('この端末では共有シートが使えないため、JSONをダウンロードしました。OneDriveへ手動でアップロードしてください。');
+}
+
+
   const data = { version: 1, savedAt: new Date().toISOString(), suppliers, items, purchases, taxRate: localStorage.getItem(LS_KEYS.taxRate) };
   const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `shiire-backup_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(a.href);
