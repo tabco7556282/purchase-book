@@ -201,6 +201,7 @@
   </div>
 </div>
 
+
 <!-- 仕入先モーダル（編集） -->
 <div id="supplierEditModal" class="modal">
   <div class="modal-content">
@@ -244,6 +245,16 @@
         </select>
       </div>
     </div>
+    <label>紐付け仕入先（複数可）</label>
+    <div id="itSuppliers" class="checkbox-grid"></div>
+    <div class="small">※ 複数の仕入先から購入可能な商品に対応します。</div>
+    <div class="actions" style="margin-top:8px;">
+      <button type="button" onclick="addItem()">登録</button>
+      <button type="button" class="ghost" onclick="resetItemForm()">クリア</button>
+    </div>
+  </div>
+</div>
+
 
     <label>紐付け仕入先（複数可）</label>
     <div id="itSuppliers" class="checkbox-grid"></div>
@@ -402,7 +413,7 @@ document.addEventListener('DOMContentLoaded', init);
 // PWA: Service Worker（キャッシュ強制更新）
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=15-5').catch(()=>{});
+    navigator.serviceWorker.register('./sw.js?v=15-6').catch(()=>{});
   });
 }
 
@@ -654,8 +665,10 @@ function renderItemTable(){
 /* ====== 仕入先：新規/編集 ====== */
 function openSupplierModal(){
   resetSupplierForm();
-  $('supplierModal').style.display = 'block';
-  setFabVisible(false);
+  const m = $('supplierModal');
+  if(!m){ alert('HTMLに「supplierModal」が見つかりません（モーダルHTMLを追加してください）'); return; }
+  m.style.display = 'block';
+  if (typeof setFabVisible === 'function') setFabVisible(false);
 }
 function resetSupplierForm(){
   $('supName').value=''; $('supContact').value=''; $('supPhone').value='';
@@ -721,9 +734,10 @@ function deleteSupplier(){
 function openItemModal(){
   resetItemForm();
   renderItemSupplierChecks();
-  $('itemModal').style.display = 'block';
-  setFabVisible(false);
-}
+  const m = $('itemModal');
+  if(!m){ alert('HTMLに「itemModal」が見つかりません（モーダルHTMLを追加してください）'); return; }
+  m.style.display = 'block';
+  if (typeof setFabVisible === 'function') setFabVisible(false);
 function resetItemForm(){
   $('itName').value=''; $('itPrice').value=''; $('itTax').value='taxIncluded';
 }
