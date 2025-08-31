@@ -103,6 +103,7 @@
   <button type="button" onclick="showPage('phonebook')" class="ghost">電話帳</button>
   <button type="button" onclick="showPage('masters')" class="ghost">マスタ管理</button>
   <button type="button" onclick="openSettings()" class="ghost">⚙ 設定</button>
+  <span id="appVersion" class="muted" style="margin-left:auto;">v18</span>
 </div>
 
 <!-- 仕入れ入力 -->
@@ -400,6 +401,13 @@ const LS_KEYS = {
   taxRate: 'base_tax_rate_v1'
 };
 
+  const APP_VERSION = 'v18'; // ←ここだけ更新すればOK
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  const el = document.getElementById('appVersion');
+  if (el) el.textContent = APP_VERSION;
+});
+
 const $ = (id)=>document.getElementById(id);
 const uid = ()=> 'id_' + Math.random().toString(36).slice(2,10);
 
@@ -482,7 +490,7 @@ document.addEventListener('DOMContentLoaded', init);
 // PWA: Service Worker（強制更新）
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=19').catch(()=>{});
+    navigator.serviceWorker.register('./sw.js?v=19.1').catch(()=>{});
   });
 }
 
