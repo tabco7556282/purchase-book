@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>仕入れ管理アプリ v3（電話・編集・税率設定・バックアップ）</title>
+<title>仕入れ管理アプリ v16</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#16a34a">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -31,22 +31,17 @@
   .muted { color:#666; font-size:12px; }
   .nowrap { white-space:nowrap; }
 
-  /* モーダル土台 */
+  /* モーダル */
   .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:80; }
-  /* モーダル本体：高さ制限＋スクロール */
   .modal-content {
     background:#fff; margin:6% auto; padding:12px; width:92%; max-width:560px; border-radius:10px;
-    max-height:90vh; overflow:auto; padding-bottom:96px; /* 下固定ボタン分の余白 */
+    max-height:90vh; overflow:auto; padding-bottom:96px;
   }
-  /* 仕入先チェックリスト：独立スクロール */
   .checkbox-grid {
     display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:8px;
     max-height:50vh; overflow:auto; padding-right:4px;
   }
-  /* モーダル内のボタン行を下固定 */
-  .actions,
-  #supplierModal .modal-content > .row:last-child,
-  #itemModal .modal-content > .row:last-child {
+  .actions {
     display:flex; gap:8px; justify-content:center;
     position:sticky; bottom:0; background:#fff; padding:8px 0;
     box-shadow: 0 -4px 10px rgba(0,0,0,.04); z-index:60;
@@ -102,23 +97,20 @@
     <div>
       <label>数量</label>
       <input type="number" id="inQty" value="1" step="0.1" min="0" onfocus="this.select()">
-
     </div>
     <div>
       <label>単価</label>
-     <input type="number" id="inPrice" value="0" step="1" min="0" onfocus="this.select()">
-
+      <input type="number" id="inPrice" value="0" step="1" min="0" onfocus="this.select()">
     </div>
   </div>
 
   <label>税区分</label>
   <div class="radio-group">
-   <label><input type="radio" name="inTax" value="taxIncluded"> 税込</label>
-<label><input type="radio" name="inTax" value="taxExcluded" checked> 税別</label>
+    <label><input type="radio" name="inTax" value="taxIncluded"> 税込</label>
+    <label><input type="radio" name="inTax" value="taxExcluded" checked> 税別</label>
     <span class="muted">基本税率：<b id="lblRate"></b>%（設定で変更）</span>
   </div>
 
-  <!-- 基本税率のクイック切替 -->
   <label style="margin-top:6px;">税率（8% / 10% クイック切替）</label>
   <div class="radio-group" id="baseRateRadios">
     <label><input type="radio" name="baseRateChoice" value="8" checked> 8%</label>
@@ -140,13 +132,10 @@
     <tbody></tbody>
   </table>
 
-  <!-- CSV / 初期化 -->
   <div class="row">
     <button type="button" class="link" onclick="downloadCSV()">CSV ダウンロード</button>
     <button type="button" class="ghost" onclick="wipeAll()">全データ初期化</button>
   </div>
-
-  <!-- JSON バックアップ / 復元（安全版） -->
   <div class="row" style="margin-top:6px;">
     <button type="button" class="ghost" onclick="downloadJSON()">JSONバックアップ</button>
     <button type="button" class="ghost" onclick="document.getElementById('restoreInput').click()">JSON復元</button>
@@ -201,7 +190,6 @@
   </div>
 </div>
 
-
 <!-- 仕入先モーダル（編集） -->
 <div id="supplierEditModal" class="modal">
   <div class="modal-content">
@@ -255,18 +243,6 @@
   </div>
 </div>
 
-
-    <label>紐付け仕入先（複数可）</label>
-    <div id="itSuppliers" class="checkbox-grid"></div>
-    <div class="small">※ 複数の仕入先から購入可能な商品に対応します。</div>
-
-    <div class="actions" style="margin-top:8px;">
-      <button type="button" onclick="addItem()">登録</button>
-      <button type="button" class="ghost" onclick="resetItemForm()">クリア</button>
-    </div>
-  </div>
-</div>
-
 <!-- 商品モーダル（編集） -->
 <div id="itemEditModal" class="modal">
   <div class="modal-content">
@@ -299,7 +275,7 @@
   </div>
 </div>
 
-<!-- 設定モーダル（基本税率） -->
+<!-- 設定モーダル -->
 <div id="settingsModal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
@@ -345,18 +321,9 @@ let items     = JSON.parse(localStorage.getItem(LS_KEYS.items) || '[]');
 let purchases = JSON.parse(localStorage.getItem(LS_KEYS.purchases) || '[]');
 
 /* ====== 税率 ====== */
-function getBaseTaxRate(){
-  const v = localStorage.getItem(LS_KEYS.taxRate);
-  return v==null ? 0.08 : Number(v);
-}
-function setBaseTaxRate(decimal){
-  localStorage.setItem(LS_KEYS.taxRate, String(decimal));
-  updateTaxRateLabel();
-  renderBaseRateRadios();
-}
-function updateTaxRateLabel(){
-  $('lblRate').textContent = Math.round(getBaseTaxRate()*1000)/10;
-}
+function getBaseTaxRate(){ const v = localStorage.getItem(LS_KEYS.taxRate); return v==null ? 0.08 : Number(v); }
+function setBaseTaxRate(decimal){ localStorage.setItem(LS_KEYS.taxRate, String(decimal)); updateTaxRateLabel(); renderBaseRateRadios(); }
+function updateTaxRateLabel(){ $('lblRate').textContent = Math.round(getBaseTaxRate()*1000)/10; }
 function renderBaseRateRadios(){
   const pct = Math.round(getBaseTaxRate()*100);
   const target = pct===10 ? '10' : '8';
@@ -366,7 +333,6 @@ function renderBaseRateRadios(){
     r.onchange = ()=> setBaseTaxRate(Number(r.value)/100);
   });
 }
-// ★ 必ず8%か10%のどちらかにチェックを入れる
 function ensureBaseRateChecked(){
   const radios = document.querySelectorAll('input[name="baseRateChoice"]');
   const any = Array.from(radios).some(r => r.checked);
@@ -385,7 +351,7 @@ function showPage(which){
   $('page-masters').style.display = which==='masters' ? 'block':'none';
   if(which==='phonebook') renderPhonebook();
   if(which==='masters')  { renderSupTable(); renderItemTable(); }
-  if(which==='entry')    ensureBaseRateChecked(); // entry表示時にも保証
+  if(which==='entry')    ensureBaseRateChecked();
 }
 
 /* ====== 初期描画 ====== */
@@ -396,7 +362,7 @@ function init(){
   const dd = ('0'+today.getDate()).slice(-2);
   $('inDate').value = `${yyyy}-${mm}-${dd}`;
 
-  // ★デフォルトは税別
+  // 既定は税別
   const defTax = document.querySelector('input[name="inTax"][value="taxExcluded"]');
   if(defTax) defTax.checked = true;
 
@@ -406,53 +372,38 @@ function init(){
   updateSums();
   updateTaxRateLabel();
   renderBaseRateRadios();
-  ensureBaseRateChecked(); // ←ここで必ず保証
+  ensureBaseRateChecked();
 }
 document.addEventListener('DOMContentLoaded', init);
 
-// PWA: Service Worker（キャッシュ強制更新）
+// PWA: Service Worker（強制更新）
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=15-6').catch(()=>{});
+    navigator.serviceWorker.register('./sw.js?v=16').catch(()=>{});
   });
 }
 
 /* ====== ヘルパー描画 ====== */
 function renderSupplierSelect(){
   const sel = $('inSupplier');
-  sel.innerHTML = '<option value="">-- 仕入先を選択 --</option>' +
-    suppliers.map(s=> `<option value="${s.id}">${s.name}</option>`).join('');
-  sel.onchange = ()=>{
-    renderItemSelect(sel.value);
-    updateSupplierQuick(sel.value);
-  };
+  sel.innerHTML = '<option value="">-- 仕入先を選択 --</option>' + suppliers.map(s=> `<option value="${s.id}">${s.name}</option>`).join('');
+  sel.onchange = ()=>{ renderItemSelect(sel.value); updateSupplierQuick(sel.value); };
 }
-
 function updateSupplierQuick(supplierId){
   const wrap = $('supplierQuick');
   if(!supplierId){ wrap.style.display='none'; return; }
-  const s = suppliers.find(x=>x.id===supplierId);
-  if(!s){ wrap.style.display='none'; return; }
+  const s = suppliers.find(x=>x.id===supplierId); if(!s){ wrap.style.display='none'; return; }
   wrap.style.display='flex';
-  const phone = s.phone || '';
-  const telHref = phone ? `tel:${phone}` : '';
+  const phone = s.phone || ''; const telHref = phone ? `tel:${phone}` : '';
   $('supplierPhoneView').textContent = phone ? `電話番号：${phone}` : '電話番号未登録';
-  const btnCall = $('btnCallSupplier');
-  btnCall.onclick = ()=>{
-    if(!phone){ alert('電話番号が未登録です'); return; }
-    window.location.href = telHref;
-  };
+  $('btnCallSupplier').onclick = ()=>{ if(!phone){ alert('電話番号が未登録です'); return; } window.location.href = telHref; };
   $('btnCopySupplier').onclick = ()=> copyPhone(phone);
 }
-
 function renderItemSelect(supplierId=''){
   const sel = $('inItem');
   let list = items;
-  if(supplierId){
-    list = items.filter(it => (it.suppliers||[]).includes(supplierId));
-  }
-  sel.innerHTML = '<option value="">-- 商品を選択 --</option>' +
-    list.map(i=> `<option value="${i.id}">${i.name}</option>`).join('');
+  if(supplierId){ list = items.filter(it => (it.suppliers||[]).includes(supplierId)); }
+  sel.innerHTML = '<option value="">-- 商品を選択 --</option>' + list.map(i=> `<option value="${i.id}">${i.name}</option>`).join('');
   sel.onchange = ()=>{
     const it = items.find(x=>x.id===sel.value);
     if(it){
@@ -467,19 +418,11 @@ function renderItemSelect(supplierId=''){
 }
 
 /* ====== 入力エリア ====== */
-function clearEntry(){
-  $('inItem').value = '';
-  $('inQty').value = 1;
-  $('inPrice').value = 0;
-  document.querySelector('input[name="inTax"][value="taxExcluded"]').checked = true;
-}
+function clearEntry(){ $('inItem').value = ''; $('inQty').value = 1; $('inPrice').value = 0; document.querySelector('input[name="inTax"][value="taxExcluded"]').checked = true; }
 
 /* ====== 直近価格取得 ====== */
 function getLastPriceFor(supplierId, itemId){
-  for (let i = purchases.length - 1; i >= 0; i--) {
-    const p = purchases[i];
-    if (p.supplierId === supplierId && p.itemId === itemId) return p.price;
-  }
+  for (let i = purchases.length - 1; i >= 0; i--) { const p = purchases[i]; if (p.supplierId === supplierId && p.itemId === itemId) return p.price; }
   return null;
 }
 
@@ -490,7 +433,6 @@ function savePurchase(){
   const itemId = $('inItem').value;
   const qty = Number($('inQty').value || 0);
   const price = Number($('inPrice').value || 0);
-
   const selTax = document.querySelector('input[name="inTax"]:checked');
   const taxType = selTax ? selTax.value : 'taxExcluded';
 
@@ -504,47 +446,26 @@ function savePurchase(){
   purchases.push({date, supplierId, itemId, qty, price, taxType, total});
   localStorage.setItem(LS_KEYS.purchases, JSON.stringify(purchases));
 
-  clearEntry();
-  renderListTable();
-  updateSums();
+  clearEntry(); renderListTable(); updateSums();
 }
 
 /* ====== 一覧 & 集計 ====== */
 function renderListTable(){
-  const tb = $('listTable').querySelector('tbody');
-  tb.innerHTML = '';
+  const tb = $('listTable').querySelector('tbody'); tb.innerHTML = '';
   purchases.forEach(p=>{
     const s = suppliers.find(x=>x.id===p.supplierId);
     const i = items.find(x=>x.id===p.itemId);
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${p.date}</td>
-      <td>${s ? s.name : ''}</td>
-      <td>${i ? i.name : ''}</td>
-      <td>${p.qty}</td>
-      <td>${p.price}</td>
-      <td>${p.taxType==='taxExcluded'?'税別':'税込'}</td>
-      <td>${p.total}</td>
-    `;
+    tr.innerHTML = `<td>${p.date}</td><td>${s ? s.name : ''}</td><td>${i ? i.name : ''}</td><td>${p.qty}</td><td>${p.price}</td><td>${p.taxType==='taxExcluded'?'税別':'税込'}</td><td>${p.total}</td>`;
     tb.appendChild(tr);
   });
 }
-
 function updateSums(){
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = ('0'+(today.getMonth()+1)).slice(-2);
-  const dd = ('0'+today.getDate()).slice(-2);
-  const todayStr = `${yyyy}-${mm}-${dd}`;
-  const monthStr = `${yyyy}-${mm}`;
-
+  const today = new Date(); const yyyy = today.getFullYear(); const mm = ('0'+(today.getMonth()+1)).slice(-2); const dd = ('0'+today.getDate()).slice(-2);
+  const todayStr = `${yyyy}-${mm}-${dd}`, monthStr = `${yyyy}-${mm}`;
   let daily = 0, monthly = 0;
-  purchases.forEach(p=>{
-    if(p.date===todayStr) daily += p.total;
-    if((p.date||'').slice(0,7)===monthStr) monthly += p.total;
-  });
-  $('sumDaily').textContent = daily.toString();
-  $('sumMonthly').textContent = monthly.toString();
+  purchases.forEach(p=>{ if(p.date===todayStr) daily += p.total; if((p.date||'').slice(0,7)===monthStr) monthly += p.total; });
+  $('sumDaily').textContent = daily.toString(); $('sumMonthly').textContent = monthly.toString();
 }
 
 /* ====== CSV ====== */
@@ -555,27 +476,15 @@ function downloadCSV(){
     const i = items.find(x=>x.id===p.itemId);
     csv += `${p.date},${s?s.name:''},${i?i.name:''},${p.qty},${p.price},${p.taxType==='taxExcluded'?'税別':'税込'},${p.total}\n`;
   });
-  const blob = new Blob([csv], {type:'text/csv'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = '仕入れデータ.csv'; a.click();
-  URL.revokeObjectURL(url);
+  const blob = new Blob([csv], {type:'text/csv'}); const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = '仕入れデータ.csv'; a.click(); URL.revokeObjectURL(url);
 }
 
 /* ====== JSON バックアップ／復元 ====== */
 function downloadJSON(){
-  const data = {
-    version: 1,
-    savedAt: new Date().toISOString(),
-    suppliers, items, purchases,
-    taxRate: localStorage.getItem(LS_KEYS.taxRate)
-  };
+  const data = { version: 1, savedAt: new Date().toISOString(), suppliers, items, purchases, taxRate: localStorage.getItem(LS_KEYS.taxRate) };
   const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `shiire-backup_${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-  URL.revokeObjectURL(a.href);
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `shiire-backup_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(a.href);
 }
 function restoreJSON(file){
   const r = new FileReader();
@@ -588,8 +497,7 @@ function restoreJSON(file){
       localStorage.setItem(LS_KEYS.suppliers, JSON.stringify(suppliers));
       localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
       localStorage.setItem(LS_KEYS.purchases, JSON.stringify(purchases));
-      renderSupplierSelect(); renderItemSelect(); renderListTable();
-      renderPhonebook(); renderSupTable(); renderItemTable(); updateSums(); updateTaxRateLabel();
+      renderSupplierSelect(); renderItemSelect(); renderListTable(); renderPhonebook(); renderSupTable(); renderItemTable(); updateSums(); updateTaxRateLabel();
       alert('復元しました');
     }catch(e){ alert('復元に失敗: ' + e.message); }
   };
@@ -598,8 +506,7 @@ function restoreJSON(file){
 
 /* ====== 電話帳 ====== */
 function renderPhonebook(){
-  const tb = $('phoneTable').querySelector('tbody');
-  tb.innerHTML = '';
+  const tb = $('phoneTable').querySelector('tbody'); tb.innerHTML = '';
   suppliers.forEach(s=>{
     const tr = document.createElement('tr');
     const telHref = s.phone ? `tel:${s.phone}` : '';
@@ -609,35 +516,25 @@ function renderPhonebook(){
       <td>${s.phone||''}</td>
       <td>
         <div class="row">
-          <a class="link" style="text-align:center; text-decoration:none; padding:8px; border-radius:8px; display:block;"
-             href="${telHref}" ${s.phone?'':'onclick="return false;"'}>📞 電話</a>
+          <a class="link" style="text-align:center; text-decoration:none; padding:8px; border-radius:8px; display:block;" href="${telHref}" ${s.phone?'':'onclick="return false;"'}>📞 電話</a>
           <button type="button" class="ghost" onclick="copyPhone('${s.phone||''}')">📋 コピー</button>
         </div>
-      </td>
-    `;
+      </td>`;
     tb.appendChild(tr);
   });
 }
 async function copyPhone(num){
   if(!num){ alert('電話番号が未登録です'); return; }
   try{
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      await navigator.clipboard.writeText(num);
-    }else{
-      const ta = document.createElement('textarea');
-      ta.value = num; document.body.appendChild(ta);
-      ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-    }
+    if(navigator.clipboard && navigator.clipboard.writeText){ await navigator.clipboard.writeText(num); }
+    else{ const ta = document.createElement('textarea'); ta.value = num; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
     alert('電話番号をコピーしました');
-  }catch(e){
-    alert('コピーできませんでした：' + e.message);
-  }
+  }catch(e){ alert('コピーできませんでした：' + e.message); }
 }
 
 /* ====== マスタ一覧 ====== */
 function renderSupTable(){
-  const tb = $('supTable').querySelector('tbody');
-  tb.innerHTML = '';
+  const tb = $('supTable').querySelector('tbody'); tb.innerHTML = '';
   suppliers.forEach(s=>{
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>${s.name}</td><td>${s.contact||''}</td><td class="nowrap">${s.phone||''}</td>
@@ -646,18 +543,11 @@ function renderSupTable(){
   });
 }
 function renderItemTable(){
-  const tb = $('itemTable').querySelector('tbody');
-  tb.innerHTML = '';
+  const tb = $('itemTable').querySelector('tbody'); tb.innerHTML = '';
   items.forEach(it=>{
     const names = (it.suppliers||[]).map(id=> (suppliers.find(s=>s.id===id)||{}).name ).filter(Boolean);
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${it.name}</td>
-      <td>${it.price!=null? it.price : ''}</td>
-      <td>${it.taxType==='taxExcluded'?'税別':'税込'}</td>
-      <td>${names.join(' / ')}</td>
-      <td><button class="ghost" onclick="openItemEdit('${it.id}')">編集</button></td>
-    `;
+    tr.innerHTML = `<td>${it.name}</td><td>${it.price!=null? it.price : ''}</td><td>${it.taxType==='taxExcluded'?'税別':'税込'}</td><td>${names.join(' / ')}</td><td><button class="ghost" onclick="openItemEdit('${it.id}')">編集</button></td>`;
     tb.appendChild(tr);
   });
 }
@@ -665,195 +555,102 @@ function renderItemTable(){
 /* ====== 仕入先：新規/編集 ====== */
 function openSupplierModal(){
   resetSupplierForm();
-  const m = $('supplierModal');
-  if(!m){ alert('HTMLに「supplierModal」が見つかりません（モーダルHTMLを追加してください）'); return; }
-  m.style.display = 'block';
-  if (typeof setFabVisible === 'function') setFabVisible(false);
+  const m = $('supplierModal'); if(!m){ alert('supplierModal が見つかりません'); return; }
+  m.style.display = 'block'; setFabVisible(false);
 }
-function resetSupplierForm(){
-  $('supName').value=''; $('supContact').value=''; $('supPhone').value='';
-}
+function resetSupplierForm(){ $('supName').value=''; $('supContact').value=''; $('supPhone').value=''; }
 function addSupplier(){
-  const name = $('supName').value.trim();
-  if(!name) return alert('社名を入力してください');
-  const contact = $('supContact').value.trim();
-  const phone = $('supPhone').value.trim();
+  const name = $('supName').value.trim(); if(!name) return alert('社名を入力してください');
+  const contact = $('supContact').value.trim(); const phone = $('supPhone').value.trim();
   suppliers.push({id: uid(), name, contact, phone});
   localStorage.setItem(LS_KEYS.suppliers, JSON.stringify(suppliers));
-
-  resetSupplierForm();
-  renderSupplierSelect();
-  renderPhonebook();
-  renderSupTable();
-  renderItemSupplierChecks();
+  resetSupplierForm(); renderSupplierSelect(); renderPhonebook(); renderSupTable(); renderItemSupplierChecks();
 }
 function openSupplierEdit(id){
-  const s = suppliers.find(x=>x.id===id);
-  if(!s) return;
-  $('editSupId').value = s.id;
-  $('editSupName').value = s.name;
-  $('editSupContact').value = s.contact||'';
-  $('editSupPhone').value = s.phone||'';
-  $('supplierEditModal').style.display = 'block';
-  setFabVisible(false);
+  const s = suppliers.find(x=>x.id===id); if(!s) return;
+  $('editSupId').value = s.id; $('editSupName').value = s.name; $('editSupContact').value = s.contact||''; $('editSupPhone').value = s.phone||'';
+  const m = $('supplierEditModal'); if(!m){ alert('supplierEditModal が見つかりません'); return; }
+  m.style.display = 'block'; setFabVisible(false);
 }
 function updateSupplier(){
-  const id = $('editSupId').value;
-  const s = suppliers.find(x=>x.id===id);
-  if(!s) return;
-  const name = $('editSupName').value.trim();
-  if(!name) return alert('社名は必須です');
-  s.name = name;
-  s.contact = $('editSupContact').value.trim();
-  s.phone = $('editSupPhone').value.trim();
+  const id = $('editSupId').value; const s = suppliers.find(x=>x.id===id); if(!s) return;
+  const name = $('editSupName').value.trim(); if(!name) return alert('社名は必須です');
+  s.name = name; s.contact = $('editSupContact').value.trim(); s.phone = $('editSupPhone').value.trim();
   localStorage.setItem(LS_KEYS.suppliers, JSON.stringify(suppliers));
-  closeModal('supplierEditModal');
-  renderSupplierSelect();
-  renderPhonebook();
-  renderSupTable();
-  renderItemTable();
-  updateSupplierQuick($('inSupplier').value);
+  closeModal('supplierEditModal'); renderSupplierSelect(); renderPhonebook(); renderSupTable(); renderItemTable(); updateSupplierQuick($('inSupplier').value);
 }
 function deleteSupplier(){
   const id = $('editSupId').value;
   if(!confirm('この仕入先を削除します。紐付く商品からも除外されます。よろしいですか？')) return;
   suppliers = suppliers.filter(s=>s.id!==id);
   items = items.map(it=> ({...it, suppliers: (it.suppliers||[]).filter(sid=>sid!==id)}));
-  localStorage.setItem(LS_KEYS.suppliers, JSON.stringify(suppliers));
-  localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
-  closeModal('supplierEditModal');
-  renderSupplierSelect();
-  renderPhonebook();
-  renderSupTable();
-  renderItemTable();
-  renderItemSelect($('inSupplier').value);
-  updateSupplierQuick($('inSupplier').value);
+  localStorage.setItem(LS_KEYS.suppliers, JSON.stringify(suppliers)); localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
+  closeModal('supplierEditModal'); renderSupplierSelect(); renderPhonebook(); renderSupTable(); renderItemTable(); renderItemSelect($('inSupplier').value); updateSupplierQuick($('inSupplier').value);
 }
 
 /* ====== 商品：新規/編集 ====== */
 function openItemModal(){
-  resetItemForm();
-  renderItemSupplierChecks();
-  const m = $('itemModal');
-  if(!m){ alert('HTMLに「itemModal」が見つかりません（モーダルHTMLを追加してください）'); return; }
-  m.style.display = 'block';
-  if (typeof setFabVisible === 'function') setFabVisible(false);
-function resetItemForm(){
-  $('itName').value=''; $('itPrice').value=''; $('itTax').value='taxIncluded';
+  resetItemForm(); renderItemSupplierChecks();
+  const m = $('itemModal'); if(!m){ alert('itemModal が見つかりません'); return; }
+  m.style.display = 'block'; setFabVisible(false);
 }
+function resetItemForm(){ $('itName').value=''; $('itPrice').value=''; $('itTax').value='taxIncluded'; }
 function renderItemSupplierChecks(target='itSuppliers'){
   const box = $(target);
-  if(suppliers.length===0){
-    box.innerHTML = '<div class="small">仕入先がありません。先に仕入先を登録してください。</div>';
-    return;
-  }
-  box.innerHTML = suppliers.map(s=>`
-    <label style="display:flex; align-items:center; gap:6px;">
-      <input type="checkbox" value="${s.id}"> ${s.name}
-    </label>
-  `).join('');
+  if(suppliers.length===0){ box.innerHTML = '<div class="small">仕入先がありません。先に仕入先を登録してください。</div>'; return; }
+  box.innerHTML = suppliers.map(s=>`<label style="display:flex; align-items:center; gap:6px;"><input type="checkbox" value="${s.id}"> ${s.name}</label>`).join('');
 }
 function addItem(){
-  const name = $('itName').value.trim();
-  if(!name) return alert('商品名を入力してください');
-  const priceStr = $('itPrice').value.trim();
-  const price = priceStr==='' ? null : Number(priceStr);
+  const name = $('itName').value.trim(); if(!name) return alert('商品名を入力してください');
+  const priceStr = $('itPrice').value.trim(); const price = priceStr==='' ? null : Number(priceStr);
   const taxType = $('itTax').value;
-
-  const checks = Array.from($('itSuppliers').querySelectorAll('input[type="checkbox"]:checked'));
-  const supIds = checks.map(c=>c.value);
+  const checks = Array.from($('itSuppliers').querySelectorAll('input[type="checkbox"]:checked')); const supIds = checks.map(c=>c.value);
   if(supIds.length===0) return alert('紐付ける仕入先を1つ以上選択してください');
-
   items.push({id: uid(), name, price, taxType, suppliers: supIds});
   localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
-
-  resetItemForm();
-  renderItemSupplierChecks();
-  renderItemSelect($('inSupplier').value);
-  renderItemTable();
+  resetItemForm(); renderItemSupplierChecks(); renderItemSelect($('inSupplier').value); renderItemTable();
 }
 function openItemEdit(id){
-  const it = items.find(x=>x.id===id);
-  if(!it) return;
-  $('editItemId').value = it.id;
-  $('editItName').value = it.name;
-  $('editItPrice').value = it.price!=null? it.price : '';
-  $('editItTax').value = it.taxType || 'taxIncluded';
+  const it = items.find(x=>x.id===id); if(!it) return;
+  $('editItemId').value = it.id; $('editItName').value = it.name; $('editItPrice').value = it.price!=null? it.price : ''; $('editItTax').value = it.taxType || 'taxIncluded';
   renderItemSupplierChecks('editItSuppliers');
-  const box = $('editItSuppliers');
-  (it.suppliers||[]).forEach(sid=>{
-    const chk = box.querySelector(`input[value="${sid}"]`);
-    if(chk) chk.checked = true;
-  });
-  $('itemEditModal').style.display = 'block';
-  setFabVisible(false);
+  const box = $('editItSuppliers'); (it.suppliers||[]).forEach(sid=>{ const chk = box.querySelector(`input[value="${sid}"]`); if(chk) chk.checked = true; });
+  const m = $('itemEditModal'); if(!m){ alert('itemEditModal が見つかりません'); return; }
+  m.style.display = 'block'; setFabVisible(false);
 }
 function updateItem(){
-  const id = $('editItemId').value;
-  const it = items.find(x=>x.id===id);
-  if(!it) return;
-  const name = $('editItName').value.trim();
-  if(!name) return alert('商品名は必須です');
-  it.name = name;
-  const priceStr = $('editItPrice').value.trim();
-  it.price = priceStr==='' ? null : Number(priceStr);
-  it.taxType = $('editItTax').value;
-  const checks = Array.from($('editItSuppliers').querySelectorAll('input[type="checkbox"]:checked'));
-  const supIds = checks.map(c=>c.value);
-  if(supIds.length===0) return alert('紐付け仕入先を1つ以上選択してください');
-  it.suppliers = supIds;
+  const id = $('editItemId').value; const it = items.find(x=>x.id===id); if(!it) return;
+  const name = $('editItName').value.trim(); if(!name) return alert('商品名は必須です');
+  const priceStr = $('editItPrice').value.trim(); it.price = priceStr==='' ? null : Number(priceStr);
+  it.name = name; it.taxType = $('editItTax').value;
+  const checks = Array.from($('editItSuppliers').querySelectorAll('input[type="checkbox"]:checked')); const supIds = checks.map(c=>c.value);
+  if(supIds.length===0) return alert('紐付け仕入先を1つ以上選択してください'); it.suppliers = supIds;
   localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
-  closeModal('itemEditModal');
-  renderItemSelect($('inSupplier').value);
-  renderItemTable();
+  closeModal('itemEditModal'); renderItemSelect($('inSupplier').value); renderItemTable();
 }
 function deleteItem(){
-  const id = $('editItemId').value;
-  if(!confirm('この商品を削除します。よろしいですか？')) return;
-  items = items.filter(x=>x.id!==id);
-  localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
-  closeModal('itemEditModal');
-  renderItemSelect($('inSupplier').value);
-  renderItemTable();
+  const id = $('editItemId').value; if(!confirm('この商品を削除します。よろしいですか？')) return;
+  items = items.filter(x=>x.id!==id); localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
+  closeModal('itemEditModal'); renderItemSelect($('inSupplier').value); renderItemTable();
 }
 
-/* ====== 設定：基本税率 ====== */
+/* ====== 設定 ====== */
 function openSettings(){
-  const ratePct = Math.round(getBaseTaxRate()*100);
-  const target = ratePct===10 ? '10' : '8';
-  const radio = document.querySelector(`input[name="baseRatePreset"][value="${target}"]`);
-  if(radio) radio.checked = true;
-  $('settingsModal').style.display = 'block';
-  setFabVisible(false);
+  const ratePct = Math.round(getBaseTaxRate()*100); const target = ratePct===10 ? '10' : '8';
+  const radio = document.querySelector(`input[name="baseRatePreset"][value="${target}"]`); if(radio) radio.checked = true;
+  const m = $('settingsModal'); if(!m){ alert('settingsModal が見つかりません'); return; }
+  m.style.display = 'block'; setFabVisible(false);
 }
 function saveBaseTaxRate(){
-  const sel = document.querySelector('input[name="baseRatePreset"]:checked');
-  if(!sel) { alert('税率を選択してください'); return; }
-  const v = Number(sel.value);
-  setBaseTaxRate(v/100);
-  alert(`基本税率を ${v}% に設定しました`);
-  closeModal('settingsModal');
+  const sel = document.querySelector('input[name="baseRatePreset"]:checked'); if(!sel) { alert('税率を選択してください'); return; }
+  const v = Number(sel.value); setBaseTaxRate(v/100); alert(`基本税率を ${v}% に設定しました`); closeModal('settingsModal');
 }
-function resetBaseTaxRate(){
-  setBaseTaxRate(0.08);
-  alert('基本税率を 8% に戻しました');
-  closeModal('settingsModal');
-}
+function resetBaseTaxRate(){ setBaseTaxRate(0.08); alert('基本税率を 8% に戻しました'); closeModal('settingsModal'); }
 
-/* ====== 固定バーの表示制御／モーダル ====== */
-function setFabVisible(show){
-  const bar = document.querySelector('.fab-bar');
-  if(!bar) return;
-  bar.style.display = show ? 'block' : 'none';
-}
-function anyModalOpen(){
-  return ['supplierModal','supplierEditModal','itemModal','itemEditModal','settingsModal']
-    .some(id => document.getElementById(id).style.display === 'block');
-}
-function closeModal(id){
-  $(id).style.display='none';
-  if(!anyModalOpen()) setFabVisible(true);
-}
+/* ====== 固定バー/モーダル共通 ====== */
+function setFabVisible(show){ const bar = document.querySelector('.fab-bar'); if(!bar) return; bar.style.display = show ? 'block' : 'none'; }
+function anyModalOpen(){ return ['supplierModal','supplierEditModal','itemModal','itemEditModal','settingsModal'].some(id => (document.getElementById(id)||{}).style?.display === 'block'); }
+function closeModal(id){ const m = $(id); if(m) m.style.display='none'; if(!anyModalOpen()) setFabVisible(true); }
 window.addEventListener('click', (e)=>{
   if(e.target===$('supplierModal')) closeModal('supplierModal');
   if(e.target===$('supplierEditModal')) closeModal('supplierEditModal');
@@ -866,19 +663,9 @@ window.addEventListener('click', (e)=>{
 function wipeAll(){
   if(!confirm('全データ（仕入先・商品・仕入履歴）を削除します。よろしいですか？')) return;
   suppliers=[]; items=[]; purchases=[];
-  localStorage.removeItem(LS_KEYS.suppliers);
-  localStorage.removeItem(LS_KEYS.items);
-  localStorage.removeItem(LS_KEYS.purchases);
-  renderSupplierSelect();
-  renderItemSelect();
-  renderListTable();
-  renderPhonebook();
-  renderSupTable();
-  renderItemTable();
-  updateSums();
-  updateSupplierQuick('');
+  localStorage.removeItem(LS_KEYS.suppliers); localStorage.removeItem(LS_KEYS.items); localStorage.removeItem(LS_KEYS.purchases);
+  renderSupplierSelect(); renderItemSelect(); renderListTable(); renderPhonebook(); renderSupTable(); renderItemTable(); updateSums(); updateSupplierQuick('');
 }
 </script>
-
 </body>
 </html>
