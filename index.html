@@ -107,6 +107,8 @@
   <button type="button" onclick="showPage('masters')" class="ghost">マスタ管理</button>
   <button type="button" onclick="openSettings()" class="ghost">⚙ 設定</button>
   <span id="appVersion" class="muted" style="margin-left:auto;">v20</span>
+  <button type="button" class="link" onclick="forceUpdateSW()">🔄 更新</button>
+</div>
 </div>
 
 <!-- 仕入れ入力 -->
@@ -1129,7 +1131,43 @@ async function forceUpdateSW(){
     alert('更新に失敗: ' + e.message);
   }
 }
-  
+
+ // --- PWA強制更新ボタン ---
+async function forceUpdateSW(){
+  if (!('serviceWorker' in navigator)) {
+    alert('この環境はService Worker非対応です');
+    return;
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) {
+      alert('Service Workerが登録されていません');
+      return;
+    }
+
+    // 最新版をチェック
+    await reg.update();
+
+    // 新しいSWが待機中なら即座に有効化
+    if (reg.waiting) {
+      reg.waiting.postMessage({type:'SKIP_WAITING'});
+    }
+
+    // 有効化されたら自動でリロード
+    navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+      if (!window.__reloading) {
+        window.__reloading = true;
+        location.reload();
+      }
+    });
+
+    alert('更新処理を実行しました。数秒後に最新バージョンへ切り替わります。');
+  } catch(e) {
+    alert('更新に失敗しました: ' + e.message);
+  }
+}
+ 
 </script>
 
 </body>
