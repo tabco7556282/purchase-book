@@ -42,7 +42,7 @@
     overflow: auto;
     border:1px solid #e5e7eb;
     border-radius:8px;
-    position: relative; z-index: 1; /* 入力エリアや固定バーと干渉しない */
+    position: relative; z-index: 1;
     background:#fff;
   }
 
@@ -97,6 +97,21 @@
 
   /* 仕入先・月合計 */
   .sum-box { border:1px solid #e5e7eb; border-radius:8px; padding:8px; margin-top:10px; background:#fafafa; }
+
+  /* ==== 商品マスタ（itemTable）の操作列を整える ==== */
+  .col-actions { width: 120px; }
+  .actions-cell { display:flex; gap:8px; justify-content:center; }
+  .btn-edit{
+    background:#e5e7eb; color:#111; padding:6px 12px; border:none;
+    border-radius:6px; cursor:pointer;
+  }
+  .btn-edit:hover{ background:#d1d5db; }
+  .btn-del{
+    background:#ef4444; color:#fff; padding:6px 12px; border:none;
+    border-radius:6px; cursor:pointer;
+  }
+  .btn-del:hover{ background:#dc2626; }
+  #itemTable button{ font-size:14px; line-height:1; }
 </style>
 </head>
 <body>
@@ -109,7 +124,7 @@
   <span id="appVersion" class="muted" style="margin-left:auto;">v20</span>
   <button type="button" class="link" onclick="forceUpdateSW()">🔄 更新</button>
 </div>
-</div>
+<!-- ↑ 直下に余計な </div> が入っていたので削除済み -->
 
 <!-- 仕入れ入力 -->
 <section id="page-entry">
@@ -210,40 +225,40 @@
   <!-- カード表示 -->
   <div id="wrap-cards" class="cards"></div>
 
-   <div class="row" style="margin-top:10px;">
+  <div class="row" style="margin-top:10px;">
     <button type="button" class="link" onclick="downloadCSV()">CSV ダウンロード（全期間）</button>
     <button type="button" class="ghost" onclick="wipeAll()">全データ初期化</button>
-     <!-- ===== バックアップ / 復元 ===== -->
-<!-- ===== バックアップ / 復元 ===== -->
-<div class="row" style="margin-top:6px;">
-  <button type="button" class="link"  onclick="backupJSON()">バックアップ</button>
-  <button type="button" class="ghost" onclick="openRestoreChooser()">復元</button>
-</div>
+  </div>
 
-<!-- 復元モーダル -->
-<div id="restoreChooser" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>復元</h3>
-      <button type="button" class="ghost" onclick="closeModal('restoreChooser')">✕</button>
-    </div>
-    <p class="small" id="lastBackupHint" style="margin:6px 0;"></p>
-    <div class="row" style="margin-top:8px;">
-      <button type="button" onclick="quickRestore(); closeModal('restoreChooser')">直近バックアップから復元</button>
-      <button type="button" class="ghost" onclick="restoreFromFile(); closeModal('restoreChooser')">ファイルから復元</button>
-    </div>
-    <div class="small" style="margin-top:6px;">
-      うまく開けない時は
-      <a href="javascript:void(0)" onclick="forceFileRestore(); closeModal('restoreChooser')">こちら</a>
+  <!-- ===== バックアップ / 復元 ===== -->
+  <div class="row" style="margin-top:6px;">
+    <button type="button" class="link"  onclick="backupJSON()">バックアップ</button>
+    <button type="button" class="ghost" onclick="openRestoreChooser()">復元</button>
+  </div>
+
+  <!-- 復元モーダル -->
+  <div id="restoreChooser" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>復元</h3>
+        <button type="button" class="ghost" onclick="closeModal('restoreChooser')">✕</button>
+      </div>
+      <p class="small" id="lastBackupHint" style="margin:6px 0;"></p>
+      <div class="row" style="margin-top:8px;">
+        <button type="button" onclick="quickRestore(); closeModal('restoreChooser')">直近バックアップから復元</button>
+        <button type="button" class="ghost" onclick="restoreFromFile(); closeModal('restoreChooser')">ファイルから復元</button>
+      </div>
+      <div class="small" style="margin-top:6px;">
+        うまく開けない時は
+        <a href="javascript:void(0)" onclick="forceFileRestore(); closeModal('restoreChooser')">こちら</a>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- 画面には出さないが、旧環境向けのファイル入力（残してOK） -->
-<input id="restoreInput" type="file" accept="application/json" style="display:none"
-       onchange="if(this.files[0]) restoreJSON(this.files[0])">
+  <!-- 画面には出さないが、旧環境向けのファイル入力（残してOK） -->
+  <input id="restoreInput" type="file" accept="application/json" style="display:none"
+        onchange="if(this.files[0]) restoreJSON(this.files[0])">
 
-  </div>
 </section>
 
 <!-- 電話帳 -->
@@ -435,27 +450,14 @@
   <div class="fab-inner">
     <button type="button" onclick="savePurchase()">保存</button>
     <button type="button" class="ghost" onclick="clearEntry()">入力クリア</button>
-  /* --- itemTable の操作ボタンをスッキリ表示 --- */
-.col-actions { width: 120px; }                 /* 操作列の幅を固定 */
-.actions-cell {
-  display: flex; justify-content: center; gap: 6px;
-}
-.btn-icon {
-  display: inline-flex; align-items: center; justify-content: center;
-  padding: 6px 10px; border-radius: 8px; font-size: 14px; line-height: 1;
-  cursor: pointer; border: none;
-}
-.btn-edit { background: #e5e7eb; color: #111; }       /* ＝ .ghost に近い見た目 */
-.btn-edit:hover { background: #d1d5db; }
-.btn-del  { background: #ef4444; color: #fff; }       /* ＝ .danger に近い見た目 */
-.btn-del:hover { background: #c53737; }
-
   </div>
 </div>
 
+
 <script>
+
 /* ====== バージョン ====== */
-const APP_VERSION = 'v21.0';
+const APP_VERSION = 'v21.1';
 document.addEventListener('DOMContentLoaded', ()=>{
   const el = document.getElementById('appVersion');
   if (el) el.textContent = APP_VERSION;
@@ -552,7 +554,7 @@ document.addEventListener('DOMContentLoaded', init);
 // PWA: Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=21.0').catch(()=>{});
+    navigator.serviceWorker.register('./sw.js?v=21.1').catch(()=>{});
   });
 }
 
