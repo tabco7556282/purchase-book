@@ -179,19 +179,6 @@
     <span id="activeFilter" class="filter-chip"></span>
   </div>
 
-  <!-- 表 -->
-  <div class="table-wrap" id="wrap-table" style="display:none;">
-    <table id="listTable">
-      <thead>
-        <tr><th>日付</th><th>仕入先</th><th>商品</th><th>数量</th><th>単価</th><th>税区分</th><th>合計</th><th>操作</th></tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-
-  <!-- カード表示 -->
-  <div id="wrap-cards" class="cards"></div>
-
   <!-- 仕入先別・月合計 -->
   <div id="monthlyBox" class="sum-box" style="display:none;">
     <div class="row" style="align-items:center;">
@@ -206,9 +193,22 @@
         <tbody id="monthlyBody"></tbody>
       </table>
     </div>
+  </div> 
+ 
+  <!-- 表 -->
+  <div class="table-wrap" id="wrap-table" style="display:none;">
+    <table id="listTable">
+      <thead>
+        <tr><th>日付</th><th>仕入先</th><th>商品</th><th>数量</th><th>単価</th><th>税区分</th><th>合計</th><th>操作</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
 
-  <div class="row" style="margin-top:10px;">
+  <!-- カード表示 -->
+  <div id="wrap-cards" class="cards"></div>
+
+   <div class="row" style="margin-top:10px;">
     <button type="button" class="link" onclick="downloadCSV()">CSV ダウンロード（全期間）</button>
     <button type="button" class="ghost" onclick="wipeAll()">全データ初期化</button>
   </div>
@@ -680,67 +680,84 @@ async function backupAndRestore(){
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const file = new File([blob], fileName, {type:'application/json'});
 
-  // バックアップ：共有シート優先（スマホでOneDrive可）
+  // --- バックアップ ---
+  let backedUp = false;
+
+  // 1) 共有シート（スマホでOneDrive直行）
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
-      await navigator.share({ title:'仕入れバックアップ', text:'仕入れ管理アプリのバックアップJSONです。', files:[file] });
+      await navigator.share({ title: '仕入れバックアップ', text: '仕入れ管理アプリのバックアップJSONです。', files: [file] });
+      backedUp = true;
       alert("バックアップを保存しました");
     } catch(e) {
-      if(e.name !== 'AbortError') alert("バックアップに失敗しました: " + e.message);
+      if (e.name === 'AbortError') return; // ユーザーがキャンセル→静かに終了
+      // 他の例外は次の手段へフォールバック
     }
-  } else if ('showSaveFilePicker' in window) {
-    // PCは保存ダイアログ → OneDrive同期フォルダを選べば自動同期
+  }
+
+  // 2) PCの保存ダイアログ（OneDrive同期フォルダを選べる）
+  if (!backedUp && 'showSaveFilePicker' in window) {
     try{
       const handle = await window.showSaveFilePicker({
         suggestedName: fileName,
         types: [{ description:'JSON', accept:{ 'application/json': ['.json'] } }]
       });
       const w = await handle.createWritable(); await w.write(blob); await w.close();
+      backedUp = true;
       alert('バックアップを保存しました（OneDrive同期フォルダを選べばクラウドへ同期されます）');
-    }catch(e){ if(e.name!=='AbortError') alert('保存に失敗：' + e.message); }
-  } else {
-    // フォールバック：ダウンロード
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fileName; a.click(); URL.revokeObjectURL(a.href);
-    alert('JSONをダウンロードしました。OneDriveへ手動アップロードしてください。');
+    }catch(e){
+      if (e.name === 'AbortError') return; // キャンセル→静かに終了
+      // さらにフォールバック
+    }
   }
 
-  // すぐ復元（ユーザー選択）
+  // 3) 最後の手段：自動ダウンロード
+  if (!backedUp) {
+    try{
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = fileName; a.click();
+      URL.revokeObjectURL(a.href);
+      alert('JSONをダウンロードしました。OneDriveへ手動アップロードしてください。');
+      backedUp = true;
+    }catch(e){
+      alert('バックアップに失敗しました: ' + e.message);
+      return;
+    }
+  }
+
+  // --- 復元（ユーザーが選択） ---
+  // 共有キャンセルや保存キャンセル時はここに来ないように上で return 済み
   try {
     if ('showOpenFilePicker' in window) {
       const [handle] = await window.showOpenFilePicker({
         types: [{ description: 'JSONバックアップ', accept: { 'application/json': ['.json'] } }]
       });
-      const f = await handle.getFile(); const text = await f.text();
+      const f = await handle.getFile();
+      const text = await f.text();
       const restored = JSON.parse(text);
       _applyRestore(restored);
       alert("バックアップから復元しました");
     } else {
-      // 旧ブラウザ向け：隠しinputで復元
+      // 旧ブラウザ向け
       const input = document.createElement('input');
       input.type = 'file'; input.accept = 'application/json'; input.style.display='none';
-      input.onchange = ()=>{ if(input.files && input.files[0]){ const r = new FileReader(); r.onload = ()=>{ try{ _applyRestore(JSON.parse(r.result)); alert('バックアップから復元しました'); }catch(e){ alert('復元に失敗しました: ' + e.message);} }; r.readAsText(input.files[0]); } };
+      input.onchange = ()=>{
+        if(input.files && input.files[0]){
+          const r = new FileReader();
+          r.onload = ()=>{
+            try{ _applyRestore(JSON.parse(r.result)); alert('バックアップから復元しました'); }
+            catch(e){ alert('復元に失敗しました: ' + e.message); }
+          };
+          r.readAsText(input.files[0]);
+        }
+      };
       document.body.appendChild(input); input.click();
       setTimeout(()=> document.body.removeChild(input), 0);
     }
   } catch(e) {
-    if(e.name !== 'AbortError') alert("復元に失敗しました: " + e.message);
+    if (e.name !== 'AbortError') alert("復元に失敗しました: " + e.message);
+    // キャンセルは黙って終了
   }
-}
-
-// 復元（個別ボタン用：誤検知修正済）
-function restoreJSON(file){
-  const r = new FileReader();
-  r.onload = ()=>{
-    try{
-      const data = JSON.parse(r.result);
-      _applyRestore(data);
-      alert('復元しました');
-    }catch(e){
-      console.error(e);
-      alert('復元に失敗しました: ' + e.message);
-    }
-  };
-  r.readAsText(file);
 }
 
 function _applyRestore(data){
@@ -780,9 +797,14 @@ function updateActiveFilterLabel(){
 /* ====== 仕入先別・月合計 ====== */
 function toggleMonthlySummary(){
   const box = $('monthlyBox');
-  box.style.display = (box.style.display==='none' || !box.style.display) ? 'block' : 'none';
-  if (box.style.display==='block') renderSupplierMonthly();
+  const willShow = (box.style.display==='none' || !box.style.display);
+  box.style.display = willShow ? 'block' : 'none';
+  if (willShow) {
+    renderSupplierMonthly();
+    setTimeout(()=> box.scrollIntoView({behavior:'smooth', block:'start'}), 0);
+  }
 }
+
 function renderSupplierMonthly(){
   const month = FILTER_MONTH || (new Date().toISOString().slice(0,7)); // 未選択なら今月
   $('summaryMonthLabel').textContent = month;
