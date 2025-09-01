@@ -960,14 +960,15 @@ function renderItemTable(){
       <td>${names.join(' / ')}</td>
       <td class="col-actions">
         <div class="actions-cell">
-          <button class="btn-icon btn-edit" title="編集" onclick="openItemEdit('${it.id}')">🖊️</button>
-          <button class="btn-icon btn-del"  title="削除" onclick="deleteItemDirect('${it.id}')">🗑️</button>
+          <button class="btn-edit" onclick="openItemEdit('${it.id}')">編集</button>
+          <button class="btn-del"  onclick="deleteItemDirect('${it.id}')">削除</button>
         </div>
       </td>
     `;
     tb.appendChild(tr);
   });
 }
+
 
 
 
