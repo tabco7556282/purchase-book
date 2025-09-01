@@ -455,7 +455,7 @@
 
 <script>
 /* ====== バージョン ====== */
-const APP_VERSION = 'v20.9';
+const APP_VERSION = 'v21.0';
 document.addEventListener('DOMContentLoaded', ()=>{
   const el = document.getElementById('appVersion');
   if (el) el.textContent = APP_VERSION;
@@ -552,7 +552,7 @@ document.addEventListener('DOMContentLoaded', init);
 // PWA: Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=20.9').catch(()=>{});
+    navigator.serviceWorker.register('./sw.js?v=21.0').catch(()=>{});
   });
 }
 
