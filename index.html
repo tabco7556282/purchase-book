@@ -440,7 +440,7 @@
 
 <script>
 /* ====== バージョン ====== */
-const APP_VERSION = 'v20.8';
+const APP_VERSION = 'v20.9';
 document.addEventListener('DOMContentLoaded', ()=>{
   const el = document.getElementById('appVersion');
   if (el) el.textContent = APP_VERSION;
@@ -537,7 +537,7 @@ document.addEventListener('DOMContentLoaded', init);
 // PWA: Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=20.8').catch(()=>{});
+    navigator.serviceWorker.register('./sw.js?v=20.9').catch(()=>{});
   });
 }
 
@@ -930,14 +930,27 @@ function renderSupTable(){
   });
 }
 function renderItemTable(){
-  const tb = $('itemTable').querySelector('tbody'); tb.innerHTML = '';
+  const tb = $('itemTable').querySelector('tbody');
+  tb.innerHTML = '';
   items.forEach(it=>{
-    const names = (it.suppliers||[]).map(id=> (suppliers.find(s=>s.id===id)||{}).name ).filter(Boolean);
+    const names = (it.suppliers||[])
+      .map(id=> (suppliers.find(s=>s.id===id)||{}).name )
+      .filter(Boolean);
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${it.name}</td><td>${it.price!=null? it.price : ''}</td><td>${it.taxType==='taxExcluded'?'税別':'税込'}</td><td>${names.join(' / ')}</td><td><button class="ghost" onclick="openItemEdit('${it.id}')">編集</button></td>`;
+    tr.innerHTML = `
+      <td>${it.name}</td>
+      <td>${it.price!=null? it.price : ''}</td>
+      <td>${it.taxType==='taxExcluded'?'税別':'税込'}</td>
+      <td>${names.join(' / ')}</td>
+      <td class="nowrap">
+        <button class="ghost"  onclick="openItemEdit('${it.id}')">編集</button>
+        <button class="danger" onclick="deleteItemDirect('${it.id}')">削除</button>
+      </td>
+    `;
     tb.appendChild(tr);
   });
 }
+
 
 /* ====== 仕入れ編集・削除 ====== */
 function openPurchaseEdit(index){
@@ -1167,7 +1180,29 @@ async function forceUpdateSW(){
     alert('更新に失敗しました: ' + e.message);
   }
 }
- 
+
+  function deleteItemDirect(id){
+  const it = items.find(x=>x.id===id);
+  if(!it) return;
+
+  // ① 仕入れ履歴で参照されていないか確認（安全のため）
+  const used = purchases.some(p => p.itemId === id);
+  if(used){
+    alert('この商品は仕入れ履歴で使われています。先に該当の仕入れを削除/編集してください。');
+    return;
+  }
+
+  // ② 確認＆削除
+  if(!confirm(`商品「${it.name}」を削除します。よろしいですか？`)) return;
+
+  items = items.filter(x=>x.id!==id);
+  localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
+
+  // ③ 画面の再描画（選択肢や表を更新）
+  renderItemSelect($('inSupplier').value);
+  renderItemTable();
+}
+
 </script>
 
 </body>
