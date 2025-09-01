@@ -15,3 +15,13 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   e.respondWith(caches.match(e.request).then((res) => res || fetch(e.request)));
 });
+// 新SWを即座に有効化
+self.addEventListener('message', (event)=>{
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
+self.addEventListener('activate', (event)=>{
+  event.waitUntil(self.clients.claim()); // 直ちに全ページを新SWの管理下へ
+});
