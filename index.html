@@ -435,6 +435,21 @@
   <div class="fab-inner">
     <button type="button" onclick="savePurchase()">保存</button>
     <button type="button" class="ghost" onclick="clearEntry()">入力クリア</button>
+  /* --- itemTable の操作ボタンをスッキリ表示 --- */
+.col-actions { width: 120px; }                 /* 操作列の幅を固定 */
+.actions-cell {
+  display: flex; justify-content: center; gap: 6px;
+}
+.btn-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 6px 10px; border-radius: 8px; font-size: 14px; line-height: 1;
+  cursor: pointer; border: none;
+}
+.btn-edit { background: #e5e7eb; color: #111; }       /* ＝ .ghost に近い見た目 */
+.btn-edit:hover { background: #d1d5db; }
+.btn-del  { background: #ef4444; color: #fff; }       /* ＝ .danger に近い見た目 */
+.btn-del:hover { background: #c53737; }
+
   </div>
 </div>
 
@@ -936,20 +951,24 @@ function renderItemTable(){
     const names = (it.suppliers||[])
       .map(id=> (suppliers.find(s=>s.id===id)||{}).name )
       .filter(Boolean);
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${it.name}</td>
-      <td>${it.price!=null? it.price : ''}</td>
-      <td>${it.taxType==='taxExcluded'?'税別':'税込'}</td>
+      <td>${it.price!=null ? it.price : ''}</td>
+      <td>${it.taxType==='taxExcluded' ? '税別' : '税込'}</td>
       <td>${names.join(' / ')}</td>
-      <td class="nowrap">
-        <button class="ghost"  onclick="openItemEdit('${it.id}')">編集</button>
-        <button class="danger" onclick="deleteItemDirect('${it.id}')">削除</button>
+      <td class="col-actions">
+        <div class="actions-cell">
+          <button class="btn-icon btn-edit" title="編集" onclick="openItemEdit('${it.id}')">🖊️</button>
+          <button class="btn-icon btn-del"  title="削除" onclick="deleteItemDirect('${it.id}')">🗑️</button>
+        </div>
       </td>
     `;
     tb.appendChild(tr);
   });
 }
+
 
 
 /* ====== 仕入れ編集・削除 ====== */
