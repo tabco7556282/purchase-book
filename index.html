@@ -212,24 +212,35 @@
     <button type="button" class="link" onclick="downloadCSV()">CSV ダウンロード（全期間）</button>
     <button type="button" class="ghost" onclick="wipeAll()">全データ初期化</button>
      <!-- ===== バックアップ / 復元 ===== -->
+<!-- ===== バックアップ / 復元 ===== -->
 <div class="row" style="margin-top:6px;">
-  <button type="button" class="link" onclick="backupJSON()">バックアップ（OneDrive可）</button>
-  <button type="button" class="ghost" onclick="restoreFromFile()">JSON復元</button>
-  <button type="button" class="ghost" onclick="quickRestore()">直近バックアップから復元</button>
-  <button type="button" class="ghost" onclick="forceFileRestore()">ファイルから復元（強制）</button>
+  <button type="button" class="link"  onclick="backupJSON()">バックアップ</button>
+  <button type="button" class="ghost" onclick="openRestoreChooser()">復元</button>
 </div>
 
-<!-- 画面には出さないが、復元に必須のファイル入力 -->
+<!-- 復元モーダル -->
+<div id="restoreChooser" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>復元</h3>
+      <button type="button" class="ghost" onclick="closeModal('restoreChooser')">✕</button>
+    </div>
+    <p class="small" id="lastBackupHint" style="margin:6px 0;"></p>
+    <div class="row" style="margin-top:8px;">
+      <button type="button" onclick="quickRestore(); closeModal('restoreChooser')">直近バックアップから復元</button>
+      <button type="button" class="ghost" onclick="restoreFromFile(); closeModal('restoreChooser')">ファイルから復元</button>
+    </div>
+    <div class="small" style="margin-top:6px;">
+      うまく開けない時は
+      <a href="javascript:void(0)" onclick="forceFileRestore(); closeModal('restoreChooser')">こちら</a>
+    </div>
+  </div>
+</div>
+
+<!-- 画面には出さないが、旧環境向けのファイル入力（残してOK） -->
 <input id="restoreInput" type="file" accept="application/json" style="display:none"
        onchange="if(this.files[0]) restoreJSON(this.files[0])">
 
-  </div>
-  <div class="row" style="margin-top:6px;">
-    <button type="button" class="link" onclick="backupAndRestore()">バックアップ＆復元（OneDrive対応）</button>
-    <button type="button" class="link" onclick="forceFileRestore()">ファイルから復元（強制）</button>
-    <button type="button" class="ghost" onclick="document.getElementById('restoreInput').click()">JSON復元</button>
-    <input id="restoreInput" type="file" accept="application/json" style="display:none"
-           onchange="if(this.files[0]) restoreJSON(this.files[0])">
   </div>
 </section>
 
@@ -1077,6 +1088,22 @@ function wipeAll(){
   renderSupplierSelect(); renderItemSelect(); renderList(); renderPhonebook(); renderSupTable(); renderItemTable();
   renderSupplierMonthly();
 }
+
+  function openRestoreChooser(){
+  // 直近バックアップの有無でヒント表示
+  const hint = document.getElementById('lastBackupHint');
+  const has = !!localStorage.getItem('last_backup_json_v1');
+  hint.textContent = has
+    ? '端末内に直近バックアップが見つかりました。ワンタップで復元できます。'
+    : '直近バックアップがありません。ファイルを選んで復元してください。';
+  document.getElementById('restoreChooser').style.display = 'block';
+}
+
+// 画面外クリックで閉じる対象に追加
+window.addEventListener('click', (e)=>{
+  if(e.target === document.getElementById('restoreChooser')) closeModal('restoreChooser');
+});
+
 </script>
 
 </body>
