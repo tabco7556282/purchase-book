@@ -1104,6 +1104,32 @@ window.addEventListener('click', (e)=>{
   if(e.target === document.getElementById('restoreChooser')) closeModal('restoreChooser');
 });
 
+// --- PWA強制更新（アプリ内から実行） ---
+async function forceUpdateSW(){
+  if (!('serviceWorker' in navigator)) { alert('この環境は未対応です'); return; }
+  try{
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) { alert('Service Worker未登録です'); return; }
+    // 最新確認
+    await reg.update();
+
+    // すでに新しいSWがインストール済みで待機中なら、即座に有効化を指示
+    if (reg.waiting) {
+      reg.waiting.postMessage({type:'SKIP_WAITING'});
+    }
+
+    // 有効化後にページを自動リロード
+    navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+      // 連続リロード防止用ガード
+      if (!window.__reloading) { window.__reloading = true; location.reload(); }
+    });
+
+    alert('更新処理を実行しました。数秒で画面が更新されます。');
+  }catch(e){
+    alert('更新に失敗: ' + e.message);
+  }
+}
+  
 </script>
 
 </body>
