@@ -1,4 +1,4 @@
-const CACHE = "shiire-cache-v20.8";
+const CACHE = "shiire-cache-v20.9";
 const ASSETS = ["./","./index.html","./manifest.webmanifest","./icons/icon-192.png","./icons/icon-512.png"];
 
 self.addEventListener("install", (e) => {
