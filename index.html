@@ -111,6 +111,67 @@
   /* 一括マスタ：商品行 */
   .product-row { display:grid; grid-template-columns: 1.4fr 0.8fr 0.7fr 0.7fr auto; gap:8px; align-items:center; }
   .product-row small { color:#666; }
+  /* ===== v22.1: モバイル最適化・横書き整形パッチ ===== */
+
+/* 1) ボタンは横並びでコンパクトに（共通幅100%を解除） */
+button { width: auto !important; }
+
+/* 2) ナビを“横書き×すっきり”に。2段まで自動改行、横スライド不要 */
+.nav{
+  display: grid !important;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 8px;
+  /* 画面幅に収める */
+  overflow-x: clip;
+}
+@media (max-width: 420px){
+  .nav{
+    /* 1行に収まらない場合は自動で2行に折り返し */
+    grid-auto-flow: row;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  }
+}
+.nav button{
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+/* 3) 入力フォームの横スクロールを根絶 */
+html, body { overflow-x: hidden; }
+.row { flex-wrap: wrap; }
+.row > * { min-width: 0; } /* セレクトやボタンがはみ出さない */
+
+/* 4) カード内の「編集/削除」を小さなピル型に */
+.card .actions button,
+.line button{
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 14px;
+}
+.line .row{ gap: 6px !important; flex-wrap: nowrap; }
+
+/* 5) 一覧カードの見た目をタイトに */
+.card{ border-radius: 12px; }
+.card-top{ align-items:center; }
+.card-meta{ gap: 6px; }
+.meta-left{ font-size: 13px; gap: 12px; }
+.total{ font-size: 16px; }
+
+/* 6) 下部固定バー：高さを少し絞って親指タップしやすく */
+.fab-bar{ padding: 8px env(safe-area-inset-right) calc(8px + env(safe-area-inset-bottom)) env(safe-area-inset-left); }
+.fab-inner > * { min-width: 0; }
+.fab-inner button{ padding: 10px 12px; border-radius: 10px; }
+
+/* 7) テーブル時のはみ出し対策 */
+.table-wrap{ max-width: 100vw; }
+
+/* 8) アイコン風の強調（任意） */
+.link{ box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+.ghost{ box-shadow: inset 0 0 0 1px #d1d5db; }
+.danger{ box-shadow: 0 1px 2px rgba(239, 68, 68, .25); }
 </style>
 </head>
 <body>
