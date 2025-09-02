@@ -1,27 +1,36 @@
-const CACHE = "shiire-cache-v21.1";
-const ASSETS = ["./","./index.html","./manifest.webmanifest","./icons/icon-192.png","./icons/icon-512.png"];
+// sw.js — V24用シンプルキャッシュ
+const CACHE_NAME = "tabco-purchase-v24-cache";
+const urlsToCache = [
+  "./",
+  "./index.html",
+  "./sw.js"
+];
 
-self.addEventListener("install", (e) => {
-  self.skipWaiting();
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
-});
-self.addEventListener("activate", (e) => {
-  e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    ).then(()=> self.clients.claim())
+// インストール時にキャッシュを作成
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache))
   );
 });
-self.addEventListener("fetch", (e) => {
-  e.respondWith(caches.match(e.request).then((res) => res || fetch(e.request)));
-});
-// 新SWを即座に有効化
-self.addEventListener('message', (event)=>{
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
+
+// リクエストがあればキャッシュ優先で返す
+self.addEventListener("fetch", (event) => {
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request);
+    })
+  );
 });
 
-self.addEventListener('activate', (event)=>{
-  event.waitUntil(self.clients.claim()); // 直ちに全ページを新SWの管理下へ
+// 古いキャッシュを削除
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames
+          .filter((name) => name !== CACHE_NAME)
+          .map((name) => caches.delete(name))
+      );
+    })
+  );
 });
