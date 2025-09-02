@@ -60,7 +60,7 @@
     <button class="ghost" onclick="showPage('phonebook')">電話帳</button>
     <button class="ghost" onclick="openSettings()">⚙ 設定</button>
     <span class="spacer"></span>
-    <span id="appVersion" class="muted">v22</span>
+    <span id="appVersion" class="muted">v22.1<\/span>
     <button class="link" onclick="forceUpdateSW()">🔄 更新</button>
   </div>
 
@@ -91,9 +91,24 @@
     <h3 style="margin-top:10px;">明細追加</h3>
     <div class="row">
       <div>
-        <label>商品（任意・マスタ連携）</label>
-        <select id="liItem"></select>
+        <label style="display:flex; align-items:center; gap:8px;">商品（任意・マスタ連携）
+  <span class="small" style="margin-left:auto; display:inline-flex; align-items:center; gap:6px;">
+    <input type="checkbox" id="showAllItems" style="width:auto;"> 全商品表示
+  </span>
+</label>
+<div style="display:flex; gap:8px; align-items:center;">
+  <input type="text" id="liSearch" placeholder="商品名を検索" style="flex:1;" />
+  <select id="liItem" style="flex:1;"></select>
+</div>
+<div class="small" style="margin-top:6px; display:flex; align-items:center; gap:6px;">
+  <input type="checkbox" id="autoFillPrice" checked style="width:auto;"> 単価を自動入力（基準価格があれば）
+</div>
       </div>
+      <div>
+        <label>商品名（直接入力可）</label>
+        <input type="text" id="liName" placeholder="例）国産もも肉 2kg">
+      </div>
+    </div>
       <div>
         <label>商品名（直接入力可）</label>
         <input type="text" id="liName" placeholder="例）国産もも肉 2kg">
@@ -188,6 +203,10 @@
         <option value="taxExcluded" selected>税別</option>
         <option value="taxIncluded">税込</option>
       </select>
+      <select id="itRate">
+        <option value="0.08">税率 8%</option>
+        <option value="0.10" selected>税率 10%</option>
+      </select>
     </div>
     <div class="row">
       <select id="itSupplierMulti" multiple size="4" style="min-height:120px;"></select>
@@ -195,7 +214,7 @@
     </div>
     <div class="card" style="margin-top:8px;">
       <table id="itemTable">
-        <thead><tr><th>商品名</th><th>基準価格</th><th>税区分</th><th>仕入先</th><th>操作</th></tr></thead>
+        <thead><tr><th>商品名</th><th>基準価格</th><th>税率/区分</th><th>仕入先</th><th>操作</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -254,7 +273,7 @@
 
 <script>
 /***** v22 クリーンリライト *****/
-const APP_VERSION = 'v22';
+const APP_VERSION = 'v22.1';
 
 /************** LocalStorage Keys **************/
 const LS = {
@@ -277,7 +296,7 @@ let FILTER_MONTH = '';
 
 /************** Types (参考) **************/
 // Supplier { id, name, contact, phone, invoiceRegId }
-// Item     { id, name, price|null, taxType: 'taxExcluded'|'taxIncluded', suppliers: [supplierId] }
+// Item     { id, name, price|null, taxType: 'taxExcluded'|'taxIncluded', defRate?: number, suppliers: [supplierId] }
 // Invoice  { id, date:'YYYY-MM-DD', supplierId, supplierName, invoiceNo?, lines:[Line], subtotalEx, taxTotal, grandTotal }
 // Line     { id, name, qty, unitEx, rate }
 
@@ -308,7 +327,6 @@ document.addEventListener('DOMContentLoaded', init);
 function init(){
   $('appVersion').textContent = APP_VERSION;
   migrateFromOldIfNeeded();
-  // entry defaults
   $('invDate').value = todayStr();
   renderSupplierSelect();
   renderItemSelect();
@@ -316,7 +334,10 @@ function init(){
   updateActiveFilterLabel();
   $('invSupplier').onchange = onSupplierChange;
   $('liItem').onchange = onItemPicked;
-  newInvoice(); // start fresh form state (not yet saved)
+  // 新規: 商品検索 / 全商品表示トグル
+  if ($('liSearch')) $('liSearch').addEventListener('input', renderItemSelect);
+  if ($('showAllItems')) $('showAllItems').addEventListener('change', renderItemSelect);
+  newInvoice();
   updateBaseTaxLabel();
 }
 
@@ -367,6 +388,7 @@ function renderSupplierSelect(){
 function onSupplierChange(){
   const s = suppliers.find(x=>x.id===$('invSupplier').value);
   $('invSupplierRegId').value = s?.invoiceRegId || '';
+  if ($('showAllItems')) $('showAllItems').checked = false; // 仕入先選択時はデフォルトで絞り込み
   renderItemSelect();
 }
 function addSupplier(){
@@ -431,18 +453,30 @@ function addItem(){
   const name = $('itName').value.trim(); if(!name) return alert('商品名は必須');
   const price = $('itPrice').value.trim();
   const taxType = $('itTax').value;
+  const defRate = Number(($('itRate')?.value)||BASE_TAX);
   const selected = Array.from($('itSupplierMulti').selectedOptions).map(o=>o.value);
   if(selected.length===0) return alert('仕入先を1つ以上選んでください');
-  items.push({ id:uid(), name, price: price===''? null : Number(price), taxType, suppliers: selected });
+  items.push({ id:uid(), name, price: price===''? null : Number(price), taxType, defRate, suppliers: selected });
+  $('itName').value=''; $('itPrice').value=''; $('itTax').value='taxExcluded'; if($('itRate')) $('itRate').value=BASE_TAX.toFixed(2);
+  save(); renderItemTable(); renderItemSelect();
+});
   $('itName').value=''; $('itPrice').value=''; $('itTax').value='taxExcluded';
   save(); renderItemTable(); renderItemSelect();
 }
 function renderItemTable(){
   const tb = $('itemTable').querySelector('tbody'); tb.innerHTML='';
   items.forEach(it=>{
+    if(it.defRate==null) it.defRate = BASE_TAX; // 既存データの救済
     const names = (it.suppliers||[]).map(id=> suppliers.find(s=>s.id===id)?.name||'').filter(Boolean).join(' / ');
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${it.name}</td><td>${it.price!=null? it.price:''}</td><td>${it.taxType==='taxExcluded'?'税別':'税込'}</td><td>${names}</td>
+    tr.innerHTML = `<td>${it.name}</td><td>${it.price!=null? it.price:''}</td><td>${((it.defRate)*100).toFixed(0)}% / ${(it.taxType==='taxExcluded')?'税別':'税込'}</td><td>${names}</td>
+      <td>
+        <button class="ghost" onclick="editItem('${it.id}')">編集</button>
+        <button class="danger" onclick="delItem('${it.id}')">削除</button>
+      </td>`;
+    tb.appendChild(tr);
+  });
+}</td><td>${it.price!=null? it.price:''}</td><td>${it.taxType==='taxExcluded'?'税別':'税込'}</td><td>${names}</td>
       <td>
         <button class="ghost" onclick="editItem('${it.id}')">編集</button>
         <button class="danger" onclick="delItem('${it.id}')">削除</button>
@@ -454,8 +488,10 @@ function editItem(id){
   const it = items.find(x=>x.id===id); if(!it) return;
   const name = prompt('商品名', it.name); if(name===null) return;
   const priceStr = prompt('基準価格(空可)', it.price!=null? it.price:''); if(priceStr===null) return;
+  const rateStr = prompt('税率: 0.08 または 0.10', (it.defRate??BASE_TAX).toFixed(2)); if(rateStr===null) return;
   const taxType = prompt('税区分: taxExcluded/taxIncluded', it.taxType||'taxExcluded'); if(taxType===null) return;
-  it.name = name.trim(); it.price = priceStr===''? null : Number(priceStr); it.taxType = (taxType==='taxIncluded')?'taxIncluded':'taxExcluded';
+  const r = Number(rateStr); if(!(r===0.08 || r===0.10)) return alert('0.08 か 0.10 を入力してください');
+  it.name = name.trim(); it.price = priceStr===''? null : Number(priceStr); it.defRate = r; it.taxType = (taxType==='taxIncluded')?'taxIncluded':'taxExcluded';
   save(); renderItemTable(); renderItemSelect();
 }
 function delItem(id){
@@ -476,13 +512,23 @@ function onItemPicked(){
   const it = items.find(x=>x.id===$('liItem').value);
   if(!it) return;
   $('liName').value = it.name;
-  if(it.price!=null) $('liUnitEx').value = (it.taxType==='taxExcluded')? it.price : Math.floor(it.price/(1+BASE_TAX));
+  const rate = (it.defRate!=null)? it.defRate : BASE_TAX;
+  $('liRate').value = rate.toFixed(2);
+  if($('autoFillPrice')?.checked && it.price!=null){
+    const unitEx = (it.taxType==='taxExcluded') ? Number(it.price) : Math.floor(Number(it.price)/(1+rate));
+    $('liUnitEx').value = unitEx;
+  }
 }
 function renderItemSelect(){
   const sid = $('invSupplier').value;
+  const showAll = $('showAllItems')?.checked;
+  const q = ($('liSearch')?.value || '').trim();
   const sel = $('liItem');
-  const list = sid? items.filter(it=> (it.suppliers||[]).includes(sid)) : items;
-  sel.innerHTML = '<option value="">-- 商品マスタ --</option>' + list.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
+  let list = items.slice();
+  if (sid && !showAll) list = list.filter(it => (it.suppliers||[]).includes(sid));
+  if (q) list = list.filter(it => (it.name||'').toLowerCase().includes(q.toLowerCase()));
+  sel.innerHTML = '<option value="">-- 商品マスタ --</option>' +
+    list.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
 }
 function addLine(){
   if(!$('invSupplier').value) return alert('先に仕入先を選択');
@@ -644,6 +690,13 @@ async function forceUpdateSW(){ if(!('serviceWorker' in navigator)) { alert('未
 
 /************** Dangerous **************/
 function wipeAll(){ if(!confirm('v22の全データを削除します。実行後は元に戻せません。')) return; suppliers=[]; items=[]; invoices=[]; save(); renderSupplierSelect(); renderItemSelect(); renderSupTable(); renderItemTable(); renderInvoiceCards(); renderPhonebook(); alert('初期化しました'); }
+
+// --- Service Worker Register ---
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js?v=22').catch(()=>{});
+  });
+}
 
 </script>
 </body>
