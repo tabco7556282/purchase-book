@@ -1,22 +1,25 @@
-/* sw.js — shiire app v22.2 */
+/* sw.js — v22.2 (subpath-safe) */
 const VERSION = 'v22.2';
 const PREFIX  = 'shiire-app';
 const APP_SHELL_CACHE = `${PREFIX}-shell-${VERSION}`;
 const RUNTIME_CACHE   = `${PREFIX}-rt-${VERSION}`;
 
+// 今のsw.jsの場所から“基準パス”を作る（サブパス対応）
+const BASE = new URL('./', self.location).pathname;   // 例: "/repo/" または "/"
+const path = (p) => BASE + p;                         // 相対で組み立て
+
 const APP_SHELL = [
-  '/',                  // GitHub Pages ルート
-  '/index.html',
-  '/manifest.webmanifest',
-  '/sw.js?ver=22.2',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
+  path(''),                     // "/repo/" or "/"
+  path('index.html'),
+  path('manifest.webmanifest'),
+  path('sw.js?ver=22.2'),
+  path('icons/icon-192.png'),
+  path('icons/icon-512.png'),
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(APP_SHELL_CACHE)
-      .then((cache) => cache.addAll(APP_SHELL))
+    caches.open(APP_SHELL_CACHE).then((c) => c.addAll(APP_SHELL))
       .then(() => self.skipWaiting())
   );
 });
@@ -35,21 +38,15 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
-const isNavigationRequest = (req) =>
+const isNav = (req) =>
   req.mode === 'navigate' || (req.method === 'GET' && req.headers.get('accept')?.includes('text/html'));
-
-const sameOrigin = (url) => new URL(url, self.location.href).origin === self.location.origin;
-
-const isStaticAsset = (url) =>
-  ['/sw.js?ver=22.2','/manifest.webmanifest','/icons/icon-192.png','/icons/icon-512.png']
-    .some(p => url.endsWith(p));
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
 
-  // 1) ナビゲーション: Network-First（失敗時 index.html with ignoreSearch）
-  if (isNavigationRequest(request)) {
+  // ナビゲーション: Network-First（失敗時 index.html を相対で返す）
+  if (isNav(request)) {
     event.respondWith((async () => {
       try {
         const fresh = await fetch(request);
@@ -58,31 +55,32 @@ self.addEventListener('fetch', (event) => {
         return fresh;
       } catch {
         const shell = await caches.open(APP_SHELL_CACHE);
-        // クエリ差分を無視して index.html を返す
-        return (await shell.match(new Request('/index.html', {ignoreSearch:true})))
-            || (await shell.match(new Request('/', {ignoreSearch:true})))
+        return (await shell.match(new Request(path('index.html'), {ignoreSearch:true})))
+            || (await shell.match(new Request(path(''), {ignoreSearch:true})))
             || Response.error();
       }
     })());
     return;
   }
 
-  const url = request.url;
-
-  // 2) 静的アセット: Cache-First
-  if (sameOrigin(url) && isStaticAsset(url)) {
-    event.respondWith((async () => {
-      const cache = await caches.open(APP_SHELL_CACHE);
-      const cached = await cache.match(request, {ignoreSearch:true});
-      if (cached) return cached;
-      const res = await fetch(request);
-      cache.put(request, res.clone());
-      return res;
-    })());
-    return;
+  // 静的アセット: Cache-First（検索クエリ無視）
+  if (request.url.startsWith(self.location.origin)) {
+    const url = new URL(request.url);
+    const isShell = APP_SHELL.some(p => url.pathname + (url.search||'').endsWith(p.replace(BASE,'')));
+    if (isShell) {
+      event.respondWith((async () => {
+        const cache = await caches.open(APP_SHELL_CACHE);
+        const hit = await cache.match(request, {ignoreSearch:true});
+        if (hit) return hit;
+        const res = await fetch(request);
+        cache.put(request, res.clone());
+        return res;
+      })());
+      return;
+    }
   }
 
-  // 3) その他: SWR 風
+  // その他: Stale-While-Revalidate
   event.respondWith((async () => {
     const cache = await caches.open(RUNTIME_CACHE);
     const cached = await cache.match(request, {ignoreSearch:true});
@@ -90,6 +88,6 @@ self.addEventListener('fetch', (event) => {
       if (res && res.status === 200 && res.type === 'basic') cache.put(request, res.clone());
       return res;
     }).catch(() => null);
-    return cached || (await fetchAndUpdate) || new Response('', {status:504, statusText:'Offline'});
+    return cached || (await fetchAndUpdate) || new Response('', {status:504});
   })());
 });
