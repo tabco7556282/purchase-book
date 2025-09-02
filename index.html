@@ -3,1229 +3,648 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>仕入れ管理アプリ v20</title>
+<title>仕入れ管理アプリ v22</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#16a34a">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <style>
   :root{ --gap:8px; }
-  body { font-family: system-ui, sans-serif; margin: 10px; padding-bottom: 86px; }
-  h2 { margin: 14px 0; }
-  input, select, button { font-size: 16px; padding: 8px; width: 100%; box-sizing: border-box; }
-  label { display: block; margin: 8px 0 4px; }
-  .row { display: flex; gap: var(--gap); flex-wrap: wrap; }
-  .row > * { flex: 1; min-width: 110px; }
-  button { background: #16a34a; color: #fff; border: none; border-radius: 8px; cursor:pointer; }
-  button:hover { background:#12833c; }
-  .link { background:#2563eb; }
-  .link:hover { background:#1f4ec0; }
-  .ghost { background:#e5e7eb; color:#111; }
-  .ghost:hover { background:#d1d5db; }
-  .danger { background:#ef4444; }
-  .danger:hover { background:#c53737; }
+  *{ box-sizing: border-box; }
+  body{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans JP, sans-serif; margin:10px; padding-bottom:92px; }
+  h2{ margin:14px 0; }
+  input,select,button{ font-size:16px; padding:8px; width:100%; }
+  label{ display:block; margin:8px 0 4px; }
+  .row{ display:flex; gap:var(--gap); flex-wrap:wrap; }
+  .row > *{ flex:1; min-width:120px; }
+  button{ background:#16a34a; color:#fff; border:none; border-radius:8px; cursor:pointer; }
+  button:hover{ background:#12833c; }
+  .ghost{ background:#e5e7eb; color:#111; }
+  .ghost:hover{ background:#d1d5db; }
+  .link{ background:#2563eb; }
+  .link:hover{ background:#1f4ec0; }
+  .danger{ background:#ef4444; }
+  .danger:hover{ background:#dc2626; }
+  .muted{ color:#666; font-size:12px; }
+  .small{ color:#555; font-size:12px; }
 
-  table { width: 100%; border-collapse: collapse; }
-  th, td { border: 1px solid #ddd; padding: 6px; text-align: center; word-break: break-all; }
-  th { position: sticky; top: 0; background:#fff; z-index: 1; }
-  .nav { display:flex; gap:var(--gap); margin-bottom:10px; align-items:center; }
-  .radio-group { display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
-  .small { font-size: 12px; color:#666; }
-  .chips { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
-  .chip { border:1px solid #ccc; padding:6px 10px; border-radius:999px; }
-  .muted { color:#666; font-size:12px; }
-  .nowrap { white-space:nowrap; }
-  #page-entry { position: relative; z-index: 1; } /* 入力エリアを前面に固定し、下の一覧とレイヤー干渉しない */
+  .nav{ display:flex; gap:var(--gap); align-items:center; margin-bottom:10px; }
+  .nav .spacer{ margin-left:auto; }
 
-  /* 一覧のスクロール領域 */
-  .table-wrap {
-    max-height: 48vh;
-    overflow: auto;
-    border:1px solid #e5e7eb;
-    border-radius:8px;
-    position: relative; z-index: 1;
-    background:#fff;
-  }
+  .cards{ display:flex; flex-direction:column; gap:8px; }
+  .card{ border:1px solid #e5e7eb; border-radius:10px; padding:10px; background:#fff; }
+  .card-header{ display:flex; justify-content:space-between; gap:8px; align-items:center; flex-wrap:wrap; }
+  .card-meta{ display:flex; gap:12px; flex-wrap:wrap; color:#555; font-size:13px; margin-top:4px; }
+  table{ width:100%; border-collapse:collapse; }
+  th,td{ border:1px solid #e5e7eb; padding:6px; text-align:center; word-break:break-all; }
+  th{ background:#fafafa; }
 
-  /* === カード表示 === */
-  .list-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
-  .view-switch { display:inline-flex; gap:8px; align-items:center; font-size:12px; color:#555; }
-  .filter-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .filter-row > * { flex: 0 0 auto; }
-  .filter-chip { font-size:12px; color:#555; }
+  .fab-bar{ position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid #e5e7eb; padding:10px env(safe-area-inset-right) calc(10px + env(safe-area-inset-bottom)) env(safe-area-inset-left); box-shadow:0 -6px 20px rgba(0,0,0,.06); }
+  .fab-inner{ display:flex; gap:8px; max-width:560px; margin:0 auto; }
+  .fab-inner > *{ flex:1; }
 
-  .cards { display:flex; flex-direction:column; gap:8px; position: relative; z-index: 1; }
-  .card {
-    border:1px solid #e5e7eb; border-radius:8px; padding:8px;
-    background:#fff;
-  }
-  .card-top { display:flex; gap:8px; flex-wrap:wrap; }
-  .card-top .primary { font-weight:700; }
-  .card-meta {
-    display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:4px;
-  }
-  .meta-left { display:flex; gap:10px; flex-wrap:wrap; color:#555; font-size:13px; }
-  .meta-right { display:flex; gap:6px; align-items:center; }
-  .total { font-weight:700; }
-  .card .actions button { padding:6px 8px; }
+  .sum{ display:flex; gap:12px; justify-content:flex-end; margin-top:8px; font-weight:700; }
+  .filter-row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .nowrap{ white-space:nowrap; }
 
-  /* モーダル */
-  .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:100; }
-  .modal-content {
-    background:#fff; margin:6% auto; padding:12px; width:92%; max-width:560px; border-radius:10px;
-    max-height:90vh; overflow:auto; padding-bottom:96px;
-  }
-  .checkbox-grid {
-    display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:8px;
-    max-height:50vh; overflow:auto; padding-right:4px;
-  }
-  .actions {
-    display:flex; gap:8px; justify-content:center;
-    position:sticky; bottom:0; background:#fff; padding:8px 0;
-    box-shadow: 0 -4px 10px rgba(0,0,0,.04); z-index:60;
-  }
-  .modal-header { display:flex; justify-content:space-between; align-items:center; gap:8px; }
-
-  /* 画面下固定アクションバー（z-index下げて干渉回避） */
-  .fab-bar {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
-    background: #fff; border-top: 1px solid #e5e7eb;
-    padding: 10px env(safe-area-inset-right) calc(10px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
-    box-shadow: 0 -6px 20px rgba(0,0,0,.06);
-  }
-  .fab-inner { display: flex; gap: 8px; max-width: 560px; margin: 0 auto; }
-  .fab-inner > * { flex: 1; }
-
-  /* 仕入先・月合計 */
-  .sum-box { border:1px solid #e5e7eb; border-radius:8px; padding:8px; margin-top:10px; background:#fafafa; }
-
-  /* ==== 商品マスタ（itemTable）の操作列を整える ==== */
-  .col-actions { width: 120px; }
-  .actions-cell { display:flex; gap:8px; justify-content:center; }
-  .btn-edit{
-    background:#e5e7eb; color:#111; padding:6px 12px; border:none;
-    border-radius:6px; cursor:pointer;
-  }
-  .btn-edit:hover{ background:#d1d5db; }
-  .btn-del{
-    background:#ef4444; color:#fff; padding:6px 12px; border:none;
-    border-radius:6px; cursor:pointer;
-  }
-  .btn-del:hover{ background:#dc2626; }
-  #itemTable button{ font-size:14px; line-height:1; }
+  /* modal */
+  .modal{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:100; }
+  .modal-content{ background:#fff; margin:6% auto; padding:12px; width:92%; max-width:560px; border-radius:10px; max-height:90vh; overflow:auto; }
+  .actions{ display:flex; gap:8px; justify-content:center; position:sticky; bottom:0; background:#fff; padding:8px 0; box-shadow:0 -4px 10px rgba(0,0,0,.04); }
 </style>
 </head>
 <body>
-
-<div class="nav">
-  <button type="button" onclick="showPage('entry')" class="ghost">仕入れ入力</button>
-  <button type="button" onclick="showPage('phonebook')" class="ghost">電話帳</button>
-  <button type="button" onclick="showPage('masters')" class="ghost">マスタ管理</button>
-  <button type="button" onclick="openSettings()" class="ghost">⚙ 設定</button>
-  <span id="appVersion" class="muted" style="margin-left:auto;">v20</span>
-  <button type="button" class="link" onclick="forceUpdateSW()">🔄 更新</button>
-</div>
-<!-- ↑ 直下に余計な </div> が入っていたので削除済み -->
-
-<!-- 仕入れ入力 -->
-<section id="page-entry">
-  <h2>仕入れ入力</h2>
-  <label>日付</label>
-  <input type="date" id="inDate">
-
-  <label>仕入先 <span class="muted">（選択すると紐付く商品のみ表示）</span></label>
-  <div class="row">
-    <select id="inSupplier"></select>
-    <button type="button" onclick="openSupplierModal()">＋ 仕入先追加</button>
-  </div>
-  <div id="supplierQuick" class="row" style="margin:6px 0; display:none; align-items:center;">
-    <button type="button" id="btnCallSupplier" class="link" style="flex:0 0 auto;">📞 この仕入先に電話</button>
-    <button type="button" id="btnCopySupplier" class="ghost" style="flex:0 0 auto;">📋 電話番号コピー</button>
-    <div id="supplierPhoneView" class="muted" style="flex:1 1 auto;"></div>
+  <div class="nav">
+    <button class="ghost" onclick="showPage('entry')">伝票入力</button>
+    <button class="ghost" onclick="showPage('invoices')">納品書一覧</button>
+    <button class="ghost" onclick="showPage('masters')">マスタ</button>
+    <button class="ghost" onclick="showPage('phonebook')">電話帳</button>
+    <button class="ghost" onclick="openSettings()">⚙ 設定</button>
+    <span class="spacer"></span>
+    <span id="appVersion" class="muted">v22</span>
+    <button class="link" onclick="forceUpdateSW()">🔄 更新</button>
   </div>
 
-  <label>商品名</label>
-  <div class="row">
-    <select id="inItem"></select>
-    <button type="button" onclick="openItemModal()">＋ 商品追加</button>
-  </div>
-
-  <div class="row">
-    <div>
-      <label>数量</label>
-      <input type="number" id="inQty" value="1" step="0.1" min="0" onfocus="this.select()">
-    </div>
-    <div>
-      <label>単価</label>
-      <input type="number" id="inPrice" value="0" step="1" min="0" onfocus="this.select()">
-    </div>
-  </div>
-
-  <label>税区分</label>
-  <div class="radio-group">
-    <label><input type="radio" name="inTax" value="taxIncluded"> 税込</label>
-    <label><input type="radio" name="inTax" value="taxExcluded" checked> 税別</label>
-    <span class="muted">基本税率：<b id="lblRate"></b>%（設定で変更）</span>
-  </div>
-
-  <label style="margin-top:6px;">税率（8% / 10% クイック切替）</label>
-  <div class="radio-group" id="baseRateRadios">
-    <label><input type="radio" name="baseRateChoice" value="8" checked> 8%</label>
-    <label><input type="radio" name="baseRateChoice" value="10"> 10%</label>
-    <span class="small">※ 以後の計算に使う「基本税率」を即時更新します。</span>
-  </div>
-
-  <h3 class="list-head" style="margin-top:16px;">
-    <span>仕入れ一覧</span>
-    <span class="view-switch">
-      表示：
-      <label><input type="radio" name="viewMode" value="table"> 表</label>
-      <label><input type="radio" name="viewMode" value="cards" checked> カード</label>
-      <label style="margin-left:10px; display:inline-flex; gap:6px; align-items:center;">
-        <input type="checkbox" id="toggleAll" onchange="toggleAllRows(this)"> 全件表示（デフォルト：最新50件）
-      </label>
-    </span>
-  </h3>
-
-  <!-- 月フィルター -->
-  <div class="filter-row" style="margin:6px 0 10px;">
-    <label class="muted" style="margin:0;">月フィルター</label>
-    <input type="month" id="filterMonth" style="width:auto;">
-    <button type="button" class="ghost" onclick="setThisMonth()">今月</button>
-    <button type="button" class="ghost" onclick="clearMonthFilter()">解除</button>
-    <button type="button" class="ghost" onclick="toggleMonthlySummary()">仕入先別・月合計</button>
-    <span id="activeFilter" class="filter-chip"></span>
-  </div>
-
-  <!-- 仕入先別・月合計 -->
-  <div id="monthlyBox" class="sum-box" style="display:none;">
-    <div class="row" style="align-items:center;">
-      <div class="muted" style="flex:0 0 auto;">集計月：</div>
-      <div id="summaryMonthLabel" style="flex:0 0 auto; font-weight:700;"></div>
-      <div style="flex:1;"></div>
-      <button type="button" class="ghost" style="flex:0 0 auto;" onclick="downloadSupplierMonthlyCSV()">CSV</button>
-    </div>
-    <div class="table-wrap" style="max-height:30vh; margin-top:8px;">
-      <table>
-        <thead><tr><th>仕入先</th><th>合計（円）</th><th>件数</th></tr></thead>
-        <tbody id="monthlyBody"></tbody>
-      </table>
-    </div>
-  </div> 
- 
-  <!-- 表 -->
-  <div class="table-wrap" id="wrap-table" style="display:none;">
-    <table id="listTable">
-      <thead>
-        <tr><th>日付</th><th>仕入先</th><th>商品</th><th>数量</th><th>単価</th><th>税区分</th><th>合計</th><th>操作</th></tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-
-  <!-- カード表示 -->
-  <div id="wrap-cards" class="cards"></div>
-
-  <div class="row" style="margin-top:10px;">
-    <button type="button" class="link" onclick="downloadCSV()">CSV ダウンロード（全期間）</button>
-    <button type="button" class="ghost" onclick="wipeAll()">全データ初期化</button>
-  </div>
-
-  <!-- ===== バックアップ / 復元 ===== -->
-  <div class="row" style="margin-top:6px;">
-    <button type="button" class="link"  onclick="backupJSON()">バックアップ</button>
-    <button type="button" class="ghost" onclick="openRestoreChooser()">復元</button>
-  </div>
-
-  <!-- 復元モーダル -->
-  <div id="restoreChooser" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>復元</h3>
-        <button type="button" class="ghost" onclick="closeModal('restoreChooser')">✕</button>
+  <!-- 伝票入力 -->
+  <section id="page-entry">
+    <h2>伝票（納品書）入力</h2>
+    <div class="row">
+      <div>
+        <label>日付</label>
+        <input type="date" id="invDate">
       </div>
-      <p class="small" id="lastBackupHint" style="margin:6px 0;"></p>
-      <div class="row" style="margin-top:8px;">
-        <button type="button" onclick="quickRestore(); closeModal('restoreChooser')">直近バックアップから復元</button>
-        <button type="button" class="ghost" onclick="restoreFromFile(); closeModal('restoreChooser')">ファイルから復元</button>
-      </div>
-      <div class="small" style="margin-top:6px;">
-        うまく開けない時は
-        <a href="javascript:void(0)" onclick="forceFileRestore(); closeModal('restoreChooser')">こちら</a>
+      <div>
+        <label>仕入先</label>
+        <select id="invSupplier"></select>
       </div>
     </div>
-  </div>
-
-  <!-- 画面には出さないが、旧環境向けのファイル入力（残してOK） -->
-  <input id="restoreInput" type="file" accept="application/json" style="display:none"
-        onchange="if(this.files[0]) restoreJSON(this.files[0])">
-
-</section>
-
-<!-- 電話帳 -->
-<section id="page-phonebook" style="display:none;">
-  <h2>仕入先電話帳</h2>
-  <table id="phoneTable">
-    <thead><tr><th>仕入先</th><th>担当者</th><th>電話番号</th><th>操作</th></tr></thead>
-    <tbody></tbody>
-  </table>
-</section>
-
-<!-- マスタ管理 -->
-<section id="page-masters" style="display:none;">
-  <h2>マスタ一覧</h2>
-
-  <h3>仕入先</h3>
-  <table id="supTable">
-    <thead><tr><th>仕入先</th><th>担当者</th><th>電話番号</th><th>操作</th></tr></thead>
-    <tbody></tbody>
-  </table>
-
-  <h3>商品（紐付け先）</h3>
-  <table id="itemTable">
-    <thead><tr><th>商品名</th><th>基準価格</th><th>税区分</th><th>紐付け仕入先</th><th>操作</th></tr></thead>
-    <tbody></tbody>
-  </table>
-</section>
-
-<!-- 仕入れ編集モーダル -->
-<div id="purchaseEditModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>仕入れ編集</h3>
-      <button type="button" class="ghost" onclick="closeModal('purchaseEditModal')">✕</button>
+    <div class="row">
+      <div>
+        <label>伝票番号（任意）</label>
+        <input type="text" id="invNo" placeholder="例）IK-2025-00012">
+      </div>
+      <div>
+        <label class="nowrap">仕入先 登録番号</label>
+        <input type="text" id="invSupplierRegId" disabled>
+      </div>
     </div>
-    <input type="hidden" id="editPurchaseIndex">
-    <label>日付</label>
-    <input type="date" id="editDate">
-    <label>仕入先</label>
-    <select id="editSupplier"></select>
-    <label>商品</label>
-    <select id="editItem"></select>
+
+    <h3 style="margin-top:10px;">明細追加</h3>
+    <div class="row">
+      <div>
+        <label>商品（任意・マスタ連携）</label>
+        <select id="liItem"></select>
+      </div>
+      <div>
+        <label>商品名（直接入力可）</label>
+        <input type="text" id="liName" placeholder="例）国産もも肉 2kg">
+      </div>
+    </div>
     <div class="row">
       <div>
         <label>数量</label>
-        <input type="number" id="editQty" step="0.1" min="0">
+        <input type="number" id="liQty" value="1" step="0.1" min="0" onfocus="this.select()">
       </div>
       <div>
-        <label>単価</label>
-        <input type="number" id="editPrice" step="1" min="0">
-      </div>
-    </div>
-    <label>税区分</label>
-    <div class="radio-group">
-      <label><input type="radio" name="editTax" value="taxIncluded"> 税込</label>
-      <label><input type="radio" name="editTax" value="taxExcluded"> 税別</label>
-    </div>
-    <div class="actions" style="margin-top:8px;">
-      <button type="button" onclick="updatePurchase()">保存</button>
-      <button type="button" class="danger" onclick="deletePurchase()">削除</button>
-    </div>
-  </div>
-</div>
-
-<!-- 仕入先/商品モーダル -->
-<div id="supplierModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>仕入先追加</h3>
-      <button type="button" class="ghost" onclick="closeModal('supplierModal')">✕</button>
-    </div>
-    <label>社名</label>
-    <input id="supName" type="text" placeholder="例）Aフーズ">
-    <label>担当者</label>
-    <input id="supContact" type="text" placeholder="例）山田さん">
-    <label>電話番号</label>
-    <input id="supPhone" type="tel" placeholder="090-1234-5678">
-    <div class="actions" style="margin-top:8px;">
-      <button type="button" onclick="addSupplier()">登録</button>
-      <button type="button" class="ghost" onclick="resetSupplierForm()">クリア</button>
-    </div>
-  </div>
-</div>
-
-<div id="supplierEditModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>仕入先編集</h3>
-      <button type="button" class="ghost" onclick="closeModal('supplierEditModal')">✕</button>
-    </div>
-    <input type="hidden" id="editSupId">
-    <label>社名</label>
-    <input id="editSupName" type="text">
-    <label>担当者</label>
-    <input id="editSupContact" type="text">
-    <label>電話番号</label>
-    <input id="editSupPhone" type="tel">
-    <div class="actions" style="margin-top:8px;">
-      <button type="button" onclick="updateSupplier()">保存</button>
-      <button type="button" class="danger" onclick="deleteSupplier()">削除</button>
-    </div>
-  </div>
-</div>
-
-<div id="itemModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>商品追加</h3>
-      <button type="button" class="ghost" onclick="closeModal('itemModal')">✕</button>
-    </div>
-    <label>商品名</label>
-    <input id="itName" type="text" placeholder="例）国産もも肉 2kg">
-    <div class="row">
-      <div>
-        <label>基準価格（任意）</label>
-        <input id="itPrice" type="number" placeholder="0">
+        <label>単価(税別)</label>
+        <input type="number" id="liUnitEx" value="0" step="1" min="0" onfocus="this.select()">
       </div>
       <div>
-        <label>税区分</label>
-        <select id="itTax">
-          <option value="taxIncluded">税込</option>
-          <option value="taxExcluded">税別</option>
+        <label>税率</label>
+        <select id="liRate">
+          <option value="0.08">8%</option>
+          <option value="0.10" selected>10%</option>
         </select>
       </div>
     </div>
-    <label>紐付け仕入先（複数可）</label>
-    <div id="itSuppliers" class="checkbox-grid"></div>
-    <div class="small">※ 複数の仕入先から購入可能な商品に対応します。</div>
-    <div class="actions" style="margin-top:8px;">
-      <button type="button" onclick="addItem()">登録</button>
-      <button type="button" class="ghost" onclick="resetItemForm()">クリア</button>
-    </div>
-  </div>
-</div>
-
-<div id="itemEditModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>商品編集</h3>
-      <button type="button" class="ghost" onclick="closeModal('itemEditModal')">✕</button>
-    </div>
-    <input type="hidden" id="editItemId">
-    <label>商品名</label>
-    <input id="editItName" type="text">
     <div class="row">
-      <div>
-        <label>基準価格（任意）</label>
-        <input id="editItPrice" type="number">
+      <button onclick="addLine()">＋ 明細を追加</button>
+      <button class="ghost" onclick="clearLineForm()">クリア</button>
+    </div>
+
+    <div class="card" style="margin-top:10px;">
+      <div class="card-header"><b>明細一覧</b></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>商品</th><th>数量</th><th>単価(税別)</th><th>金額(税別)</th><th>税率</th><th>操作</th></tr>
+          </thead>
+          <tbody id="lineBody"></tbody>
+        </table>
       </div>
-      <div>
-        <label>税区分</label>
-        <select id="editItTax">
-          <option value="taxIncluded">税込</option>
-          <option value="taxExcluded">税別</option>
-        </select>
+      <div class="sum">
+        <div>小計(税別)：<span id="sumEx">0</span> 円</div>
+        <div>消費税額：<span id="sumTax">0</span> 円</div>
+        <div>合計(税込)：<span id="sumIn">0</span> 円</div>
       </div>
     </div>
-    <label>紐付け仕入先（複数可）</label>
-    <div id="editItSuppliers" class="checkbox-grid"></div>
-    <div class="actions" style="margin-top:8px;">
-      <button type="button" onclick="updateItem()">保存</button>
-      <button type="button" class="danger" onclick="deleteItem()">削除</button>
+
+    <div class="row" style="margin-top:10px;">
+      <button class="link" onclick="saveInvoice()">伝票を保存</button>
+      <button class="ghost" onclick="newInvoice()">新しい伝票</button>
+    </div>
+  </section>
+
+  <!-- 納品書一覧 -->
+  <section id="page-invoices" style="display:none;">
+    <h2>納品書一覧</h2>
+    <div class="filter-row" style="margin:6px 0 10px;">
+      <label class="muted" style="margin:0;">月</label>
+      <input type="month" id="filterMonth">
+      <button class="ghost" onclick="setThisMonth()">今月</button>
+      <button class="ghost" onclick="clearMonthFilter()">解除</button>
+      <span id="activeFilter" class="muted"></span>
+      <span class="spacer"></span>
+      <button class="ghost" onclick="downloadInvoicesCSV()">CSV</button>
+      <button class="ghost" onclick="openBackup()">バックアップ/復元</button>
+    </div>
+    <div id="invoiceCards" class="cards"></div>
+  </section>
+
+  <!-- マスタ -->
+  <section id="page-masters" style="display:none;">
+    <h2>マスタ</h2>
+    <h3>仕入先</h3>
+    <div class="row">
+      <input id="supName" placeholder="社名"> 
+      <input id="supContact" placeholder="担当者"> 
+      <input id="supPhone" placeholder="電話番号(ハイフン可)"> 
+    </div>
+    <div class="row">
+      <input id="supQID" placeholder="適格請求書 登録番号 (例:T1234567890123)"> 
+      <button onclick="addSupplier()">＋ 追加</button>
+    </div>
+    <div class="card" style="margin-top:8px;">
+      <table id="supTable">
+        <thead><tr><th>仕入先</th><th>担当者</th><th>電話</th><th>登録番号</th><th>操作</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top:18px;">商品</h3>
+    <div class="row">
+      <input id="itName" placeholder="商品名"> 
+      <input id="itPrice" type="number" step="1" min="0" placeholder="基準価格(任意)"> 
+      <select id="itTax">
+        <option value="taxExcluded" selected>税別</option>
+        <option value="taxIncluded">税込</option>
+      </select>
+    </div>
+    <div class="row">
+      <select id="itSupplierMulti" multiple size="4" style="min-height:120px;"></select>
+      <button onclick="addItem()">＋ 追加</button>
+    </div>
+    <div class="card" style="margin-top:8px;">
+      <table id="itemTable">
+        <thead><tr><th>商品名</th><th>基準価格</th><th>税区分</th><th>仕入先</th><th>操作</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 電話帳 -->
+  <section id="page-phonebook" style="display:none;">
+    <h2>仕入先電話帳</h2>
+    <table id="phoneTable">
+      <thead><tr><th>仕入先</th><th>担当者</th><th>電話</th><th>操作</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <!-- 設定モーダル -->
+  <div id="settingsModal" class="modal">
+    <div class="modal-content">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <h3>設定</h3>
+        <button class="ghost" onclick="closeModal('settingsModal')">✕</button>
+      </div>
+      <label>デフォルト税率</label>
+      <div class="row">
+        <button class="ghost" onclick="setBaseTax(0.08)">8%</button>
+        <button class="ghost" onclick="setBaseTax(0.10)">10%</button>
+        <span class="muted" id="lblBaseTax"></span>
+      </div>
+      <div class="actions">
+        <button onclick="closeModal('settingsModal')">閉じる</button>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- 設定モーダル -->
-<div id="settingsModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>設定</h3>
-      <button type="button" class="ghost" onclick="closeModal('settingsModal')">✕</button>
+  <!-- バックアップ/復元 モーダル -->
+  <div id="backupModal" class="modal">
+    <div class="modal-content">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <h3>バックアップ / 復元</h3>
+        <button class="ghost" onclick="closeModal('backupModal')">✕</button>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button class="link" onclick="backupJSON()">バックアップ保存</button>
+        <button class="ghost" onclick="restoreFromFile()">ファイルから復元</button>
+      </div>
+      <p class="small" style="margin-top:6px;">※ 以前の v20/v21 データがある場合は自動で移行を試みます。</p>
     </div>
-    <label>基本税率（8% または 10%）</label>
-    <div class="radio-group">
-      <label><input type="radio" name="baseRatePreset" value="8"> 8%</label>
-      <label><input type="radio" name="baseRatePreset" value="10"> 10%</label>
-    </div>
-    <div class="row" style="margin-top:8px;">
-      <button type="button" onclick="saveBaseTaxRate()">保存</button>
-      <button type="button" class="ghost" onclick="resetBaseTaxRate()">8%に戻す</button>
-    </div>
-    <div class="small" style="margin-top:4px;">※ この設定は税別計算に適用され、税込はそのままの金額になります。</div>
   </div>
-</div>
 
-<!-- 画面下固定アクションバー（z-index下げ済み） -->
-<div class="fab-bar">
-  <div class="fab-inner">
-    <button type="button" onclick="savePurchase()">保存</button>
-    <button type="button" class="ghost" onclick="clearEntry()">入力クリア</button>
+  <div class="fab-bar">
+    <div class="fab-inner">
+      <button onclick="openSettings()">⚙ 設定</button>
+      <button class="ghost" onclick="openBackup()">バックアップ</button>
+      <button class="danger" onclick="wipeAll()">全初期化</button>
+    </div>
   </div>
-</div>
-
 
 <script>
+/***** v22 クリーンリライト *****/
+const APP_VERSION = 'v22';
 
-/* ====== バージョン ====== */
-const APP_VERSION = 'v21.1';
-document.addEventListener('DOMContentLoaded', ()=>{
-  const el = document.getElementById('appVersion');
-  if (el) el.textContent = APP_VERSION;
-});
-
-/* ====== 永続化 ====== */
-const LS_KEYS = {
-  suppliers: 'suppliers_v2',
-  items: 'items_v2',
-  purchases: 'purchases_v2',
-  taxRate: 'base_tax_rate_v1'
+/************** LocalStorage Keys **************/
+const LS = {
+  suppliers: 'v22_suppliers',
+  items: 'v22_items',
+  invoices: 'v22_invoices',
+  baseTax: 'v22_base_tax',
+  // 旧データ互換
+  old_suppliers: 'suppliers_v2',
+  old_items: 'items_v2',
+  old_purchases: 'purchases_v2'
 };
-// 直近バックアップの控え（ローカル保存）
-const LS_LAST_BACKUP = 'last_backup_json_v1';
 
-const $ = (id)=>document.getElementById(id);
-const uid = ()=> 'id_' + Math.random().toString(36).slice(2,10);
+/************** State **************/
+let suppliers = loadJSON(LS.suppliers, []);
+let items     = loadJSON(LS.items, []);
+let invoices  = loadJSON(LS.invoices, []);
+let BASE_TAX  = Number(localStorage.getItem(LS.baseTax) ?? '0.10');
+let FILTER_MONTH = '';
 
-/* ====== 状態 ====== */
-let suppliers = JSON.parse(localStorage.getItem(LS_KEYS.suppliers) || '[]');
-let items     = JSON.parse(localStorage.getItem(LS_KEYS.items) || '[]');
-let purchases = JSON.parse(localStorage.getItem(LS_KEYS.purchases) || '[]');
+/************** Types (参考) **************/
+// Supplier { id, name, contact, phone, invoiceRegId }
+// Item     { id, name, price|null, taxType: 'taxExcluded'|'taxIncluded', suppliers: [supplierId] }
+// Invoice  { id, date:'YYYY-MM-DD', supplierId, supplierName, invoiceNo?, lines:[Line], subtotalEx, taxTotal, grandTotal }
+// Line     { id, name, qty, unitEx, rate }
 
-/* ====== 表示制御 ====== */
-let SHOW_ALL = false;
-let VIEW_MODE = 'cards'; // 'cards' or 'table'
-let FILTER_MONTH = '';   // 'YYYY-MM' or ''
+/************** Utils **************/
+function $(id){ return document.getElementById(id); }
+function uid(){ return 'id_' + Math.random().toString(36).slice(2,10); }
+function loadJSON(key, fallback){ try{ const v = localStorage.getItem(key); return v? JSON.parse(v): fallback; }catch{ return fallback; } }
+function save(){ localStorage.setItem(LS.suppliers, JSON.stringify(suppliers)); localStorage.setItem(LS.items, JSON.stringify(items)); localStorage.setItem(LS.invoices, JSON.stringify(invoices)); localStorage.setItem(LS.baseTax, String(BASE_TAX)); }
+function yenFloor(n){ return Math.floor(n); }
+function formatYen(n){ return (n||0).toLocaleString(); }
+function todayStr(){ const d=new Date(); const y=d.getFullYear(); const m=('0'+(d.getMonth()+1)).slice(-2); const dd=('0'+d.getDate()).slice(-2); return `${y}-${m}-${dd}`; }
+function isValidQualifiedId(v){ if(!v) return true; return /^T\d{13}$/.test(v.trim()); }
 
-/* ====== 税率 ====== */
-function getBaseTaxRate(){ const v = localStorage.getItem(LS_KEYS.taxRate); return v==null ? 0.08 : Number(v); }
-function setBaseTaxRate(decimal){ localStorage.setItem(LS_KEYS.taxRate, String(decimal)); updateTaxRateLabel(); renderBaseRateRadios(); }
-function updateTaxRateLabel(){ $('lblRate').textContent = Math.round(getBaseTaxRate()*1000)/10; }
-function renderBaseRateRadios(){
-  const pct = Math.round(getBaseTaxRate()*100);
-  const target = pct===10 ? '10' : '8';
-  const radios = document.querySelectorAll('input[name="baseRateChoice"]');
-  radios.forEach(r=>{
-    r.checked = (r.value === target);
-    r.onchange = ()=> setBaseTaxRate(Number(r.value)/100);
-  });
-}
-function ensureBaseRateChecked(){
-  const radios = document.querySelectorAll('input[name="baseRateChoice"]');
-  const any = Array.from(radios).some(r => r.checked);
-  if(!any){
-    const pct = Math.round(getBaseTaxRate()*100);
-    const target = pct===10 ? '10' : '8';
-    const r = document.querySelector(`input[name="baseRateChoice"][value="${target}"]`);
-    if(r) r.checked = true;
-  }
+/************** Navigation **************/
+function showPage(p){
+  $('page-entry').style.display   = (p==='entry')?'block':'none';
+  $('page-invoices').style.display= (p==='invoices')?'block':'none';
+  $('page-masters').style.display = (p==='masters')?'block':'none';
+  $('page-phonebook').style.display= (p==='phonebook')?'block':'none';
+  if(p==='entry') newInvoiceIfEmpty();
+  if(p==='invoices') renderInvoiceCards();
+  if(p==='masters') { renderSupTable(); renderItemTable(); renderItemSupplierMulti(); }
+  if(p==='phonebook') renderPhonebook();
 }
 
-/* ====== ページ切替 ====== */
-function showPage(which){
-  $('page-entry').style.display = which==='entry' ? 'block':'none';
-  $('page-phonebook').style.display = which==='phonebook' ? 'block':'none';
-  $('page-masters').style.display = which==='masters' ? 'block':'none';
-  if(which==='phonebook') renderPhonebook();
-  if(which==='masters')  { renderSupTable(); renderItemTable(); }
-  if(which==='entry')    ensureBaseRateChecked();
-}
-
-/* ====== 初期描画 ====== */
+/************** Init **************/
+document.addEventListener('DOMContentLoaded', init);
 function init(){
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = ('0'+(today.getMonth()+1)).slice(-2);
-  const dd = ('0'+today.getDate()).slice(-2);
-  $('inDate').value = `${yyyy}-${mm}-${dd}`;
-
-  const defTax = document.querySelector('input[name="inTax"][value="taxExcluded"]');
-  if(defTax) defTax.checked = true;
-
-  const fm = $('filterMonth');
-  if (fm){
-    fm.onchange = ()=>{ FILTER_MONTH = fm.value || ''; renderList(); updateActiveFilterLabel(); renderSupplierMonthly(); };
-  }
-  updateActiveFilterLabel();
-
-  const vm = document.querySelectorAll('input[name="viewMode"]');
-  vm.forEach(r => r.onchange = ()=>{ VIEW_MODE = r.value; renderList(); });
-
+  $('appVersion').textContent = APP_VERSION;
+  migrateFromOldIfNeeded();
+  // entry defaults
+  $('invDate').value = todayStr();
   renderSupplierSelect();
   renderItemSelect();
-  renderList();
-  updateSums();
-  updateTaxRateLabel();
-  renderBaseRateRadios();
-  ensureBaseRateChecked();
-  renderSupplierMonthly(); // 初回は今月扱い
-}
-document.addEventListener('DOMContentLoaded', init);
-
-// PWA: Service Worker
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=21.1').catch(()=>{});
-  });
+  $('filterMonth').onchange = () => { FILTER_MONTH = $('filterMonth').value || ''; renderInvoiceCards(); updateActiveFilterLabel(); };
+  updateActiveFilterLabel();
+  $('invSupplier').onchange = onSupplierChange;
+  $('liItem').onchange = onItemPicked;
+  newInvoice(); // start fresh form state (not yet saved)
+  updateBaseTaxLabel();
 }
 
-/* ====== ヘルパー描画 ====== */
-function renderSupplierSelect(){
-  const sel = $('inSupplier');
-  sel.innerHTML = '<option value="">-- 仕入先を選択 --</option>' + suppliers.map(s=> `<option value="${s.id}">${s.name}</option>`).join('');
-  sel.onchange = ()=>{ renderItemSelect(sel.value); updateSupplierQuick(sel.value); };
-}
-function updateSupplierQuick(supplierId){
-  const wrap = $('supplierQuick');
-  if(!supplierId){ wrap.style.display='none'; return; }
-  const s = suppliers.find(x=>x.id===supplierId); if(!s){ wrap.style.display='none'; return; }
-  wrap.style.display='flex';
-  const phone = s.phone || ''; const telHref = phone ? `tel:${phone}` : '';
-  $('supplierPhoneView').textContent = phone ? `電話番号：${phone}` : '電話番号未登録';
-  $('btnCallSupplier').onclick = ()=>{ if(!phone){ alert('電話番号が未登録です'); return; } window.location.href = telHref; };
-  $('btnCopySupplier').onclick = ()=> copyPhone(phone);
-}
-function renderItemSelect(supplierId=''){
-  const sel = $('inItem');
-  let list = items;
-  if(supplierId){ list = items.filter(it => (it.suppliers||[]).includes(supplierId)); }
-  sel.innerHTML = '<option value="">-- 商品を選択 --</option>' + list.map(i=> `<option value="${i.id}">${i.name}</option>`).join('');
-  sel.onchange = ()=>{
-    const it = items.find(x=>x.id===sel.value);
-    if(it){
-      const last = getLastPriceFor($('inSupplier').value, it.id);
-      if (last!=null) $('inPrice').value = last;
-      else if (it.price!=null) $('inPrice').value = it.price;
-      const defaultTax = it.taxType || 'taxExcluded';
-      const tsel = document.querySelector('input[name="inTax"][value="'+ defaultTax +'"]');
-      if (tsel) tsel.checked = true;
+/************** Migration (v20/21 -> v22) **************/
+function migrateFromOldIfNeeded(){
+  if(invoices.length>0 || (localStorage.getItem(LS.old_purchases)===null)) return; // no need or no old
+  try{
+    const oldSup = loadJSON(LS.old_suppliers, []);
+    const oldItems = loadJSON(LS.old_items, []);
+    const oldPurch = loadJSON(LS.old_purchases, []);
+    if(oldSup.length===0 && oldPurch.length===0) return;
+
+    // shallow copy suppliers/items
+    suppliers = oldSup.map(s=> ({ id:s.id||uid(), name:s.name, contact:s.contact||'', phone:s.phone||'', invoiceRegId:s.invoiceRegId||'' }));
+    items = oldItems.map(it=> ({ id:it.id||uid(), name:it.name, price: it.price ?? null, taxType: it.taxType||'taxExcluded', suppliers: it.suppliers||[] }));
+
+    // group purchases by supplierId + date (納品書単位)
+    const buckets = new Map();
+    for(const p of oldPurch){
+      const key = `${p.supplierId}|${(p.date||'').slice(0,10)}`;
+      const arr = buckets.get(key) || []; arr.push(p); buckets.set(key, arr);
     }
-  };
+    invoices = [];
+    for(const [key, arr] of buckets.entries()){
+      const [supplierId, date] = key.split('|');
+      const s = suppliers.find(x=>x.id===supplierId); const supplierName = s? s.name : '(不明)';
+      // convert lines (unit price基準：税別正規化)
+      const lines = arr.map(p=>{
+        const qty = Number(p.qty||0);
+        const rate = (p.taxType==='taxExcluded') ? (Number(localStorage.getItem('base_tax_rate_v1')||0.08)) : (Number(localStorage.getItem('base_tax_rate_v1')||0.08));
+        const unitEx = (p.taxType==='taxExcluded') ? Number(p.price||0) : Math.floor(Number(p.price||0)/(1+rate));
+        const name = (items.find(i=>i.id===p.itemId)||{}).name || '(商品)';
+        return { id: uid(), name, qty, unitEx, rate: (rate||0.10) };
+      });
+      const inv = makeInvoice({ id: uid(), date, supplierId, supplierName, invoiceNo:'', lines });
+      invoices.push(inv);
+    }
+    save();
+    alert('旧データを v22 形式へ移行しました');
+  }catch(e){ console.error(e); alert('旧データ移行に失敗しました: '+e.message); }
 }
 
-/* ====== 入力エリア ====== */
-function clearEntry(){ $('inItem').value = ''; $('inQty').value = 1; $('inPrice').value = 0; document.querySelector('input[name="inTax"][value="taxExcluded"]').checked = true; }
-
-/* ====== 直近価格取得 ====== */
-function getLastPriceFor(supplierId, itemId){
-  for (let i = purchases.length - 1; i >= 0; i--) { const p = purchases[i]; if (p.supplierId === supplierId && p.itemId === itemId) return p.price; }
-  return null;
+/************** Supplier **************/
+function renderSupplierSelect(){
+  const sel = $('invSupplier');
+  sel.innerHTML = '<option value="">-- 仕入先を選択 --</option>' + suppliers.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
 }
-
-/* ====== 保存・計算 ====== */
-function savePurchase(){
-  const date = $('inDate').value;
-  const supplierId = $('inSupplier').value;
-  const itemId = $('inItem').value;
-  const qty = Number($('inQty').value || 0);
-  const price = Number($('inPrice').value || 0);
-  const selTax = document.querySelector('input[name="inTax"]:checked');
-  const taxType = selTax ? selTax.value : 'taxExcluded';
-
-  if(!date) return alert('日付を入力してください');
-  if(!supplierId) return alert('仕入先を選択してください');
-  if(!itemId) return alert('商品を選択してください');
-
-  const rate = getBaseTaxRate();
-  const total = taxType==='taxExcluded' ? Math.round(qty*price*(1+rate)) : Math.round(qty*price);
-
-  purchases.push({date, supplierId, itemId, qty, price, taxType, total});
-  localStorage.setItem(LS_KEYS.purchases, JSON.stringify(purchases));
-
-  clearEntry(); renderList(); updateSums(); renderSupplierMonthly();
+function onSupplierChange(){
+  const s = suppliers.find(x=>x.id===$('invSupplier').value);
+  $('invSupplierRegId').value = s?.invoiceRegId || '';
+  renderItemSelect();
 }
-
-/* ====== 一覧 & 集計 ====== */
-function toggleAllRows(chk){ SHOW_ALL = chk.checked; renderList(); }
-function getFilteredArray(){
-  let arr = purchases.slice().map((p,idx)=>({p, idx})).reverse();
-  if (FILTER_MONTH) arr = arr.filter(({p}) => (p.date||'').slice(0,7) === FILTER_MONTH);
-  return SHOW_ALL ? arr : arr.slice(0,50);
+function addSupplier(){
+  const name = $('supName').value.trim(); if(!name) return alert('社名は必須です');
+  const contact = $('supContact').value.trim();
+  const phone   = $('supPhone').value.trim();
+  const qid     = $('supQID').value.trim();
+  if(!isValidQualifiedId(qid)) return alert('登録番号は「T」+13桁の数字（例:T1234567890123）');
+  suppliers.push({ id:uid(), name, contact, phone, invoiceRegId: qid });
+  $('supName').value=''; $('supContact').value=''; $('supPhone').value=''; $('supQID').value='';
+  save(); renderSupplierSelect(); renderSupTable(); renderItemSupplierMulti(); renderPhonebook();
 }
-function renderList(){
-  const wrapTable = document.getElementById('wrap-table');
-  const wrapCards = document.getElementById('wrap-cards');
-  if (VIEW_MODE === 'table') {
-    wrapTable.style.display = 'block';
-    wrapCards.style.display = 'none';
-    renderListTable();
-  } else {
-    wrapTable.style.display = 'none';
-    wrapCards.style.display = 'block';
-    renderListCards();
-  }
-}
-function renderListTable(){
-  const tb = $('listTable').querySelector('tbody'); tb.innerHTML = '';
-  const list = getFilteredArray();
-  list.forEach(({p, idx:origIndex})=>{
-    const s = suppliers.find(x=>x.id===p.supplierId);
-    const i = items.find(x=>x.id===p.itemId);
+function renderSupTable(){
+  const tb = $('supTable').querySelector('tbody'); tb.innerHTML='';
+  suppliers.forEach(s=>{
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${p.date}</td>
-      <td>${s ? s.name : ''}</td>
-      <td>${i ? i.name : ''}</td>
-      <td>${p.qty}</td>
-      <td>${p.price}</td>
-      <td>${p.taxType==='taxExcluded'?'税別':'税込'}</td>
-      <td>${p.total}</td>
-      <td class="nowrap">
-        <button class="ghost" style="padding:6px 8px;" onclick="openPurchaseEdit(${origIndex})">編集</button>
-        <button class="danger" style="padding:6px 8px;" onclick="deletePurchaseAt(${origIndex})">削除</button>
+    tr.innerHTML = `<td>${s.name}</td><td>${s.contact||''}</td><td class="nowrap">${s.phone||''}</td><td class="nowrap">${s.invoiceRegId||''}</td>
+      <td>
+        <button class="ghost" onclick="editSupplier('${s.id}')">編集</button>
+        <button class="danger" onclick="delSupplier('${s.id}')">削除</button>
       </td>`;
     tb.appendChild(tr);
   });
 }
-function renderListCards(){
-  const box = document.getElementById('wrap-cards'); box.innerHTML = '';
-  const list = getFilteredArray();
-  list.forEach(({p, idx:origIndex})=>{
-    const s = suppliers.find(x=>x.id===p.supplierId);
-    const i = items.find(x=>x.id===p.itemId);
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.innerHTML = `
-      <div class="card-top">
-        <div>${p.date}</div>
-        <div class="primary">${s ? s.name : ''} / ${i ? i.name : ''}</div>
-      </div>
-      <div class="card-meta">
-        <div class="meta-left">
-          <span>${p.qty} × ${p.price}</span>
-          <span>${p.taxType==='taxExcluded'?'税別':'税込'}</span>
-        </div>
-        <div class="meta-right">
-          <span class="total">${p.total} 円</span>
-          <span class="actions">
-            <button class="ghost" onclick="openPurchaseEdit(${origIndex})">編集</button>
-            <button class="danger" onclick="deletePurchaseAt(${origIndex})">削除</button>
-          </span>
-        </div>
-      </div>
-    `;
-    box.appendChild(card);
-  });
+function editSupplier(id){
+  const s = suppliers.find(x=>x.id===id); if(!s) return;
+  const name = prompt('社名', s.name); if(name===null) return;
+  const contact = prompt('担当者', s.contact||''); if(contact===null) return;
+  const phone = prompt('電話', s.phone||''); if(phone===null) return;
+  const qid = prompt('登録番号(T+13桁、空可)', s.invoiceRegId||''); if(qid===null) return; if(!isValidQualifiedId(qid)) return alert('形式エラー');
+  s.name=name.trim(); s.contact=contact.trim(); s.phone=phone.trim(); s.invoiceRegId=qid.trim();
+  save(); renderSupplierSelect(); renderSupTable(); renderItemSupplierMulti(); renderPhonebook();
 }
-function updateSums(){
-  const today = new Date(); const yyyy = today.getFullYear(); const mm = ('0'+(today.getMonth()+1)).slice(-2); const dd = ('0'+today.getDate()).slice(-2);
-  const todayStr = `${yyyy}-${mm}-${dd}`, monthStr = `${yyyy}-${mm}`;
-  let daily = 0, monthly = 0;
-  purchases.forEach(p=>{ if(p.date===todayStr) daily += p.total; if((p.date||'').slice(0,7)===monthStr) monthly += p.total; });
+function delSupplier(id){
+  if(!confirm('この仕入先を削除します。関連する商品リンクも外れます。')) return;
+  suppliers = suppliers.filter(s=>s.id!==id);
+  items = items.map(it=> ({...it, suppliers:(it.suppliers||[]).filter(sid=>sid!==id)}));
+  invoices = invoices.filter(inv=> inv.supplierId!==id); // 伝票も削除（安全第一）
+  save(); renderSupplierSelect(); renderSupTable(); renderItemSupplierMulti(); renderInvoiceCards(); renderPhonebook();
 }
-
-/* ====== CSV ====== */
-function downloadCSV(){
-  let csv = '日付,仕入先,商品,数量,単価,税区分,合計\n';
-  purchases.forEach(p=>{
-    const s = suppliers.find(x=>x.id===p.supplierId);
-    const i = items.find(x=>x.id===p.itemId);
-    csv += `${p.date},${s?s.name:''},${i?i.name:''},${p.qty},${p.price},${p.taxType==='taxExcluded'?'税別':'税込'},${p.total}\n`;
-  });
-  const blob = new Blob([csv], {type:'text/csv'}); const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = '仕入れデータ.csv'; a.click(); URL.revokeObjectURL(url);
-}
-
-/* ====== バックアップ／復元（分離・堅牢版） ====== */
-// バックアップ（共有→保存→ダウンロードの順に試す）＋ローカル控え保存
-async function backupJSON(){
-  const fileName = `shiire-backup_${new Date().toISOString().slice(0,10)}.json`;
-  const data = {
-    version: 1,
-    savedAt: new Date().toISOString(),
-    suppliers, items, purchases,
-    taxRate: localStorage.getItem(LS_KEYS.taxRate)
-  };
-  const json = JSON.stringify(data, null, 2);
-  const blob = new Blob([json], {type:'application/json'});
-  const file = new File([blob], fileName, {type:'application/json'});
-
-  // ローカル控え
-  try { localStorage.setItem(LS_LAST_BACKUP, json); } catch(_) {}
-
-  // 1) スマホ共有（OneDrive等）
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({ title: '仕入れバックアップ', text: 'バックアップJSONです。', files: [file] });
-      alert('バックアップを保存しました'); return;
-    } catch(e) { if (e.name === 'AbortError') return; }
-  }
-  // 2) PC保存ダイアログ（OneDrive同期フォルダ可）
-  if ('showSaveFilePicker' in window) {
-    try{
-      const handle = await window.showSaveFilePicker({
-        suggestedName: fileName,
-        types: [{ description:'JSON', accept:{ 'application/json': ['.json'] } }]
-      });
-      const w = await handle.createWritable(); await w.write(blob); await w.close();
-      alert('バックアップを保存しました'); return;
-    }catch(e){ if (e.name === 'AbortError') return; }
-  }
-  // 3) 最後の手段：自動ダウンロード
-  try{
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = fileName; a.click();
-    URL.revokeObjectURL(a.href);
-    alert('JSONをダウンロードしました。');
-  }catch(e){
-    alert('バックアップに失敗しました: ' + e.message);
-  }
-}
-
-// 復元（モダンAPI or hidden input フォールバック）
-async function restoreFromFile(){
-  try{
-    if ('showOpenFilePicker' in window) {
-      const [handle] = await window.showOpenFilePicker({
-        types: [{ description: 'JSONバックアップ', accept: { 'application/json': ['.json'] } }]
-      });
-      const f = await handle.getFile(); const text = await f.text();
-      const data = JSON.parse(text);
-      _applyRestore(data);
-      alert('復元しました'); return;
-    }
-  }catch(e){ if (e.name !== 'AbortError') alert('復元に失敗しました: ' + e.message); return; }
-
-  // 古い環境向け：非表示inputを起動
-  const input = document.getElementById('restoreInput');
-  if (input) input.click();
-}
-
-// 直近バックアップからワンタップ復元（ローカル控え）
-function quickRestore(){
-  try{
-    const json = localStorage.getItem(LS_LAST_BACKUP);
-    if(!json){ alert('直近バックアップがありません。先にバックアップしてください。'); return; }
-    const data = JSON.parse(json);
-    _applyRestore(data);
-    alert('直近バックアップから復元しました');
-  }catch(e){ alert('復元に失敗しました: ' + e.message); }
-}
-
-// input 直指定の復元（hidden input が使う）
-function restoreJSON(file){
-  const r = new FileReader();
-  r.onload = ()=>{
-    try{ _applyRestore(JSON.parse(r.result)); alert('復元しました'); }
-    catch(e){ alert('復元に失敗しました: ' + e.message); }
-  };
-  r.readAsText(file);
-}
-
-// どのブラウザでも確実に発火する強制復元（任意のボタンから呼べる）
-function forceFileRestore(){
-  const input = document.createElement('input');
-  input.type = 'file'; input.accept = 'application/json'; input.style.display = 'none';
-  input.onchange = ()=>{
-    if(input.files && input.files[0]){
-      const r = new FileReader();
-      r.onload = ()=>{
-        try{ _applyRestore(JSON.parse(r.result)); alert('復元しました'); }
-        catch(e){ alert('復元に失敗しました: ' + e.message); }
-      };
-      r.readAsText(input.files[0]);
-    }
-  };
-  document.body.appendChild(input);
-  input.click();
-  setTimeout(()=> document.body.removeChild(input), 0);
-}
-
-function _applyRestore(data){
-  if(!data || !data.suppliers || !data.items || !data.purchases) throw new Error('形式不正');
-  suppliers = data.suppliers; items = data.items; purchases = data.purchases;
-  if(data.taxRate!=null) localStorage.setItem(LS_KEYS.taxRate, String(data.taxRate));
-  localStorage.setItem(LS_KEYS.suppliers, JSON.stringify(suppliers));
-  localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
-  localStorage.setItem(LS_KEYS.purchases, JSON.stringify(purchases));
-  renderSupplierSelect(); renderItemSelect(); renderList();
-  renderPhonebook(); renderSupTable(); renderItemTable();
-  updateTaxRateLabel(); renderSupplierMonthly();
-}
-
-/* ====== 月フィルター操作 ====== */
-function setThisMonth(){
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = ('0'+(d.getMonth()+1)).slice(-2);
-  const v = `${yyyy}-${mm}`;
-  if ($('filterMonth')) $('filterMonth').value = v;
-  FILTER_MONTH = v;
-  renderList();
-  updateActiveFilterLabel();
-  renderSupplierMonthly();
-}
-function clearMonthFilter(){
-  FILTER_MONTH = '';
-  if ($('filterMonth')) $('filterMonth').value = '';
-  renderList();
-  updateActiveFilterLabel();
-  renderSupplierMonthly();
-}
-function updateActiveFilterLabel(){
-  const el = $('activeFilter');
-  if (el) el.textContent = FILTER_MONTH ? `適用中：${FILTER_MONTH}` : '';
-}
-
-/* ====== 仕入先別・月合計 ====== */
-function toggleMonthlySummary(){
-  const box = $('monthlyBox');
-  const willShow = (box.style.display==='none' || !box.style.display);
-  box.style.display = willShow ? 'block' : 'none';
-  if (willShow) {
-    renderSupplierMonthly();
-    setTimeout(()=> box.scrollIntoView({behavior:'smooth', block:'start'}), 0);
-  }
-}
-function renderSupplierMonthly(){
-  const month = FILTER_MONTH || (new Date().toISOString().slice(0,7)); // 未選択なら今月
-  $('summaryMonthLabel').textContent = month;
-  const body = $('monthlyBody'); body.innerHTML = '';
-  const monthRows = purchases.filter(p => (p.date||'').slice(0,7) === month);
-  const map = new Map(); // supId -> {name,total,count}
-  monthRows.forEach(p=>{
-    const s = suppliers.find(x=>x.id===p.supplierId);
-    const name = s ? s.name : '(不明)';
-    const prev = map.get(p.supplierId) || {name, total:0, count:0};
-    prev.total += p.total; prev.count += 1;
-    map.set(p.supplierId, prev);
-  });
-  const entries = Array.from(map.values()).sort((a,b)=> b.total - a.total);
-  entries.forEach(e=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${e.name}</td><td>${e.total}</td><td>${e.count}</td>`;
-    body.appendChild(tr);
-  });
-  if(entries.length===0){
-    const tr = document.createElement('tr');
-    tr.innerHTML = '<td colspan="3" class="muted">この月のデータがありません</td>';
-    body.appendChild(tr);
-  }
-}
-function downloadSupplierMonthlyCSV(){
-  const month = FILTER_MONTH || (new Date().toISOString().slice(0,7));
-  const monthRows = purchases.filter(p => (p.date||'').slice(0,7) === month);
-  const map = new Map();
-  monthRows.forEach(p=>{
-    const s = suppliers.find(x=>x.id===p.supplierId);
-    const name = s ? s.name : '(不明)';
-    const prev = map.get(name) || {total:0, count:0};
-    prev.total += p.total; prev.count += 1;
-    map.set(name, prev);
-  });
-  let csv = `月,仕入先,合計,件数\n`;
-  map.forEach((v, name)=>{ csv += `${month},${name},${v.total},${v.count}\n`; });
-  const blob = new Blob([csv], {type:'text/csv'}); const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = `supplier-monthly_${month}.csv`; a.click(); URL.revokeObjectURL(a.href);
-}
-
-/* ====== 電話帳 ====== */
 function renderPhonebook(){
-  const tb = $('phoneTable').querySelector('tbody'); tb.innerHTML = '';
+  const tb = $('phoneTable').querySelector('tbody'); tb.innerHTML='';
   suppliers.forEach(s=>{
     const tr = document.createElement('tr');
-    const telHref = s.phone ? `tel:${s.phone}` : '';
-    tr.innerHTML = `
-      <td>${s.name||''}</td>
+    const telHref = s.phone? `tel:${s.phone}`:'';
+    tr.innerHTML = `<td>${s.name}${s.invoiceRegId? `<div class='small'>登録番号: ${s.invoiceRegId}</div>`:''}</td>
       <td>${s.contact||''}</td>
       <td>${s.phone||''}</td>
       <td>
-        <div class="row">
-          <a class="link" style="text-align:center; text-decoration:none; padding:8px; border-radius:8px; display:block;" href="${telHref}" ${s.phone?'':'onclick="return false;"'}>📞 電話</a>
-          <button type="button" class="ghost" onclick="copyPhone('${s.phone||''}')">📋 コピー</button>
-        </div>
+        <a class="link" style="text-decoration:none;display:inline-block;padding:6px 10px;border-radius:8px;" href="${telHref}" ${s.phone?'':'onclick="return false;"'}>📞 電話</a>
       </td>`;
     tb.appendChild(tr);
   });
 }
-async function copyPhone(num){
-  if(!num){ alert('電話番号が未登録です'); return; }
-  try{
-    if(navigator.clipboard && navigator.clipboard.writeText){ await navigator.clipboard.writeText(num); }
-    else{ const ta = document.createElement('textarea'); ta.value = num; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
-    alert('電話番号をコピーしました');
-  }catch(e){ alert('コピーできませんでした：' + e.message); }
-}
 
-/* ====== マスタ一覧 ====== */
-function renderSupTable(){
-  const tb = $('supTable').querySelector('tbody'); tb.innerHTML = '';
-  suppliers.forEach(s=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${s.name}</td><td>${s.contact||''}</td><td class="nowrap">${s.phone||''}</td>
-                    <td><button class="ghost" onclick="openSupplierEdit('${s.id}')">編集</button></td>`;
-    tb.appendChild(tr);
-  });
-}
-function renderItemTable(){
-  const tb = $('itemTable').querySelector('tbody');
-  tb.innerHTML = '';
-  items.forEach(it=>{
-    const names = (it.suppliers||[])
-      .map(id=> (suppliers.find(s=>s.id===id)||{}).name )
-      .filter(Boolean);
-
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${it.name}</td>
-      <td>${it.price!=null ? it.price : ''}</td>
-      <td>${it.taxType==='taxExcluded' ? '税別' : '税込'}</td>
-      <td>${names.join(' / ')}</td>
-      <td class="col-actions">
-        <div class="actions-cell">
-          <button class="btn-edit" onclick="openItemEdit('${it.id}')">編集</button>
-          <button class="btn-del"  onclick="deleteItemDirect('${it.id}')">削除</button>
-        </div>
-      </td>
-    `;
-    tb.appendChild(tr);
-  });
-}
-
-
-
-
-/* ====== 仕入れ編集・削除 ====== */
-function openPurchaseEdit(index){
-  const p = purchases[index]; if(!p) return;
-  $('editPurchaseIndex').value = String(index);
-  $('editDate').value = p.date;
-
-  const supSel = $('editSupplier'); supSel.innerHTML = suppliers.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
-  supSel.value = p.supplierId;
-
-  const itemSel = $('editItem');
-  const list = items.filter(it => (it.suppliers||[]).includes(p.supplierId));
-  itemSel.innerHTML = list.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
-  itemSel.value = p.itemId;
-
-  supSel.onchange = ()=>{
-    const list2 = items.filter(it => (it.suppliers||[]).includes(supSel.value));
-    itemSel.innerHTML = list2.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
-  };
-
-  $('editQty').value = p.qty;
-  $('editPrice').value = p.price;
-  const r = document.querySelector(`input[name="editTax"][value="${p.taxType}"]`);
-  if(r) r.checked = true;
-
-  $('purchaseEditModal').style.display = 'block';
-}
-function updatePurchase(){
-  const idx = Number($('editPurchaseIndex').value);
-  const date = $('editDate').value;
-  const supplierId = $('editSupplier').value;
-  const itemId = $('editItem').value;
-  const qty = Number($('editQty').value || 0);
-  const price = Number($('editPrice').value || 0);
-  const selTax = document.querySelector('input[name="editTax"]:checked');
-  const taxType = selTax ? selTax.value : 'taxExcluded';
-
-  if(!date||!supplierId||!itemId) return alert('日付・仕入先・商品は必須です');
-
-  const rate = getBaseTaxRate();
-  const total = taxType==='taxExcluded' ? Math.round(qty*price*(1+rate)) : Math.round(qty*price);
-
-  purchases[idx] = {date, supplierId, itemId, qty, price, taxType, total};
-  localStorage.setItem(LS_KEYS.purchases, JSON.stringify(purchases));
-
-  closeModal('purchaseEditModal');
-  renderList(); renderSupplierMonthly();
-}
-function deletePurchase(){
-  const idx = Number($('editPurchaseIndex').value);
-  if(!confirm('この仕入れ記録を削除します。よろしいですか？')) return;
-  purchases.splice(idx,1);
-  localStorage.setItem(LS_KEYS.purchases, JSON.stringify(purchases));
-  closeModal('purchaseEditModal');
-  renderList(); renderSupplierMonthly();
-}
-function deletePurchaseAt(index){
-  if(!confirm('この仕入れ記録を削除します。よろしいですか？')) return;
-  purchases.splice(index,1);
-  localStorage.setItem(LS_KEYS.purchases, JSON.stringify(purchases));
-  renderList(); renderSupplierMonthly();
-}
-
-/* ====== 仕入先：新規/編集 ====== */
-function openSupplierModal(){ resetSupplierForm(); const m = $('supplierModal'); if(!m){ alert('supplierModal が見つかりません'); return; } m.style.display = 'block'; }
-function resetSupplierForm(){ $('supName').value=''; $('supContact').value=''; $('supPhone').value=''; }
-function addSupplier(){
-  const name = $('supName').value.trim(); if(!name) return alert('社名を入力してください');
-  const contact = $('supContact').value.trim(); const phone = $('supPhone').value.trim();
-  suppliers.push({id: uid(), name, contact, phone});
-  localStorage.setItem(LS_KEYS.suppliers, JSON.stringify(suppliers));
-  resetSupplierForm(); renderSupplierSelect(); renderPhonebook(); renderSupTable(); renderItemSupplierChecks();
-}
-function openSupplierEdit(id){
-  const s = suppliers.find(x=>x.id===id); if(!s) return;
-  $('editSupId').value = s.id; $('editSupName').value = s.name; $('editSupContact').value = s.contact||''; $('editSupPhone').value = s.phone||'';
-  const m = $('supplierEditModal'); if(!m){ alert('supplierEditModal が見つかりません'); return; }
-  m.style.display = 'block';
-}
-function updateSupplier(){
-  const id = $('editSupId').value; const s = suppliers.find(x=>x.id===id); if(!s) return;
-  const name = $('editSupName').value.trim(); if(!name) return alert('社名は必須です');
-  s.name = name; s.contact = $('editSupContact').value.trim(); s.phone = $('editSupPhone').value.trim();
-  localStorage.setItem(LS_KEYS.suppliers, JSON.stringify(suppliers));
-  closeModal('supplierEditModal'); renderSupplierSelect(); renderPhonebook(); renderSupTable(); renderItemTable();
-}
-function deleteSupplier(){
-  const id = $('editSupId').value;
-  if(!confirm('この仕入先を削除します。紐付く商品からも除外されます。よろしいですか？')) return;
-  suppliers = suppliers.filter(s=>s.id!==id);
-  items = items.map(it=> ({...it, suppliers: (it.suppliers||[]).filter(sid=>sid!==id)}));
-  localStorage.setItem(LS_KEYS.suppliers, JSON.stringify(suppliers));
-  localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
-  closeModal('supplierEditModal'); renderSupplierSelect(); renderPhonebook(); renderSupTable(); renderItemTable(); renderItemSelect($('inSupplier').value);
-}
-
-/* ====== 商品：新規/編集 ====== */
-function openItemModal(){ resetItemForm(); renderItemSupplierChecks(); const m = $('itemModal'); if(!m){ alert('itemModal が見つかりません'); return; } m.style.display = 'block'; }
-function resetItemForm(){ $('itName').value=''; $('itPrice').value=''; $('itTax').value='taxIncluded'; }
-function renderItemSupplierChecks(target='itSuppliers'){
-  const box = $(target);
-  if(suppliers.length===0){ box.innerHTML = '<div class="small">仕入先がありません。先に仕入先を登録してください。</div>'; return; }
-  box.innerHTML = suppliers.map(s=>`<label style="display:flex; align-items:center; gap:6px;"><input type="checkbox" value="${s.id}"> ${s.name}</label>`).join('');
+/************** Items **************/
+function renderItemSupplierMulti(){
+  const multi = $('itSupplierMulti');
+  multi.innerHTML = suppliers.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
 }
 function addItem(){
-  const name = $('itName').value.trim(); if(!name) return alert('商品名を入力してください');
-  const priceStr = $('itPrice').value.trim(); const price = priceStr==='' ? null : Number(priceStr);
+  const name = $('itName').value.trim(); if(!name) return alert('商品名は必須');
+  const price = $('itPrice').value.trim();
   const taxType = $('itTax').value;
-  const checks = Array.from($('itSuppliers').querySelectorAll('input[type="checkbox"]:checked')); const supIds = checks.map(c=>c.value);
-  if(supIds.length===0) return alert('紐付ける仕入先を1つ以上選択してください');
-  items.push({id: uid(), name, price, taxType, suppliers: supIds});
-  localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
-  resetItemForm(); renderItemSupplierChecks(); renderItemSelect($('inSupplier').value); renderItemTable();
+  const selected = Array.from($('itSupplierMulti').selectedOptions).map(o=>o.value);
+  if(selected.length===0) return alert('仕入先を1つ以上選んでください');
+  items.push({ id:uid(), name, price: price===''? null : Number(price), taxType, suppliers: selected });
+  $('itName').value=''; $('itPrice').value=''; $('itTax').value='taxExcluded';
+  save(); renderItemTable(); renderItemSelect();
 }
-function openItemEdit(id){
+function renderItemTable(){
+  const tb = $('itemTable').querySelector('tbody'); tb.innerHTML='';
+  items.forEach(it=>{
+    const names = (it.suppliers||[]).map(id=> suppliers.find(s=>s.id===id)?.name||'').filter(Boolean).join(' / ');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${it.name}</td><td>${it.price!=null? it.price:''}</td><td>${it.taxType==='taxExcluded'?'税別':'税込'}</td><td>${names}</td>
+      <td>
+        <button class="ghost" onclick="editItem('${it.id}')">編集</button>
+        <button class="danger" onclick="delItem('${it.id}')">削除</button>
+      </td>`;
+    tb.appendChild(tr);
+  });
+}
+function editItem(id){
   const it = items.find(x=>x.id===id); if(!it) return;
-  $('editItemId').value = it.id; $('editItName').value = it.name; $('editItPrice').value = it.price!=null? it.price : ''; $('editItTax').value = it.taxType || 'taxIncluded';
-  renderItemSupplierChecks('editItSuppliers');
-  const box = $('editItSuppliers'); (it.suppliers||[]).forEach(sid=>{ const chk = box.querySelector(`input[value="${sid}"]`); if(chk) chk.checked = true; });
-  const m = $('itemEditModal'); if(!m){ alert('itemEditModal が見つかりません'); return; }
-  m.style.display = 'block';
+  const name = prompt('商品名', it.name); if(name===null) return;
+  const priceStr = prompt('基準価格(空可)', it.price!=null? it.price:''); if(priceStr===null) return;
+  const taxType = prompt('税区分: taxExcluded/taxIncluded', it.taxType||'taxExcluded'); if(taxType===null) return;
+  it.name = name.trim(); it.price = priceStr===''? null : Number(priceStr); it.taxType = (taxType==='taxIncluded')?'taxIncluded':'taxExcluded';
+  save(); renderItemTable(); renderItemSelect();
 }
-function updateItem(){
-  const id = $('editItemId').value; const it = items.find(x=>x.id===id); if(!it) return;
-  const name = $('editItName').value.trim(); if(!name) return alert('商品名は必須です');
-  const priceStr = $('editItPrice').value.trim(); it.price = priceStr==='' ? null : Number(priceStr);
-  it.name = name; it.taxType = $('editItTax').value;
-  const checks = Array.from($('editItSuppliers').querySelectorAll('input[type="checkbox"]:checked')); const supIds = checks.map(c=>c.value);
-  if(supIds.length===0) return alert('紐付け仕入先を1つ以上選択してください'); it.suppliers = supIds;
-  localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
-  closeModal('itemEditModal'); renderItemSelect($('inSupplier').value); renderItemTable();
+function delItem(id){
+  if(!confirm('この商品を削除します。')) return;
+  // NOTE: 伝票の既存行は商品名をテキスト保存しているので影響なし
+  items = items.filter(x=>x.id!==id); save(); renderItemTable(); renderItemSelect();
 }
 
-/* ====== モーダル共通 ====== */
-function closeModal(id){ const m = $(id); if(m) m.style.display='none'; }
-window.addEventListener('click', (e)=>{
-  if(e.target===$('supplierModal')) closeModal('supplierModal');
-  if(e.target===$('supplierEditModal')) closeModal('supplierEditModal');
-  if(e.target===$('itemModal')) closeModal('itemModal');
-  if(e.target===$('itemEditModal')) closeModal('itemEditModal');
-  if(e.target===$('purchaseEditModal')) closeModal('purchaseEditModal');
-  if(e.target===$('settingsModal')) closeModal('settingsModal');
-});
-
-/* ====== 初期化系 ====== */
-function wipeAll(){
-  if(!confirm('全データ（仕入先・商品・仕入履歴）を削除します。よろしいですか？')) return;
-  suppliers=[]; items=[]; purchases=[];
-  localStorage.removeItem(LS_KEYS.suppliers); localStorage.removeItem(LS_KEYS.items); localStorage.removeItem(LS_KEYS.purchases);
-  renderSupplierSelect(); renderItemSelect(); renderList(); renderPhonebook(); renderSupTable(); renderItemTable();
-  renderSupplierMonthly();
+/************** Entry (Invoice Editing) **************/
+let DRAFT = null; // { id, date, supplierId, supplierName, invoiceNo, lines:[] }
+function newInvoice(){
+  DRAFT = { id: uid(), date: todayStr(), supplierId:'', supplierName:'', invoiceNo:'', lines:[] };
+  $('invDate').value = DRAFT.date; $('invSupplier').value=''; $('invNo').value=''; $('invSupplierRegId').value='';
+  renderLineTable();
 }
-
-  function openRestoreChooser(){
-  // 直近バックアップの有無でヒント表示
-  const hint = document.getElementById('lastBackupHint');
-  const has = !!localStorage.getItem('last_backup_json_v1');
-  hint.textContent = has
-    ? '端末内に直近バックアップが見つかりました。ワンタップで復元できます。'
-    : '直近バックアップがありません。ファイルを選んで復元してください。';
-  document.getElementById('restoreChooser').style.display = 'block';
-}
-
-// 画面外クリックで閉じる対象に追加
-window.addEventListener('click', (e)=>{
-  if(e.target === document.getElementById('restoreChooser')) closeModal('restoreChooser');
-});
-
-// --- PWA強制更新（アプリ内から実行） ---
-async function forceUpdateSW(){
-  if (!('serviceWorker' in navigator)) { alert('この環境は未対応です'); return; }
-  try{
-    const reg = await navigator.serviceWorker.getRegistration();
-    if (!reg) { alert('Service Worker未登録です'); return; }
-    // 最新確認
-    await reg.update();
-
-    // すでに新しいSWがインストール済みで待機中なら、即座に有効化を指示
-    if (reg.waiting) {
-      reg.waiting.postMessage({type:'SKIP_WAITING'});
-    }
-
-    // 有効化後にページを自動リロード
-    navigator.serviceWorker.addEventListener('controllerchange', ()=>{
-      // 連続リロード防止用ガード
-      if (!window.__reloading) { window.__reloading = true; location.reload(); }
-    });
-
-    alert('更新処理を実行しました。数秒で画面が更新されます。');
-  }catch(e){
-    alert('更新に失敗: ' + e.message);
-  }
-}
-
- // --- PWA強制更新ボタン ---
-async function forceUpdateSW(){
-  if (!('serviceWorker' in navigator)) {
-    alert('この環境はService Worker非対応です');
-    return;
-  }
-
-  try {
-    const reg = await navigator.serviceWorker.getRegistration();
-    if (!reg) {
-      alert('Service Workerが登録されていません');
-      return;
-    }
-
-    // 最新版をチェック
-    await reg.update();
-
-    // 新しいSWが待機中なら即座に有効化
-    if (reg.waiting) {
-      reg.waiting.postMessage({type:'SKIP_WAITING'});
-    }
-
-    // 有効化されたら自動でリロード
-    navigator.serviceWorker.addEventListener('controllerchange', ()=>{
-      if (!window.__reloading) {
-        window.__reloading = true;
-        location.reload();
-      }
-    });
-
-    alert('更新処理を実行しました。数秒後に最新バージョンへ切り替わります。');
-  } catch(e) {
-    alert('更新に失敗しました: ' + e.message);
-  }
-}
-
-  function deleteItemDirect(id){
-  const it = items.find(x=>x.id===id);
+function newInvoiceIfEmpty(){ if(!DRAFT || DRAFT.lines.length===0) newInvoice(); }
+function onItemPicked(){
+  const it = items.find(x=>x.id===$('liItem').value);
   if(!it) return;
-
-  // ① 仕入れ履歴で参照されていないか確認（安全のため）
-  const used = purchases.some(p => p.itemId === id);
-  if(used){
-    alert('この商品は仕入れ履歴で使われています。先に該当の仕入れを削除/編集してください。');
-    return;
-  }
-
-  // ② 確認＆削除
-  if(!confirm(`商品「${it.name}」を削除します。よろしいですか？`)) return;
-
-  items = items.filter(x=>x.id!==id);
-  localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
-
-  // ③ 画面の再描画（選択肢や表を更新）
-  renderItemSelect($('inSupplier').value);
-  renderItemTable();
+  $('liName').value = it.name;
+  if(it.price!=null) $('liUnitEx').value = (it.taxType==='taxExcluded')? it.price : Math.floor(it.price/(1+BASE_TAX));
 }
+function renderItemSelect(){
+  const sid = $('invSupplier').value;
+  const sel = $('liItem');
+  const list = sid? items.filter(it=> (it.suppliers||[]).includes(sid)) : items;
+  sel.innerHTML = '<option value="">-- 商品マスタ --</option>' + list.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
+}
+function addLine(){
+  if(!$('invSupplier').value) return alert('先に仕入先を選択');
+  const name = $('liName').value.trim(); if(!name) return alert('商品名を入力');
+  const qty = Number($('liQty').value||0); if(qty<=0) return alert('数量が不正');
+  const unitEx = Number($('liUnitEx').value||0);
+  const rate = Number($('liRate').value||BASE_TAX);
+  DRAFT.lines.push({ id:uid(), name, qty, unitEx, rate });
+  clearLineForm(); renderLineTable();
+}
+function clearLineForm(){ $('liItem').value=''; $('liName').value=''; $('liQty').value=1; $('liUnitEx').value=0; $('liRate').value=BASE_TAX.toFixed(2); }
+function removeLine(id){ DRAFT.lines = DRAFT.lines.filter(l=>l.id!==id); renderLineTable(); }
+function editLine(id){
+  const l = DRAFT.lines.find(x=>x.id===id); if(!l) return;
+  const name = prompt('商品名', l.name); if(name===null) return;
+  const qty = prompt('数量', l.qty); if(qty===null) return;
+  const unit = prompt('単価(税別)', l.unitEx); if(unit===null) return;
+  const rate = prompt('税率(例:0.10)', l.rate); if(rate===null) return;
+  l.name=name.trim(); l.qty=Number(qty); l.unitEx=Number(unit); l.rate=Number(rate);
+  renderLineTable();
+}
+function computeTotals(lines){
+  // 税率ごとに小計→税額(切捨て)→合算
+  const map = new Map();
+  let subtotalEx = 0; let taxTotal = 0;
+  for(const l of lines){
+    const base = l.qty * l.unitEx; subtotalEx += base;
+    const prev = map.get(l.rate)||0; map.set(l.rate, prev + base);
+  }
+  for(const [rate, baseSum] of map.entries()) taxTotal += yenFloor(baseSum * rate);
+  return { subtotalEx, taxTotal, grandTotal: subtotalEx + taxTotal };
+}
+function renderLineTable(){
+  const tb = $('lineBody'); tb.innerHTML='';
+  DRAFT.date = $('invDate').value;
+  DRAFT.supplierId = $('invSupplier').value; DRAFT.supplierName = suppliers.find(s=>s.id===DRAFT.supplierId)?.name || '';
+  DRAFT.invoiceNo = $('invNo').value.trim();
+  DRAFT.lines.forEach((l,idx)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${idx+1}</td><td style="text-align:left;">${l.name}</td><td>${l.qty}</td><td>${l.unitEx}</td><td>${l.qty*l.unitEx}</td><td>${(l.rate*100).toFixed(0)}%</td>
+      <td>
+        <button class="ghost" onclick="editLine('${l.id}')">編集</button>
+        <button class="danger" onclick="removeLine('${l.id}')">削除</button>
+      </td>`;
+    tb.appendChild(tr);
+  });
+  const t = computeTotals(DRAFT.lines);
+  $('sumEx').textContent = formatYen(t.subtotalEx);
+  $('sumTax').textContent = formatYen(t.taxTotal);
+  $('sumIn').textContent = formatYen(t.grandTotal);
+}
+function makeInvoice({id, date, supplierId, supplierName, invoiceNo, lines}){
+  const t = computeTotals(lines);
+  return { id, date, supplierId, supplierName, invoiceNo: invoiceNo||'', lines, subtotalEx: t.subtotalEx, taxTotal: t.taxTotal, grandTotal: t.grandTotal };
+}
+function saveInvoice(){
+  if(!DRAFT) return;
+  if(!DRAFT.date) return alert('日付を入力');
+  if(!DRAFT.supplierId) return alert('仕入先を選択');
+  if(DRAFT.lines.length===0) return alert('明細がありません');
+  const inv = makeInvoice(DRAFT);
+  // 更新 or 追加（同じidなら更新）
+  const i = invoices.findIndex(x=>x.id===inv.id);
+  if(i>=0) invoices[i]=inv; else invoices.push(inv);
+  save();
+  alert('伝票を保存しました');
+  newInvoice(); renderInvoiceCards();
+}
+
+/************** Invoices List **************/
+function updateActiveFilterLabel(){ $('activeFilter').textContent = FILTER_MONTH? `適用中：${FILTER_MONTH}` : ''; }
+function setThisMonth(){ const d=new Date(); const y=d.getFullYear(); const m=('0'+(d.getMonth()+1)).slice(-2); $('filterMonth').value=`${y}-${m}`; FILTER_MONTH=`${y}-${m}`; updateActiveFilterLabel(); renderInvoiceCards(); }
+function clearMonthFilter(){ FILTER_MONTH=''; $('filterMonth').value=''; updateActiveFilterLabel(); renderInvoiceCards(); }
+function renderInvoiceCards(){
+  const root = $('invoiceCards'); root.innerHTML='';
+  let list = invoices.slice().sort((a,b)=> (a.date<b.date?1:-1));
+  if(FILTER_MONTH) list = list.filter(inv => (inv.date||'').slice(0,7)===FILTER_MONTH);
+  if(list.length===0){ root.innerHTML = '<div class="muted">データがありません</div>'; return; }
+  list.forEach(inv=>{
+    const s = suppliers.find(x=>x.id===inv.supplierId);
+    const card = document.createElement('div'); card.className='card';
+    const reg = s?.invoiceRegId ? ` / 登録番号:${s.invoiceRegId}` : '';
+    card.innerHTML = `
+      <div class="card-header">
+        <div><b>${inv.supplierName}</b> ${reg}</div>
+        <div class="small">${inv.date} ${inv.invoiceNo? ' / No.'+inv.invoiceNo : ''}</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th style="text-align:left;">商品</th><th>数量</th><th>単価(税別)</th><th>金額(税別)</th><th>税率</th></tr></thead>
+          <tbody>
+            ${inv.lines.map((l,i)=>`<tr><td>${i+1}</td><td style="text-align:left;">${l.name}</td><td>${l.qty}</td><td>${l.unitEx}</td><td>${l.qty*l.unitEx}</td><td>${(l.rate*100).toFixed(0)}%</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="sum">
+        <div>小計(税別)：${formatYen(inv.subtotalEx)} 円</div>
+        <div>消費税額：${formatYen(inv.taxTotal)} 円</div>
+        <div>合計(税込)：${formatYen(inv.grandTotal)} 円</div>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button class="ghost" onclick="editInvoice('${inv.id}')">編集</button>
+        <button class="danger" onclick="delInvoice('${inv.id}')">削除</button>
+      </div>
+    `;
+    root.appendChild(card);
+  });
+}
+function editInvoice(id){
+  const inv = invoices.find(x=>x.id===id); if(!inv) return;
+  DRAFT = JSON.parse(JSON.stringify(inv)); // deep-ish copy
+  $('invDate').value = DRAFT.date; $('invSupplier').value = DRAFT.supplierId; $('invNo').value = DRAFT.invoiceNo||''; $('invSupplierRegId').value = suppliers.find(s=>s.id===DRAFT.supplierId)?.invoiceRegId||'';
+  renderItemSelect(); renderLineTable(); showPage('entry');
+}
+function delInvoice(id){ if(!confirm('この伝票を削除します。よろしいですか？')) return; invoices = invoices.filter(x=>x.id!==id); save(); renderInvoiceCards(); }
+
+/************** CSV / Backup **************/
+function downloadInvoicesCSV(){
+  let csv = '日付,仕入先,伝票番号,商品,数量,単価税別,金額税別,税率,小計税別,消費税額,合計税込\n';
+  invoices.forEach(inv=>{
+    inv.lines.forEach(l=>{
+      csv += `${inv.date},${inv.supplierName},${inv.invoiceNo||''},${l.name},${l.qty},${l.unitEx},${l.qty*l.unitEx},${(l.rate*100).toFixed(0)}%,${inv.subtotalEx},${inv.taxTotal},${inv.grandTotal}\n`;
+    });
+  });
+  const blob = new Blob([csv], {type:'text/csv'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='invoices.csv'; a.click(); URL.revokeObjectURL(url);
+}
+function openBackup(){ $('backupModal').style.display='block'; }
+function backupJSON(){
+  const data = { version: APP_VERSION, savedAt: new Date().toISOString(), suppliers, items, invoices, baseTax: BASE_TAX };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `shiire_v22_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(a.href);
+}
+async function restoreFromFile(){
+  try{
+    if('showOpenFilePicker' in window){
+      const [handle] = await window.showOpenFilePicker({ types:[{description:'JSON', accept:{'application/json':['.json']}}] });
+      const f = await handle.getFile(); const text = await f.text();
+      const data = JSON.parse(text);
+      if(!data || !data.suppliers || !data.items || !data.invoices) throw new Error('形式不正');
+      suppliers = data.suppliers; items = data.items; invoices = data.invoices; BASE_TAX = Number(data.baseTax ?? BASE_TAX);
+      save();
+      alert('復元しました');
+      renderSupplierSelect(); renderItemSelect(); renderSupTable(); renderItemTable(); renderItemSupplierMulti(); renderInvoiceCards(); renderPhonebook(); updateBaseTaxLabel();
+    }else{
+      const input = document.createElement('input'); input.type='file'; input.accept='application/json'; input.onchange = ()=>{ const r=new FileReader(); r.onload=()=>{ try{ const data=JSON.parse(r.result); suppliers=data.suppliers; items=data.items; invoices=data.invoices; BASE_TAX=Number(data.baseTax ?? BASE_TAX); save(); alert('復元しました'); renderSupplierSelect(); renderItemSelect(); renderSupTable(); renderItemTable(); renderInvoiceCards(); renderPhonebook(); updateBaseTaxLabel(); }catch(e){ alert('復元失敗: '+e.message);} }; r.readAsText(input.files[0]); }; document.body.appendChild(input); input.click(); setTimeout(()=>document.body.removeChild(input),0);
+    }
+  }catch(e){ if(e.name!=='AbortError') alert('復元に失敗: '+e.message); }
+}
+
+/************** Settings **************/
+function openSettings(){ $('settingsModal').style.display='block'; }
+function closeModal(id){ const m=$(id); if(m) m.style.display='none'; }
+window.addEventListener('click', (e)=>{ if(e.target===$('settingsModal')) closeModal('settingsModal'); if(e.target===$('backupModal')) closeModal('backupModal'); });
+function setBaseTax(v){ BASE_TAX = Number(v); save(); updateBaseTaxLabel(); alert('デフォルト税率を更新しました'); }
+function updateBaseTaxLabel(){ $('lblBaseTax').textContent = `現在: ${(BASE_TAX*100).toFixed(0)}%`; }
+
+/************** SW Update (保持) **************/
+async function forceUpdateSW(){ if(!('serviceWorker' in navigator)) { alert('未対応'); return; } try{ const reg = await navigator.serviceWorker.getRegistration(); if(!reg){ alert('SW未登録'); return; } await reg.update(); if(reg.waiting){ reg.waiting.postMessage({type:'SKIP_WAITING'}); } navigator.serviceWorker.addEventListener('controllerchange', ()=>{ if(!window.__reloading){ window.__reloading=true; location.reload(); } }); alert('更新処理を実行しました'); }catch(e){ alert('更新失敗: '+e.message); } }
+
+/************** Dangerous **************/
+function wipeAll(){ if(!confirm('v22の全データを削除します。実行後は元に戻せません。')) return; suppliers=[]; items=[]; invoices=[]; save(); renderSupplierSelect(); renderItemSelect(); renderSupTable(); renderItemTable(); renderInvoiceCards(); renderPhonebook(); alert('初期化しました'); }
 
 </script>
-
 </body>
 </html>
