@@ -563,7 +563,7 @@ html, body { overflow-x: hidden; }
 
 <script>
 /* ====== バージョン ====== */
-const APP_VERSION = 'v22.0';
+const APP_VERSION = 'v22.2';
 document.addEventListener('DOMContentLoaded', ()=>{
   const el = document.getElementById('appVersion');
   if (el) el.textContent = APP_VERSION;
@@ -674,11 +674,19 @@ document.addEventListener('DOMContentLoaded', init);
 
 // PWA: Service Worker
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=22.0').catch(()=>{});
+  window.addEventListener('load', async () => {
+    try{
+      // HTTPキャッシュを使わずに sw.js を取得
+      const reg = await navigator.serviceWorker.register('./sw.js?ver=22.2', {
+        updateViaCache: 'none'
+      });
+      // 画面復帰時にも更新確認
+      document.addEventListener('visibilitychange', ()=>{
+        if (document.visibilityState === 'visible') reg.update();
+      });
+    }catch(e){}
   });
 }
-
 /* ====== セレクタ描画 ====== */
 function renderSupplierSelect(){
   const sel = $('inSupplier');
