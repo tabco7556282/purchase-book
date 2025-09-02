@@ -1,7 +1,7 @@
 // ==== Service Worker for Shiire v22.x ====
 // HTMLはNetwork-firstで常に最新化、静的アセットはStale-while-revalidateで高速表示
 
-const VERSION = "v22.2";                         // ← デプロイごとに上げる
+const VERSION = "v22.3";                         // ← デプロイごとに上げる
 const CACHE_CORE = `shiire-core-${VERSION}`;
 const CACHE_ASSET = `shiire-asset-${VERSION}`;
 
