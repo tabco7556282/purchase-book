@@ -1,4 +1,4 @@
-/* sw.js — alt v22.3 */
+/* sw.js — alt v22.4 */
 const VERSION = 'v22.3-alt';
 const PREFIX  = 'shiire-alt';
 const APP_SHELL_CACHE = `${PREFIX}-shell-${VERSION}`;
