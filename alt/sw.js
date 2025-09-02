@@ -58,4 +58,3 @@ self.addEventListener('fetch', (event)=>{
     return cached || fresh || new Response('',{status:504});
   })());
 });
-
