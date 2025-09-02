@@ -1,5 +1,5 @@
-/* sw.js — alt v22.4 */
-const VERSION = 'v22.3-alt';
+/* sw.js — alt v22.3 */
+const VERSION = 'v22.3-alt5';             // ← 上げる
 const PREFIX  = 'shiire-alt';
 const APP_SHELL_CACHE = `${PREFIX}-shell-${VERSION}`;
 const RUNTIME_CACHE   = `${PREFIX}-rt-${VERSION}`;
@@ -8,11 +8,15 @@ const BASE = new URL('./', self.location).pathname;
 const path = (p)=> BASE + p;
 
 const APP_SHELL = [
-  path(''), path('index.html'),
-  path('manifest.webmanifest'),
-  path('sw.js?ver=22.3-alt'),
-  path('icons/icon-192.png'), path('icons/icon-512.png'),
+  path(''),
+  path('index.html'),
+  path('manifest.webmanifest?v=223c'),     // ← クエリ付きで最新を取りにいく
+  path('sw.js?ver=22.3-alt5'),             // ← self バージョンも更新
+  path('icons/icon-192-v223c.png'),        // ← 新しいファイル名
+  path('icons/icon-512-v223c.png')         // ← 新しいファイル名
 ];
+
+// あとの install/activate/fetch はそのままでOK
 
 self.addEventListener('install', e=>{
   e.waitUntil(caches.open(APP_SHELL_CACHE).then(c=>c.addAll(APP_SHELL)).then(()=>self.skipWaiting()));
