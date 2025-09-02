@@ -1,13 +1,14 @@
 {
   "name": "仕入れ管理アプリ",
   "short_name": "仕入れ管理",
-  "start_url": "/?v=22.2",
-  "scope": "/",
+  "start_url": "./?v=22.2",   // ← 相対。サブパスでもOK
+  "scope": "./",              // ← 相対スコープ
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#16a34a",
   "icons": [
-    {"src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
-    {"src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png"}
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
   ]
 }
+
