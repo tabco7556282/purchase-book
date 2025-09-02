@@ -1,36 +1,25 @@
-// sw.js — V24用シンプルキャッシュ
-const CACHE_NAME = "tabco-purchase-v24-cache";
-const urlsToCache = [
-  "./",
-  "./index.html",
-  "./sw.js"
+// sw.js — V24.3 用シンプルキャッシュ
+const CACHE_NAME = 'tabco-purchase-v24.3-cache-v1';
+const URLS = [
+  './',
+  './index.html',
+  './sw.js'
 ];
 
-// インストール時にキャッシュを作成
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache))
+self.addEventListener('install', evt => {
+  evt.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(URLS)));
+});
+
+self.addEventListener('fetch', evt => {
+  evt.respondWith(
+    caches.match(evt.request).then(res => res || fetch(evt.request))
   );
 });
 
-// リクエストがあればキャッシュ優先で返す
-self.addEventListener("fetch", (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
-  );
-});
-
-// 古いキャッシュを削除
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
-      );
-    })
+self.addEventListener('activate', evt => {
+  evt.waitUntil(
+    caches.keys().then(keys => Promise.all(
+      keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+    ))
   );
 });
