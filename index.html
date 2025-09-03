@@ -137,14 +137,11 @@
     </div>
   </div>
 
-  <!-- クイック数量キー -->
-  <div class="row" style="gap:6px; margin-top:-6px; align-items:center;">
-    <button type="button" class="ghost" style="flex:0 0 auto;" onclick="adjQty(-1)">-1</button>
-    <button type="button" class="ghost" style="flex:0 0 auto;" onclick="adjQty(1)">+1</button>
-    <button type="button" class="ghost" style="flex:0 0 auto;" onclick="mulQty(0.5)">×0.5</button>
-    <button type="button" class="ghost" style="flex:0 0 auto;" onclick="mulQty(2)">×2</button>
-    <button type="button" id="btnPriceHist" class="link" style="margin-left:auto; flex:0 0 auto;" onclick="openPriceHistory()">価格履歴</button>
-  </div>
+  <!-- クイック数量キー削除：価格履歴のみ表示 -->
+<div class="row" style="margin-top:0; justify-content:flex-end;">
+  <button type="button" id="btnPriceHist" class="link" style="flex:0 0 auto;" onclick="openPriceHistory()">価格履歴</button>
+</div>
+
 
   <label>税区分</label>
   <div class="row" style="align-items:center;">
@@ -612,8 +609,7 @@ function renderItemSelect(supplierId=''){
 
 /* ====== 入力エリア ====== */
 function clearEntry(){ $('inItem').value = ''; $('inQty').value = 1; $('inPrice').value = 0; document.querySelector('input[name="inTax"][value="taxExcluded"]').checked = true; }
-function adjQty(delta){ const el = $('inQty'); const v = Number(el.value||0)+delta; el.value = Math.max(0, Math.round(v*100)/100); }
-function mulQty(f){ const el = $('inQty'); const v = Number(el.value||0)*f; el.value = Math.max(0, Math.round(v*100)/100); }
+
 
 /* ====== 直近価格取得 ====== */
 function getLastPriceFor(supplierId, itemId){
