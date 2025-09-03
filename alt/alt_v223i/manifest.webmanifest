@@ -1,0 +1,23 @@
+{
+  "name": "仕入れ管理アプリ（alt）",
+  "short_name": "仕入れ管理",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffaa33",
+  "theme_color": "#ffaa33",
+  "icons": [
+    {
+      "src": "./icons/icon-192-v223i.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/icon-512-v223i.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
