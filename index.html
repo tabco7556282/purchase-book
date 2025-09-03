@@ -172,6 +172,42 @@ html, body { overflow-x: hidden; }
 .link{ box-shadow: 0 1px 2px rgba(0,0,0,.06); }
 .ghost{ box-shadow: inset 0 0 0 1px #d1d5db; }
 .danger{ box-shadow: 0 1px 2px rgba(239, 68, 68, .25); }
+/* --- ① 数量と単価の並びを逆に（単価→数量） --- */
+/* 数量・単価を包む行に .row-qty-price を付ける前提（下のHTML修正参照） */
+.row-qty-price > div:nth-child(1){ order:2; } /* もとの1列目=数量を後ろへ */
+.row-qty-price > div:nth-child(2){ order:1; } /* もとの2列目=単価を前へ  */
+
+/* --- ② チェックボックス/ラジオの“文字を真下”に揃える ― 共通ユーティリティ --- */
+/* ラッパーに .choice-v を付ける前提（下のHTML修正参照） */
+.choice-v label{
+  display:flex; flex-direction:column; align-items:center;
+  gap:4px; line-height:1.1; margin:0 8px;
+}
+.choice-v input{ margin:0; }  /* ずれ防止 */
+.view-switch.choice-v{ justify-content:flex-end; } /* 表/カード切替の右寄せを維持 */
+
+/* --- ③ まとめて登録フォーム（商品行）の行間を圧縮し、税率は横並びに --- */
+/* まとめて登録の“1商品ぶんの行”に .bulk-row を付ける前提（付けられない場合は親に .bulk-area） */
+.bulk-row{ display:grid; grid-template-columns: 1.3fr 0.9fr 0.9fr auto; gap:8px; align-items:center; }
+.bulk-row .tax-radios{ display:flex; gap:14px; align-items:center; }   /* 8% / 10% を横並びに */
+.bulk-row label{ margin:0; }
+
+/* 行間を約半分に（既存が大きい端末向け） */
+.bulk-area .bulk-row + .bulk-row{ margin-top:8px; }  /* 以前より詰める */
+
+/* --- ④ 基準価格・税のフィールドをわかりやすく --- */
+.bulk-row input[type="number"]{ min-width: 110px; }  /* 基準価格を少し広く */
+.bulk-row select{ min-width: 92px; }                 /* 税（税別/税込）の選択幅 */
+
+/* エントリー側の“税率 8%/10%”も縦ズレ解消（既存idを流用） */
+#baseRateRadios.choice-v label{ margin:0 10px; }
+/* ラベルの文字をチェックの真下に */
+.choice-v label{
+  display:flex; flex-direction:column; align-items:center;
+  gap:4px; line-height:1.1; margin:0 8px;
+}
+.choice-v input{ margin:0; } /* 微妙なズレ防止 */
+
 </style>
 </head>
 <body>
@@ -209,7 +245,7 @@ html, body { overflow-x: hidden; }
     <button type="button" onclick="openItemModal()">＋ 商品追加</button>
   </div>
 
-  <div class="row">
+  <div class="row row-qty-price">
     <div>
       <label>数量</label>
       <input type="number" id="inQty" value="1" step="0.1" min="0" onfocus="this.select()">
@@ -221,14 +257,14 @@ html, body { overflow-x: hidden; }
   </div>
 
   <label>税区分</label>
-  <div class="radio-group">
+  <div class="radio-group choice-v">
     <label><input type="radio" name="inTax" value="taxIncluded"> 税込</label>
     <label><input type="radio" name="inTax" value="taxExcluded" checked> 税別</label>
     <span class="muted">基本税率：<b id="lblRate"></b>%（設定で変更）</span>
   </div>
 
   <label style="margin-top:6px;">税率（8% / 10% クイック切替）</label>
-  <div class="radio-group" id="baseRateRadios">
+  <div class="radio-group choice-v" id="baseRateRadios">
     <label><input type="radio" name="baseRateChoice" value="8" checked> 8%</label>
     <label><input type="radio" name="baseRateChoice" value="10"> 10%</label>
     <span class="small">※ 以後の計算・カード集計の「合計」に使う税率。</span>
@@ -236,11 +272,11 @@ html, body { overflow-x: hidden; }
 
   <h3 class="list-head" style="margin-top:16px;">
     <span>仕入れ一覧</span>
-    <span class="view-switch">
+    <span class="view-switch choice-v">
       表示：
       <label><input type="radio" name="viewMode" value="table"> 表</label>
       <label><input type="radio" name="viewMode" value="cards" checked> カード</label>
-      <label style="margin-left:10px; display:inline-flex; gap:6px; align-items:center;">
+      <label style="margin-left:10px;">
         <input type="checkbox" id="toggleAll" onchange="toggleAllRows(this)"> 全件表示（デフォルト：最新50件）
       </label>
     </span>
