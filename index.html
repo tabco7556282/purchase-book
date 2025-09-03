@@ -10,18 +10,19 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192-v223i.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512-v223i.png">
   <style>
-  :root{
-   :root{
-    --gap:8px;
-    --bg:#fff8e1; --text:#333; --muted:#666;
-    --card:#ffffff; --border:#e0e0e0;
-    --btn:#ff9800; --btn-hover:#fb8c00;
-    --link:#ffc107; --link-hover:#ffb300;
-    --ghost-bg:#f5f5f5; --ghost-hover:#e0e0e0; --ghost-text:#333;
-    --danger:#e53935; --danger-hover:#c62828;
-  }
-    body{ background:var(--bg); color:var(--text); }
-/* ダーク */
+  /* ライト（オレンジ版） */
+:root{
+  --gap:8px;
+  --bg:#fff8e1; --text:#333; --muted:#666;
+  --card:#ffffff; --border:#e0e0e0;
+  --btn:#ff9800; --btn-hover:#fb8c00;      /* メイン＝オレンジ */
+  --link:#ffc107; --link-hover:#ffb300;    /* 強めのアクセント */
+  --ghost-bg:#f5f5f5; --ghost-hover:#e0e0e0; --ghost-text:#333;
+  --danger:#e53935; --danger-hover:#c62828;
+}
+body{ background:var(--bg); color:var(--text); }
+
+/* ダーク（オレンジ寄り） */
 body.dark{
   --bg:#0f0f0f; --text:#e7e7e7; --muted:#a3a3a3;
   --card:#151515; --border:#2a2a2a;
@@ -30,6 +31,7 @@ body.dark{
   --ghost-bg:#1e1e1e; --ghost-hover:#262626; --ghost-text:#e7e7e7;
   --danger:#cc3b3b; --danger-hover:#a63030;
 }
+
   body { font-family: system-ui, sans-serif; margin: 10px; padding-bottom: 86px; }
   h2 { margin: 14px 0; }
   input, select, button { font-size: 16px; padding: 8px; width: 100%; box-sizing: border-box; }
@@ -314,15 +316,24 @@ body.dark .modal{ background:rgba(0,0,0,.55); }
 <body>
 
 <div class="nav">
-  <button type="button" onclick="showPage('entry')" class="ghost">仕入れ入力</button>
-  <button type="button" onclick="showPage('phonebook')" class="ghost">電話帳</button>
-  <button type="button" onclick="showPage('masters')" class="ghost">マスタ管理</button>
+  <!-- よく使うボタンは link でオレンジ -->
+  <button type="button" onclick="showPage('entry')" class="link">仕入れ入力</button>
+  <button type="button" onclick="showPage('phonebook')" class="link">電話帳</button>
+  <button type="button" onclick="showPage('masters')" class="link">マスタ管理</button>
   <button type="button" onclick="openBulkMaster()" class="link">🧩 一括マスタ登録</button>
+  
+  <!-- 設定はグレーなので ghost のままでもOK -->
   <button type="button" onclick="openSettings()" class="ghost">⚙ 設定</button>
+
   <span id="appVersion" class="muted" style="margin-left:auto;">v22.0</span>
+
+  <!-- ダークモード切替は ghost のままでもOK -->
   <button type="button" id="btnTheme" class="ghost" onclick="toggleTheme()">🌓 ダーク</button>
+
+  <!-- 更新ボタンはオレンジ -->
   <button type="button" class="link" onclick="forceUpdateSW()">🔄 更新</button>
 </div>
+
 
 <!-- 仕入れ入力 -->
 <section id="page-entry">
