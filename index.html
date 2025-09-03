@@ -207,6 +207,42 @@ html, body { overflow-x: hidden; }
   gap:4px; line-height:1.1; margin:0 8px;
 }
 .choice-v input{ margin:0; } /* 微妙なズレ防止 */
+/* 一括マスタ登録（bulkMasterModal）調整 */
+.bulk-area {
+  display: flex;
+  flex-direction: column;
+  gap: 6px; /* 行間を狭める */
+}
+
+.bulk-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 0.8fr 1fr auto; /* 商品名 / 価格 / 税区分 / 税率 / 削除 */
+  gap: 8px;
+  align-items: center;
+}
+
+.bm-name  { min-width: 120px; }
+.bm-price { min-width: 90px; text-align: right; }
+.bm-tax   { min-width: 80px; }
+
+.bm-rate {
+  display: flex;
+  gap: 12px;
+}
+.bm-rate label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
+}
+.bm-rate input { margin: 0; }
+
+@media (max-width: 480px) {
+  .bulk-row {
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: auto;
+  }
+}
 
 </style>
 </head>
@@ -557,10 +593,10 @@ html, body { overflow-x: hidden; }
       </div>
     </div>
     <h4 style="margin-top:12px;">商品（複数行追加可）</h4>
-    <div id="bmProducts" style="display:flex; flex-direction:column; gap:10px;"></div>
+    <div id="bmProducts" class="bulk-area" style="display:flex; flex-direction:column; gap:10px;"></div>
     <div class="row" style="margin-top:6px;">
-      <button type="button" class="ghost" onclick="bmAddRow()">＋ 行を追加</button>
-      <button type="button" class="ghost" onclick="bmClearRows()">行を全クリア</button>
+      <button type="button" class="ghost" onclick="bmAddRow()">＋ 商品を追加</button>
+      <button type="button" class="ghost" onclick="bmClearRows()">商品を全クリア</button>
     </div>
     <div class="actions" style="margin-top:8px;">
       <button type="button" onclick="bmSubmit()">まとめて登録</button>
@@ -1341,21 +1377,22 @@ function updateItem(){
 function openBulkMaster(){ bmClearRows(); bmAddRow(); $('bmSupName').value=''; $('bmSupContact').value=''; $('bmSupPhone').value=''; $('bulkMasterModal').style.display='block'; }
 function bmRowTemplate(idx){
   return `
-    <div class="product-row" data-idx="${idx}">
-      <input type="text" placeholder="商品名" class="bm-name">
-      <input type="number" placeholder="基準価格" class="bm-price">
-      <select class="bm-taxType">
+    <div class="bulk-row">
+      <input type="text" class="bm-name" placeholder="商品名">
+      <input type="number" class="bm-price" placeholder="価格">
+      <select class="bm-tax">
         <option value="taxExcluded" selected>税別</option>
         <option value="taxIncluded">税込</option>
       </select>
-      <div class="radio-group" style="justify-content:center;">
-        <label><input type="radio" name="bm-rate-${idx}" value="0.08" checked> 8%</label>
-        <label><input type="radio" name="bm-rate-${idx}" value="0.10"> 10%</label>
+      <div class="bm-rate">
+        <label><input type="radio" name="bmRate${idx}" value="8" checked><span>8%</span></label>
+        <label><input type="radio" name="bmRate${idx}" value="10"><span>10%</span></label>
       </div>
-      <button type="button" class="ghost" onclick="bmRemoveRow(${idx})">削除</button>
+      <button type="button" class="ghost" onclick="this.closest('.bulk-row').remove()">削除</button>
     </div>
   `;
 }
+
 let bmRowCounter = 0;
 function bmAddRow(){
   const wrap = $('bmProducts');
