@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>仕入れ管理アプリ v22</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#16a34a">
+<meta name="theme-color" content="#ff9800">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
   <style>
   :root{
@@ -18,6 +18,16 @@
     --ghost-bg:#f5f5f5; --ghost-hover:#e0e0e0; --ghost-text:#333;
     --danger:#e53935; --danger-hover:#c62828;
   }
+    body{ background:var(--bg); color:var(--text); }
+/* ダーク */
+body.dark{
+  --bg:#0f0f0f; --text:#e7e7e7; --muted:#a3a3a3;
+  --card:#151515; --border:#2a2a2a;
+  --btn:#f7931a; --btn-hover:#e07f00;
+  --link:#ffb300; --link-hover:#ffa000;
+  --ghost-bg:#1e1e1e; --ghost-hover:#262626; --ghost-text:#e7e7e7;
+  --danger:#cc3b3b; --danger-hover:#a63030;
+}
   body { font-family: system-ui, sans-serif; margin: 10px; padding-bottom: 86px; }
   h2 { margin: 14px 0; }
   input, select, button { font-size: 16px; padding: 8px; width: 100%; box-sizing: border-box; }
@@ -308,6 +318,7 @@ body.dark .modal{ background:rgba(0,0,0,.55); }
   <button type="button" onclick="openBulkMaster()" class="link">🧩 一括マスタ登録</button>
   <button type="button" onclick="openSettings()" class="ghost">⚙ 設定</button>
   <span id="appVersion" class="muted" style="margin-left:auto;">v22.0</span>
+  <button type="button" id="btnTheme" class="ghost" onclick="toggleTheme()">🌓 ダーク</button>
   <button type="button" class="link" onclick="forceUpdateSW()">🔄 更新</button>
 </div>
 
@@ -794,6 +805,7 @@ function init(){
   renderBaseRateRadios();
   ensureBaseRateChecked();
   renderSupplierMonthly();
+　initTheme();
 }
 document.addEventListener('DOMContentLoaded', init);
 
@@ -1560,6 +1572,36 @@ function deleteItemDirect(id){
   renderItemSelect($('inSupplier').value);
   renderItemTable();
 }
+ /* ==== テーマ切替 ==== */
+const THEME_KEY = 'app_theme_v1';
+function applyTheme(mode){
+  const isDark = mode === 'dark';
+  document.body.classList.toggle('dark', isDark);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', isDark ? '#0f0f0f' : '#ff9800');
+  const btn = document.getElementById('btnTheme');
+  if (btn) btn.textContent = isDark ? '☀ ライト' : '🌓 ダーク';
+  localStorage.setItem(THEME_KEY, mode);
+}
+function initTheme(){
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved === 'dark' || saved === 'light') {
+    applyTheme(saved);
+  } else {
+    // 端末設定に追従（自動）
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    applyTheme(mq.matches ? 'dark' : 'light');
+    mq.addEventListener('change', e=>{
+      // 明示保存が無い時のみ自動追従したいならここで条件分岐も可
+      applyTheme(e.matches ? 'dark' : 'light');
+    });
+  }
+}
+function toggleTheme(){
+  const now = document.body.classList.contains('dark') ? 'dark' : 'light';
+  applyTheme(now === 'dark' ? 'light' : 'dark');
+}
+ 
 </script>
 
 </body>
