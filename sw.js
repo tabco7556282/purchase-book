@@ -1,5 +1,5 @@
 // sw.js  v25.1
-const CACHE_NAME = 'shiire-v25.1';
+const CACHE_NAME = 'shiire-v25.2';
 const ASSETS = [
   './',
   './index.html',
