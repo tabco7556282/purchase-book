@@ -173,6 +173,20 @@ html, body, button, input, select, label, th, td, .card, .modal *{
   font-size:15px !important;
   border-radius:10px !important;
 }
+/* --- 削除・編集：横並び固定／削除は半幅 --- */
+/* テーブル（マスタ一覧・表表示） */
+.col-actions .actions-cell{ display:flex !important; gap:10px; align-items:center; }
+.col-actions .btn-del{ flex:0 0 48%; min-width:88px; }
+.col-actions .btn-edit{ flex:0 0 52%; min-width:100px; }
+
+/* カード（仕入れ一覧）— ボタン位置は“左のまま” */
+.card .meta-right{ display:flex; align-items:center; gap:12px; }
+.card .meta-right .actions{ display:flex !important; gap:10px; }
+.card .meta-right .actions .btn-del{ flex:0 0 48%; min-width:88px; }
+.card .meta-right .actions .btn-edit{ flex:0 0 52%; min-width:100px; }
+
+/* サイズ差をなくして見た目を揃える */
+.btn-sm,.btn-lg{ padding:10px 14px !important; font-size:15px !important; border-radius:10px !important; }
 </style>
 </head>
 <body>
