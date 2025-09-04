@@ -87,6 +87,72 @@
   body.dark .modal{ background:rgba(0,0,0,.55); }
 
   html, body { overflow-x:hidden; }
+/* === 入力の上下配置（インジケータの真下に文字） === */
+.choice-vertical { display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
+.choice-vertical > label { display:flex; flex-direction:column; align-items:center; gap:4px; margin:0; }
+.choice-vertical > label > input { width:22px; height:22px; }
+.choice-vertical > label > span  { font-size:14px; line-height:1; text-align:center; }
+
+/* 補足テキストを段落扱いで折り返し */
+.choice-vertical .info-line { flex-basis:100%; color:var(--muted); font-size:13px; line-height:1.3; }
+
+/* 表/カードの並びも同じ見た目に */
+.view-switch { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.view-switch .stack { display:flex; flex-direction:column; align-items:center; gap:4px; }
+.view-switch .stack input { width:20px; height:20px; }
+.view-switch .stack span  { font-size:13px; line-height:1; white-space:nowrap; text-align:center; }
+/* 右端の版表示＆更新ボタンの縦スタック */
+.nav-right{ margin-left:auto; display:flex; flex-direction:column; gap:6px; align-items:flex-start; }
+.nav-right .muted{ font-size:12px; line-height:1; opacity:.85; }
+/* === 一括マスタ 登録行の見やすさ === */
+.bulk-area{ display:flex; flex-direction:column; gap:10px; }
+.bulk-row{
+  display:grid; gap:8px; align-items:center;
+  grid-template-columns: 1.6fr 1.0fr 0.9fr 0.9fr auto; /* 名称/価格/税/税率/削除 */
+}
+@media (max-width:520px){
+  .bulk-row{
+    grid-template-columns: 1fr 1fr; /* スマホは2列で折返し */
+  }
+  .bulk-row .bm-rate{ grid-column:1/2; }
+}
+.bulk-row .bm-name,
+.bulk-row .bm-price,
+.bulk-row .bm-tax{
+  height:44px; font-size:16px; padding:8px 10px;
+}
+.bulk-row .bm-name{ min-width:140px; }
+.bulk-row .bm-price{ min-width:100px; }
+.bulk-row .bm-tax{ min-width:90px; }
+
+/* 8%/10% の “丸の真下に文字” を統一（前回の util を再利用） */
+.choice-vertical{ display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
+.choice-vertical > label{ display:flex; flex-direction:column; align-items:center; gap:4px; margin:0; }
+.choice-vertical > label > input{ width:20px; height:20px; }
+.choice-vertical > label > span{ font-size:14px; line-height:1; text-align:center; }
+/* 一括マスタ登録：入力行の整形 */
+.bulk-area .bulk-row{
+  display:grid; grid-template-columns: 1.2fr .9fr .8fr auto auto;
+  gap:8px; align-items:center;
+}
+@media (max-width:520px){
+  .bulk-area .bulk-row{
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ラジオ/チェックボックスの“入力の真下に文字” */
+.choice-vertical label{
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+}
+.choice-vertical input{ display:block; }
+
+/* 入力の見やすさ（価格・税区分） */
+.bulk-area .bm-price{ min-width: 0; }
+.bulk-area .bm-tax{ min-width: 0; }
+
+/* 行間圧縮（bulk-area 内だけ少しタイトに） */
+.bulk-area input, .bulk-area select{ padding:8px; }
 </style>
 </head>
 <body>
@@ -97,10 +163,15 @@
   <button type="button" onclick="showPage('phonebook')" class="ghost">電話帳</button>
   <button type="button" onclick="showPage('masters')" class="ghost">マスタ管理</button>
   <button type="button" onclick="openBulkMaster()" class="link">🧩 一括マスタ登録</button>
-  <span id="appVersion" class="muted" style="margin-left:auto;">v25</span>
   <button type="button" id="btnTheme" class="ghost" onclick="toggleTheme()">🌓 ダーク</button>
-  <button type="button" class="link" onclick="forceUpdateSW()">🔄 更新</button>
+
+  <!-- 右端：更新ボタン → バージョン表示（入れ替え済み） -->
+  <div class="nav-right" style="margin-left:auto; display:flex; align-items:center; gap:10px;">
+    <button type="button" class="link" onclick="forceUpdateSW()">🔄 更新</button>
+    <span id="appVersion" class="muted">v25</span>
+  </div>
 </div>
+
 
 <!-- 仕入れ入力 -->
 <section id="page-entry">
@@ -144,30 +215,43 @@
 
 
   <label>税区分</label>
-  <div class="row" style="align-items:center;">
-    <label style="flex:0 0 auto;"><input type="radio" name="inTax" value="taxIncluded"> 税込</label>
-    <label style="flex:0 0 auto;"><input type="radio" name="inTax" value="taxExcluded" checked> 税別</label>
-    <span class="muted" style="flex:1 1 auto;">基本税率：<b id="lblRate"></b>%（設定で変更）</span>
-  </div>
+<div class="radio-group choice-vertical">
+  <label><input type="radio" name="inTax" value="taxIncluded"><span>税込</span></label>
+  <label><input type="radio" name="inTax" value="taxExcluded" checked><span>税別</span></label>
+  <span class="info-line">基本税率：<b id="lblRate"></b>%（設定で変更）</span>
+</div>
 
-  <label style="margin-top:6px;">税率（8% / 10% クイック切替）</label>
-  <div class="row" id="baseRateRadios" style="align-items:center;">
-    <label style="flex:0 0 auto;"><input type="radio" name="baseRateChoice" value="8" checked> 8%</label>
-    <label style="flex:0 0 auto;"><input type="radio" name="baseRateChoice" value="10"> 10%</label>
-    <span class="muted" style="flex:1 1 auto;">以後の計算に使う「基本税率」を即時更新</span>
-  </div>
 
-  <h3 class="row" style="align-items:center; margin-top:16px;">
-    <span style="flex:0 0 auto;">仕入れ一覧</span>
-    <span class="view-switch" style="flex:1 1 auto; justify-content:flex-end;">
-      表示：
-      <label><input type="radio" name="viewMode" value="table"> 表</label>
-      <label><input type="radio" name="viewMode" value="cards" checked> カード</label>
-      <label style="margin-left:10px; display:inline-flex; gap:6px; align-items:center;">
-        <input type="checkbox" id="toggleAll" onchange="toggleAllRows(this)"> 全件表示（デフォルト：最新50件）
-      </label>
-    </span>
-  </h3>
+ <label style="margin-top:6px;">税率（8% / 10% クイック切替）</label>
+<div class="radio-group choice-vertical" id="baseRateRadios">
+  <label><input type="radio" name="baseRateChoice" value="8" checked><span>8%</span></label>
+  <label><input type="radio" name="baseRateChoice" value="10"><span>10%</span></label>
+  <span class="info-line">※ 以後の計算に使う「基本税率」を即時更新</span>
+</div>
+
+
+  <h3 class="list-head">
+  <span>仕入れ一覧</span>
+  <div class="view-switch">
+    <span class="muted" style="align-self:flex-end;">表示</span>
+
+    <label class="choice-col">
+      <input type="radio" name="viewMode" value="table">
+      <span>表</span>
+    </label>
+
+    <label class="choice-col">
+      <input type="radio" name="viewMode" value="cards" checked>
+      <span>カード</span>
+    </label>
+
+    <label class="choice-col" style="margin-left:10px;">
+      <input type="checkbox" id="toggleAll" onchange="toggleAllRows(this)">
+      <span>全件表示<br><small class="muted">（最新50件）</small></span>
+    </label>
+  </div>
+</h3>
+
 
   <!-- 月フィルター -->
   <div class="row" style="margin:6px 0 10px; align-items:center;">
@@ -404,13 +488,14 @@
 </div>
 
 <!-- 一括マスタ登録モーダル（仕入先＋複数商品） -->
-<div id="bulkMasterModal" class="modal bulk-area">
+<div id="bulkMasterModal" class="modal">
   <div class="modal-content">
-    <div class="modal-header">
+    <div class="row" style="justify-content:space-between; align-items:center;">
       <h3>一括マスタ登録（仕入先＋複数商品）</h3>
       <button type="button" class="ghost" onclick="closeModal('bulkMasterModal')">✕</button>
     </div>
 
+    <!-- 仕入先 -->
     <h4>仕入先</h4>
     <label>社名</label>
     <input id="bmSupName" type="text" placeholder="例）B水産">
@@ -421,22 +506,25 @@
       </div>
       <div>
         <label>電話番号</label>
-        <input id="bmSupPhone" type="tel">
+        <input id="bmSupPhone" type="tel" placeholder="090-1234-5678">
       </div>
     </div>
 
+    <!-- 重複警告表示（必要時だけ表示） -->
+    <div id="bmDupArea" class="muted" style="display:none; margin-top:8px;"></div>
+
+    <!-- 商品行（複数） -->
     <h4 style="margin-top:12px;">商品（複数行追加可）</h4>
-    <div id="bmProducts" style="display:flex; flex-direction:column; gap:10px;"></div>
+    <div id="bmProducts" class="bulk-area" style="display:flex; flex-direction:column; gap:10px;"></div>
+
     <div class="row" style="margin-top:6px;">
-      <button type="button" class="ghost" onclick="bmClearRows()">商品を全クリア</button>
-      <button type="button" class="link" onclick="bmAddRow()">＋ 商品を追加</button>
+      <button type="button" class="ghost" onclick="bmAddRow()">＋ 商品を追加</button>
+      <button type="button" class="danger" onclick="bmClearRows()">商品を全クリア</button>
     </div>
 
-    <!-- 重複確認表示領域 -->
-    <div id="bmDupArea" class="muted" style="display:none; margin-top:10px;"></div>
-
+    <!-- アクション（ネガティブ左／ポジティブ右） -->
     <div class="actions" style="margin-top:8px;">
-      <button type="button" class="ghost" onclick="closeModal('bulkMasterModal')">中止</button>
+      <button type="button" class="ghost" onclick="closeModal('bulkMasterModal')">キャンセル</button>
       <button type="button" onclick="bmSubmit()">まとめて登録</button>
     </div>
   </div>
@@ -1129,13 +1217,13 @@ let bmRowCounter = 0;
 function bmRowTemplate(idx){
   return `
     <div class="bulk-row">
-      <input type="text" class="bm-name" placeholder="商品名">
+      <input type="text"  class="bm-name"  placeholder="商品名">
       <input type="number" class="bm-price" placeholder="価格">
-      <select class="bm-tax">
+      <select class="bm-tax" aria-label="税区分">
         <option value="taxExcluded" selected>税別</option>
         <option value="taxIncluded">税込</option>
       </select>
-      <div class="bm-rate">
+      <div class="bm-rate choice-vertical">
         <label><input type="radio" name="bmRate${idx}" value="0.08" checked><span>8%</span></label>
         <label><input type="radio" name="bmRate${idx}" value="0.10"><span>10%</span></label>
       </div>
@@ -1157,34 +1245,104 @@ function bmAddRow(){
   wrap.appendChild(div.firstElementChild);
 }
 function bmClearRows(){ $('bmProducts').innerHTML=''; }
+/* 正規化（重複判定用：空白除去＋小文字） */
+function normName(s){ return (s || '').replace(/\s+/g, '').toLowerCase(); }
+
+/* ====== 一括マスタ登録（重複確認付き・スマホ最適化） ====== */
+const normName = (s)=> (s||'').trim().replace(/\s+/g,' ').toLowerCase();
+
+let bmRowCounter = 0;
+function bmRowTemplate(idx){
+  return `
+    <div class="bulk-row">
+      <input type="text"  class="bm-name"  placeholder="商品名">
+      <input type="number" class="bm-price" placeholder="価格">
+      <select class="bm-tax" aria-label="税区分">
+        <option value="taxExcluded" selected>税別</option>
+        <option value="taxIncluded">税込</option>
+      </select>
+      <div class="bm-rate choice-vertical">
+        <label><input type="radio" name="bmRate${idx}" value="0.08" checked><span>8%</span></label>
+        <label><input type="radio" name="bmRate${idx}" value="0.10"><span>10%</span></label>
+      </div>
+      <button type="button" class="danger" onclick="this.closest('.bulk-row').remove()">削除</button>
+    </div>
+  `;
+}
+
+function openBulkMaster(){
+  bmClearRows(); bmAddRow();
+  $('bmSupName').value=''; $('bmSupContact').value=''; $('bmSupPhone').value='';
+  const area = $('bmDupArea'); if (area){ area.style.display='none'; area.innerHTML=''; }
+  $('bulkMasterModal').style.display='block';
+}
+
+function bmAddRow(){
+  const wrap = $('bmProducts');
+  const idx = ++bmRowCounter;
+  const div = document.createElement('div');
+  div.innerHTML = bmRowTemplate(idx);
+  wrap.appendChild(div.firstElementChild);
+}
+
+function bmClearRows(){ $('bmProducts').innerHTML=''; }
+
 function bmSubmit(){
-  const supName = $('bmSupName').value.trim(); if(!supName) return alert('仕入先名を入力してください');
+  const supName = $('bmSupName').value.trim();
+  if(!supName) return alert('仕入先名を入力してください');
+
   const rows = Array.from(document.querySelectorAll('#bmProducts .bulk-row'));
   if (rows.length===0) return alert('商品行を追加してください');
 
-  // 重複候補抽出
-  const names = rows.map(r=> normName(r.querySelector('.bm-name').value));
-  const dups = names.filter(n => !!n).filter(n => items.some(it => normName(it.name)===n));
-  if (dups.length>0){
+  // 1) 重複候補の抽出（商品名：空行は除外、全角/半角・大文字小文字・スペースの揺れを正規化）
+  const entryNames = rows
+    .map(r => normName(r.querySelector('.bm-name').value))
+    .filter(n => !!n);
+
+  const duplicateList = entryNames.filter(n =>
+    items.some(it => normName(it.name) === n)
+  );
+
+  // 2) 重複候補の提示（まとめて表示）
+  if (duplicateList.length > 0){
+    const unique = Array.from(new Set(duplicateList));
     const area = $('bmDupArea');
-    area.style.display='block';
-    area.innerHTML = '既存と同名の商品があります：<br>・' + Array.from(new Set(dups)).join('<br>・') + '<br>続行すると新規として追加されます。';
+    if (area){
+      area.style.display = 'block';
+      area.innerHTML =
+        '既存と同名の商品があります：<br>・' +
+        unique.join('<br>・') +
+        '<br>続行すると新規として追加されます。';
+    }
     if (!confirm('重複候補があります。続行しますか？')) return;
   }
 
-  const sup = { id: uid(), name: supName, contact: $('bmSupContact').value.trim(), phone: $('bmSupPhone').value.trim() };
+  // 3) 仕入先の作成・保存
+  const sup = {
+    id: uid(),
+    name: supName,
+    contact: $('bmSupContact').value.trim(),
+    phone: $('bmSupPhone').value.trim()
+  };
   suppliers.push(sup);
+
+  // 4) 商品をこの仕入先に紐付けて一括作成
   rows.forEach(row=>{
-    const name = normName(row.querySelector('.bm-name').value);
-    if (!name) return;
-    const priceStr = row.querySelector('.bm-price').value.trim();
+    const rawName = row.querySelector('.bm-name').value;
+    const name = rawName.trim();
+    if (!name) return; // 空行スキップ
+
+    const priceStr = (row.querySelector('.bm-price').value || '').trim();
     const price = priceStr==='' ? null : Number(priceStr);
+
     const taxType = row.querySelector('.bm-tax').value;
     const rateSel = row.querySelector('input[type="radio"]:checked');
     const taxRate = rateSel ? Number(rateSel.value) : 0.08;
+
     items.push({ id: uid(), name, price, taxType, taxRate, suppliers: [sup.id] });
   });
 
+  // 5) 保存・UI更新
   localStorage.setItem(LS_KEYS.suppliers, JSON.stringify(suppliers));
   localStorage.setItem(LS_KEYS.items, JSON.stringify(items));
 
