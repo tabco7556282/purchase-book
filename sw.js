@@ -1,5 +1,5 @@
 // sw.js  v25.1
-const CACHE_NAME = 'shiire-v25.1'; // ←ここを上げる
+const CACHE_NAME = 'shiire-v25.1';
 const ASSETS = [
   './',
   './index.html',
@@ -8,7 +8,6 @@ const ASSETS = [
   './icons/icon-512-v223i.png'
 ];
 
-// install
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
@@ -16,7 +15,6 @@ self.addEventListener('install', (e) => {
   );
 });
 
-// activate（旧キャッシュの破棄）
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
@@ -25,11 +23,9 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// fetch
 self.addEventListener('fetch', (e) => {
   const req = e.request;
 
-  // HTMLはネット優先（落ちたらキャッシュ）
   if (req.mode === 'navigate') {
     e.respondWith(
       fetch(req).then((res) => {
@@ -41,13 +37,11 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // それ以外はキャッシュ優先
   e.respondWith(
     caches.match(req).then((hit) => hit || fetch(req))
   );
 });
 
-// 手動更新用
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
