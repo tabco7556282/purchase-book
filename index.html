@@ -540,7 +540,7 @@
 
 <script>
 /* ====== バージョン ====== */
-const APP_VERSION = 'v25';
+const APP_VERSION = 'v25.1';
 document.addEventListener('DOMContentLoaded', ()=>{
   const el = document.getElementById('appVersion');
   if (el) el.textContent = APP_VERSION;
@@ -550,7 +550,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try{
-      const reg = await navigator.serviceWorker.register('./sw.js?v=25', {updateViaCache:'none'});
+      const reg = await navigator.serviceWorker.register('./sw.js?v=25.1', {updateViaCache:'none'});
       document.addEventListener('visibilitychange', ()=>{ if (document.visibilityState==='visible') reg.update(); });
     }catch(e){}
   });
