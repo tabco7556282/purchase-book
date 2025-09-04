@@ -1,47 +1,71 @@
-// sw.js  v25.1
-const CACHE_NAME = 'shiire-v25.2';
-const ASSETS = [
-  './',
-  './index.html',
-  './manifest.webmanifest',
-  './icons/icon-192-v223i.png',
-  './icons/icon-512-v223i.png'
+// ===============================
+// 仕入れ管理アプリ PWA Service Worker
+// v25.0
+// ===============================
+
+// キャッシュ名（バージョンアップ時はここを必ず変更！）
+const CACHE_NAME = 'shiire-cache-v25';
+
+// プリキャッシュするファイル一覧
+const PRECACHE_FILES = [
+  './',                        // ルート
+  './index.html',              // メインHTML
+  './manifest.webmanifest',    // PWAマニフェスト
+  './sw.js',                   // 自分自身
+  './icons/icon-192-v223i.png', // PWAアイコン(192)
+  './icons/icon-512-v223i.png', // PWAアイコン(512)
+  // 必要に応じてCSSや画像ファイルをここに追加
 ];
 
-self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-      .then(() => self.skipWaiting())
+// インストール時：キャッシュを作成
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(PRECACHE_FILES);
+    }).then(() => self.skipWaiting()) // インストール後すぐアクティブ化
   );
 });
 
-self.addEventListener('activate', (e) => {
-  e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
+// アクティベート時：古いキャッシュを削除
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys => {
+      return Promise.all(
+        keys
+          .filter(key => key !== CACHE_NAME) // v25以外を削除
+          .map(key => caches.delete(key))
+      );
+    }).then(() => self.clients.claim()) // 即時制御権取得
   );
 });
 
-self.addEventListener('fetch', (e) => {
-  const req = e.request;
+// フェッチ時：キャッシュ優先＋バックグラウンド更新
+self.addEventListener('fetch', event => {
+  const { request } = event;
 
-  if (req.mode === 'navigate') {
-    e.respondWith(
-      fetch(req).then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE_NAME).then((c) => c.put('/', copy));
-        return res;
-      }).catch(() => caches.match('./'))
-    );
-    return;
+  // GET以外は無視
+  if (request.method !== 'GET') return;
+
+  event.respondWith(
+    caches.match(request).then(cached => {
+      const fetchPromise = fetch(request)
+        .then(networkResponse => {
+          // 成功したらキャッシュ更新
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(request, networkResponse.clone());
+          });
+          return networkResponse;
+        })
+        .catch(() => cached); // オフライン時はキャッシュのみ
+
+      return cached || fetchPromise;
+    })
+  );
+});
+
+// 即時更新用メッセージ（forceUpdateSW対応）
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
   }
-
-  e.respondWith(
-    caches.match(req).then((hit) => hit || fetch(req))
-  );
-});
-
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
