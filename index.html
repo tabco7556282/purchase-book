@@ -104,6 +104,38 @@ td.col-actions{width:1%;white-space:nowrap}
   .bulk-area .bulk-row{grid-template-columns:1fr 1fr}
   .bulk-area .bulk-row .bm-rate{grid-column:1 / -2}
 }
+/* 1) ダーク時の小さな文字を見やすく（コントラストUP） */
+body.dark .muted,
+body.dark .meta-left { color:#d6d6d6 !important; }     /* 重要な小文字帯 */
+body.dark .table-wrap,
+body.dark .card { background:#131313 !important; }
+body.dark th, body.dark td { border-color:#333 !important; }
+
+/* 2) ナビのボタンが縦積み＆文字が縦っぽく見える対策
+      3) すべて横書きの強制 */
+html, body, button, input, select, label, .nav * {
+  writing-mode: horizontal-tb !important;
+  text-orientation: mixed !important;
+}
+.nav button {                 /* “幅100%”の影響を打ち消す */
+  width:auto !important;      /* ←これでボタンの横幅は内容に合わせる */
+  padding:10px 16px;
+}
+
+/* 4) 削除・編集ボタン：横並び＆同サイズに統一（表・カード両方） */
+.actions, .actions-cell { display:flex !important; gap:10px; align-items:center; }
+.meta-right { display:flex; align-items:center; gap:12px; }  /* 合計＋ボタンを横並び */
+
+.btn-sm, .btn-lg {                   /* 既存クラス名はそのまま揃える */
+  padding:10px 14px !important;
+  font-size:15px !important;
+  border-radius:10px !important;
+  min-width:100px;                   /* 視認性のため固定幅を少し持たせる */
+}
+
+/* カード内の金額・テキストの読みやすさ微調整 */
+.card .total { font-weight:700; }
+body.dark .card .total { color:#fff; }
 </style>
 </head>
 <body>
