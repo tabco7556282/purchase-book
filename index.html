@@ -136,6 +136,43 @@ html, body, button, input, select, label, .nav * {
 /* カード内の金額・テキストの読みやすさ微調整 */
 .card .total { font-weight:700; }
 body.dark .card .total { color:#fff; }
+/* ========== ① ナビのボタンを横並び固定 ========== */
+.nav{ flex-wrap:nowrap; overflow-x:auto; }             /* 折返さず横並び／横スクロール可 */
+.nav > *{ flex:0 0 auto; }                             /* 収縮禁止 */
+.nav button{ width:auto !important; padding:10px 16px; /* 100%幅の上書き */
+             writing-mode:horizontal-tb !important; white-space:nowrap; }
+
+/* ========== ② 文字が縦っぽくなるのを防止（特に「表 / カード」） ========== */
+.view-switch{ display:flex; align-items:center; gap:10px; flex-wrap:nowrap; }
+.view-switch > span,
+.view-switch label{ display:inline-flex; align-items:center; gap:6px;
+                    writing-mode:horizontal-tb !important; white-space:nowrap; }
+.view-switch input{ margin:0; }   /* モバイルでの余白暴れ防止 */
+
+/* 念のため、全体の横書きを強制（既存指定より優先） */
+html, body, button, input, select, label, th, td, .card, .modal *{
+  writing-mode:horizontal-tb !important;
+  text-orientation:mixed !important;
+}
+
+/* ========== ③ 削除・編集を “横並び／削除は幅を半分” に統一 ========== */
+/* テーブル内（マスタ一覧・仕入れ一覧の表） */
+.col-actions .actions-cell{ display:flex !important; gap:10px; justify-content:flex-end; }
+.col-actions .btn-del{ flex:0 0 48%; min-width:88px; }
+.col-actions .btn-edit{ flex:0 0 52%; min-width:100px; }
+
+/* カード表示（仕入れ一覧の各行右側） */
+.card .meta-right{ display:flex; align-items:center; gap:12px; }
+.card .actions{ display:flex !important; gap:10px; }
+.card .actions .btn-del{ flex:0 0 48%; min-width:88px; }
+.card .actions .btn-edit{ flex:0 0 52%; min-width:100px; }
+
+/* ボタンの見た目を揃える（既存の btn-sm / btn-lg を同サイズ化） */
+.btn-sm, .btn-lg{
+  padding:10px 14px !important;
+  font-size:15px !important;
+  border-radius:10px !important;
+}
 </style>
 </head>
 <body>
