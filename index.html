@@ -3,12 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
-<title>仕入れ管理｜MVP v0.6.0</title>
+<title>仕入れ管理｜MVP v0.6.1</title>
 <style>
 :root{
   --brand:#FFC107; --brand-ink:#1A1300;
-  --bg:#FFFBEA;           /* レモン寄り */
-  --card:#FFFDF3;         /* 背景よりさらに薄い */
+  --bg:#FFFBEA; --card:#FFFDF3;
   --text:#111; --muted:#6B6B6B; --divider:#EEDB9A;
   --danger:#D73C3C; --shadow:0 2px 10px rgba(0,0,0,.06);
 }
@@ -76,7 +75,6 @@ textarea{min-height:84px;resize:vertical}
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:flex-end}
 .modal{width:100%;background:var(--card);border-radius:16px 16px 0 0;border:1px solid var(--divider);box-shadow:var(--shadow);padding:14px}
 .modal h3{margin:2px 0 8px}
-.modal .grid{margin-top:8px}
 /* 右寄せ＋幅比率（保存1.5×／削除0.5×） */
 .modal .actions{display:flex;gap:10px;justify-content:flex-end;align-items:center;margin-top:12px;flex-wrap:nowrap}
 .modal .actions .btn{height:44px}
@@ -107,7 +105,7 @@ textarea{min-height:84px;resize:vertical}
   <div class="hdr-left"><button id="btnHome" class="btn ghost small hidden" type="button">← ホーム</button></div>
   <h1 id="pageTitle">仕入れ管理</h1>
   <div class="hdr-right">
-    <small class="ver">v0.6.0</small>
+    <small class="ver">v0.6.1</small>
     <button id="themeBtn" class="theme-toggle" aria-label="テーマ切替"><div class="knob"><span id="themeIcon">☀</span></div></button>
   </div>
 </header>
@@ -245,7 +243,7 @@ textarea{min-height:84px;resize:vertical}
     <h3 id="modalTitle">タイトル</h3>
     <div id="modalBody"></div>
     <div class="actions">
-      <!-- 左から：削除, キャンセル, 保存（右寄せで右から見える順は 保存>キャンセル>削除） -->
+      <!-- 左＝削除（小）／中央＝キャンセル／右＝保存（大） -->
       <button class="btn danger small btn--delete delbtn hidden" id="modalDelete">削除</button>
       <button class="btn ghost small btn--cancel" id="modalCancel">キャンセル</button>
       <button class="btn primary btn--save" id="modalOK">保存</button>
@@ -291,7 +289,6 @@ function fillProductSelect(sel,supplierId){
   sel.innerHTML='<option value="">（選択してください）</option>';
   const list=store.products.filter(p=>!p.deleted&&(!supplierId||p.supplier_id===supplierId));
   list.forEach(p=>{const o=document.createElement("option");o.value=p.id;o.textContent=p.name;sel.appendChild(o)});
-  // デフォルト値
   $("#inPrice").value=""; $("#inQty").value=1;
   $$('input[name=taxrate]').forEach(r=>r.checked=(r.value==="8")); 
   $$('input[name=taxmode]').forEach(r=>r.checked=(r.value==="excl"));
@@ -310,15 +307,9 @@ $("#inProduct").addEventListener("change",e=>{const p=store.products.find(x=>x.i
 function calcLineTotal(e){
   const p=Number(e.price)||0, q=Number(e.qty)||0, r=Number(e.taxrate)||0;
   const base = p*q;
-  if(e.taxmode==="incl"){ // 税込入力
-    const excl = Math.round(base/(1+r/100));
-    return {excl, incl: base};
-  } else if(e.taxmode==="excl"){ // 税別入力
-    const incl = Math.round(base*(1+r/100));
-    return {excl: base, incl};
-  } else { // 非課税
-    return {excl: base, incl: base};
-  }
+  if(e.taxmode==="incl"){ const excl = Math.round(base/(1+r/100)); return {excl, incl: base}; }
+  else if(e.taxmode==="excl"){ const incl = Math.round(base*(1+r/100)); return {excl: base, incl}; }
+  else { return {excl: base, incl: base}; }
 }
 
 function addLine(){
@@ -343,7 +334,7 @@ $("#btnAddLine").addEventListener("click",addLine);
 $("#btnSave").addEventListener("click",()=>{alert("保存しました");navigate("home");refreshHome()});
 $("#btnClear").addEventListener("click",()=>{$("#inQty").value=1;$("#inPrice").value="";$("#inMemo").value="";$("#inProduct").value="";$("#priceHistory").innerHTML=""});
 
-/* 明細の表示＋編集入口（本日） */
+/* 明細（本日） */
 function renderTodayList(){
   const cont=$("#todayList");cont.innerHTML="";const d=todayStr();const group={};
   store.entries.filter(x=>!x.deleted && x.date===d).forEach(e=>{const key=e.supplier_id||e.supplier_name_fallback||"未指定";(group[key]=group[key]||[]).push(e)});
@@ -409,39 +400,34 @@ function renderProducts(){
 function fillFilterSupplier(){const sel=$("#filterProdSupplier");sel.innerHTML='<option value="">すべて</option>';store.suppliers.filter(s=>!s.deleted).forEach(s=>{const o=document.createElement("option");o.value=s.id;o.textContent=s.name;sel.appendChild(o)})}
 $("#filterProdSupplier").addEventListener("change",renderProducts);
 
-/* ===== Modal基盤 ===== */
-function openModalBase(title, bodyHTML){
-  $("#modalTitle").textContent = title;
-  $("#modalBody").innerHTML = bodyHTML;
+/* ===== モーダル基盤 ===== */
+function closeModal(){ $("#modalHost").classList.add("hidden"); $("#modalHost").setAttribute("aria-hidden","true"); }
+function openModalBase(title,bodyHTML){
+  $("#modalTitle").textContent=title;
+  $("#modalBody").innerHTML=bodyHTML;
 
-  const host = $("#modalHost");
-  const delBtn = $("#modalDelete");
-  const okBtn  = $("#modalOK");
-  const cancelBtn = $("#modalCancel");
+  const host=$("#modalHost");
+  const ok=$("#modalOK"), cancel=$("#modalCancel"), del=$("#modalDelete");
 
-  // 文言と表示の初期化
-  okBtn.textContent = "保存";
-  cancelBtn.textContent = "キャンセル";
-  delBtn.textContent = "削除";
+  // 既定ラベル
+  ok.textContent="保存"; cancel.textContent="キャンセル"; del.textContent="削除";
 
-  // 既存ハンドラをクリア
-  delBtn.onclick = null;
-  okBtn.onclick = null;
+  // 既定動作
+  ok.onclick=null; del.onclick=null; cancel.onclick=closeModal;
 
-  // 既定のキャンセル挙動は「閉じる」に固定（どのモーダルでも効く）
-  cancelBtn.onclick = closeModal;
+  // 表示状態／幅クラスを整える
+  del.classList.add("hidden");
+  ok.classList.add("btn--save"); cancel.classList.add("btn--cancel"); del.classList.add("btn--delete");
 
-  // 表示状態と幅クラスを整える
-  delBtn.classList.add("hidden");
-  okBtn.classList.add("btn--save");
-  cancelBtn.classList.add("btn--cancel");
-  delBtn.classList.add("btn--delete");
-
-  // モーダル表示
-  host.classList.remove("hidden");
-  host.setAttribute("aria-hidden","false");
+  // 表示
+  host.classList.remove("hidden"); host.setAttribute("aria-hidden","false");
 }
-
+// 背景クリック＆Escで閉じる（1回だけバインド）
+(function(){const host=$("#modalHost"); if(!host) return; if(host.__bound) return;
+  host.addEventListener("click",e=>{if(e.target===host) closeModal()});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape" && !host.classList.contains("hidden")) closeModal()});
+  host.__bound=true;
+})();
 
 /* ===== Supplier modal ===== */
 function openSupplierModal(s){
@@ -458,11 +444,9 @@ function openSupplierModal(s){
     DB.save(store);renderSuppliers();refreshHome();fillSupplierSelect($("#inSupplier"));closeModal();
   };
   $("#modalOK").onclick=onOK;
-  $("#modalCancel").onclick=closeModal;
 
   if(s){
-    const delBtn=$("#modalDelete");
-    delBtn.classList.remove("hidden"); delBtn.classList.add("btn--delete");
+    const delBtn=$("#modalDelete"); delBtn.classList.remove("hidden");
     delBtn.onclick=()=>{ if(confirm("削除しますか？")){ s.deleted=true; DB.save(store); renderSuppliers(); refreshHome(); closeModal(); } };
     $(".actions").insertBefore(delBtn, $("#modalCancel"));
   }
@@ -498,11 +482,9 @@ function openProductModal(p,defaultSid){
     DB.save(store);renderProducts();fillProductSelect($("#inProduct"),$("#inSupplier").value);closeModal();
   };
   $("#modalOK").onclick=onOK;
-  $("#modalCancel").onclick=closeModal;
 
   if(p){
-    const delBtn=$("#modalDelete");
-    delBtn.classList.remove("hidden"); delBtn.classList.add("btn--delete");
+    const delBtn=$("#modalDelete"); delBtn.classList.remove("hidden");
     delBtn.onclick=()=>{ if(confirm("削除しますか？")){ p.deleted=true; DB.save(store); renderProducts(); closeModal(); } };
     $(".actions").insertBefore(delBtn, $("#modalCancel"));
   }
@@ -533,10 +515,8 @@ function openEntryModal(e){
     if(e.product_id){const arr=store.priceHistory[e.product_id]||[];arr.push({price:e.price,ts:Date.now(),taxrate:e.taxrate,taxmode:e.taxmode});store.priceHistory[e.product_id]=arr.slice(-5)}
     renderTodayList();renderHistory();refreshHome();closeModal();
   };
-  $("#modalCancel").onclick=closeModal;
 
-  const delBtn=$("#modalDelete");
-  delBtn.classList.remove("hidden"); delBtn.classList.add("btn--delete");
+  const delBtn=$("#modalDelete"); delBtn.classList.remove("hidden");
   delBtn.onclick=()=>{ if(confirm("この明細を削除しますか？")){ store.entries=store.entries.filter(x=>x.id!==e.id); DB.save(store); renderTodayList(); renderHistory(); refreshHome(); closeModal(); } };
   $(".actions").insertBefore(delBtn, $("#modalCancel"));
 }
@@ -572,12 +552,10 @@ function renderHistory(){
 }
 $("#hisRange").addEventListener("change",renderHistory);
 
-$("#toggleGross").addEventListener("change",e=>{store.settings.historyShowBoth=!!e.target.checked;DB.save(store);renderHistory()});
-$("#showDetail").addEventListener("change",e=>{store.settings.showTaxFlags=!!e.target.checked;DB.save(store);renderHistory()});
-
-const ModalExport=()=>{openModalBase("データ出力","<div>Excelで開けるファイルを作成します。よろしいですか？</div>");$("#modalOK").textContent="出力する";$("#modalOK").onclick=()=>{exportData();closeModal()};$("#modalCancel").onclick=closeModal};
+/* エクスポートモーダル（OK=出力する／キャンセル=必ず閉じる） */
+const ModalExport=()=>{openModalBase("データ出力","<div>Excelで開けるファイルを作成します。よろしいですか？</div>");$("#modalOK").textContent="出力する";$("#modalOK").onclick=()=>{exportData();closeModal()}};
 function exportData(){const dt=new Date();const ym=dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0");const rows=[["日付","仕入れ先","商品","数量","単価","税率","区分","税込額","メモ"]];store.entries.filter(e=>!e.deleted).forEach(e=>{if(e.date.slice(0,7)===ym){const s=supplierName(e.supplier_id)||e.supplier_name_fallback||"";const p=prodName(e.product_id,e.product_name_fallback);const g=(e.taxmode==="incl"?e.price:e.price*(1+e.taxrate/100))*e.qty;rows.push([e.date,s,p,e.qty,e.price,e.taxrate,(e.taxmode==="incl"?"税込":"税別"),Math.round(g),e.memo||""])}});const csv=rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(",")).join("\n");const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="仕入れ記録_"+ym+".csv";a.click();URL.revokeObjectURL(a.href);alert("出力しました（Excelで開けます）")}
-$("#btnExport").addEventListener("click",ModalExport);$("#btnExport2").addEventListener("click",ModalExport);
+document.addEventListener("click",(ev)=>{const t=ev.target.closest("#btnExport, #btnExport2");if(t){ev.preventDefault();ModalExport();}},true);
 
 /* ===== Backup / Restore ===== */
 function backupNow(){const payload={version:"1.0",exported_at:new Date().toISOString(),tables:{suppliers:store.suppliers,products:store.products,entries:store.entries,priceHistory:store.priceHistory,settings:store.settings}};const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="tabco_backup_"+fmtYMD(new Date())+".json";a.click();URL.revokeObjectURL(a.href);store.settings.lastBackupAt=Date.now();DB.save(store);refreshHome();$("#bkLast").textContent=new Date(store.settings.lastBackupAt).toLocaleString("ja-JP")}
@@ -611,33 +589,8 @@ $("#toggleAutoClear").addEventListener("change",e=>{store.settings.autoClear=!!e
 function init(){ensureSample();applyTheme();refreshHome();initInputPage();renderTodayList();enableSelectOnFocus();renderSuppliers();fillFilterSupplier();renderProducts();showPage(location.hash.replace("#","")||"home")}
 init();
 
-/* ===== 履歴初期トグル反映 ===== */
-window.addEventListener('load',()=>{
-  $("#toggleGross").checked = !!store.settings.historyShowBoth;
-  $("#showDetail").checked = !!store.settings.showTaxFlags;
-});
+/* 履歴トグル初期反映 */
+window.addEventListener('load',()=>{ $("#toggleGross").checked = !!store.settings.historyShowBoth; $("#showDetail").checked = !!store.settings.showTaxFlags; });
 </script>
-<!-- ここから追記：データ出力ボタンを確実に結び直す -->
-<script>
-(function(){
-  function bindExportButtons(){
-    ["#btnExport", "#btnExport2"].forEach(function(sel){
-      var el = document.querySelector(sel);
-      if(!el) return;
-      // 既存リスナーをリセットして再バインド
-      var clone = el.cloneNode(true);
-      el.parentNode.replaceChild(clone, el);
-      clone.addEventListener("click", function(){
-        if (typeof ModalExport === "function") ModalExport();
-      });
-    });
-  }
-  // 初回・ハッシュ遷移後にも効かせる
-  if (document.readyState !== "loading") bindExportButtons();
-  else document.addEventListener("DOMContentLoaded", bindExportButtons);
-  window.addEventListener("hashchange", bindExportButtons);
-})();
-</script>
-<!-- 追記ここまで -->
 </body>
 </html>
