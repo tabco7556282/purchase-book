@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>仕入れ管理｜MVP v0.4.5</title>
+<title>仕入れ管理｜MVP v0.4.6</title>
 <style>
 :root{
   --brand:#FFC107; --brand-ink:#1A1300;
@@ -73,16 +73,14 @@ input,select,textarea{width:100%;box-sizing:border-box;border-radius:10px;border
 .modal h3{margin:2px 0 8px}
 .modal .grid{margin-top:8px}
 
-/* ▼▼ ここが今回の主修正：右寄せ＆幅比率 ▼▼ */
+/* ▼ 今回の主修正：右寄せ＋幅比率（保存1.5倍／削除半分） ▼ */
 .modal .actions{
-  display:flex; gap:10px; justify-content:flex-end; align-items:center; margin-top:12px;
-  /* ボタン行がはみ出さないよう折り返し禁止（ラベルは省略せず収まる想定） */
-  flex-wrap:nowrap;
+  display:flex; gap:10px; justify-content:flex-end; align-items:center; margin-top:12px; flex-wrap:nowrap;
 }
 .modal .actions .btn{height:44px}
-.modal .actions .btn--save   {flex:0 0 45%}   /* 1.5倍 */
-.modal .actions .btn--cancel {flex:0 0 30%}   /* 標準 */
-.modal .actions .btn--delete {flex:0 0 18%}   /* 半分くらい */
+.modal .actions .btn--save   {flex:0 0 45%}
+.modal .actions .btn--cancel {flex:0 0 30%}
+.modal .actions .btn--delete {flex:0 0 18%}
 @media (min-width:560px){
   .modal .actions .btn--save{flex-basis:38%}
   .modal .actions .btn--cancel{flex-basis:24%}
@@ -97,7 +95,7 @@ input,select,textarea{width:100%;box-sizing:border-box;border-radius:10px;border
   <div class="hdr-left"><button id="btnHome" class="btn ghost small hidden" type="button">← ホーム</button></div>
   <h1 id="pageTitle">仕入れ管理</h1>
   <div class="hdr-right">
-    <small class="ver">v0.4.5</small>
+    <small class="ver">v0.4.6</small>
     <button id="themeBtn" class="theme-toggle" aria-label="テーマ切替"><div class="knob"><span id="themeIcon">☀</span></div></button>
   </div>
 </header>
@@ -228,9 +226,10 @@ input,select,textarea{width:100%;box-sizing:border-box;border-radius:10px;border
     <h3 id="modalTitle">タイトル</h3>
     <div id="modalBody"></div>
     <div class="actions">
-      <button class="btn primary btn--save" id="modalOK">保存</button>
+      <!-- 並びは左から：削除, キャンセル, 保存（右寄せで右から見える順は 保存>キャンセル>削除） -->
+      <button class="btn danger small btn--delete delbtn hidden" id="modalDelete">削除</button>
       <button class="btn ghost small btn--cancel" id="modalCancel">キャンセル</button>
-      <!-- 削除は編集時のみ動的追加（btn--delete を付与） -->
+      <button class="btn primary btn--save" id="modalOK">保存</button>
     </div>
   </div>
 </div>
@@ -340,15 +339,16 @@ function renderProducts(){
 function fillFilterSupplier(){const sel=$("#filterProdSupplier");sel.innerHTML='<option value="">すべて</option>';store.suppliers.filter(s=>!s.deleted).forEach(s=>{const o=document.createElement("option");o.value=s.id;o.textContent=s.name;sel.appendChild(o)})}
 $("#filterProdSupplier").addEventListener("change",renderProducts);
 
-/* ===== モーダル基盤（削除重複防止＆クラス付与） ===== */
+/* ===== モーダル基盤 ===== */
 function openModalBase(title,bodyHTML){
   $("#modalTitle").textContent=title;
   $("#modalBody").innerHTML=bodyHTML;
   $("#modalHost").classList.remove("hidden");
   $("#modalHost").setAttribute("aria-hidden","false");
-  // 削除ボタンを必ず除去
-  $$(".actions .delbtn").forEach(b=>b.remove());
-  // 念のため save/cancel の幅クラスを毎回付与
+  // 既存の削除ボタンを隠す＆クリーン（再利用）
+  const delBtn=$("#modalDelete");
+  delBtn.classList.add("hidden");
+  delBtn.onclick=null;
   $("#modalOK").classList.add("btn--save");
   $("#modalCancel").classList.add("btn--cancel");
 }
@@ -371,11 +371,14 @@ function openSupplierModal(s){
   $("#modalOK").onclick=onOK;
   $("#modalCancel").onclick=closeModal;
 
+  // 編集時のみ「削除」を表示（左側＝キャンセルの左に固定）
   if(s){
-    const del=document.createElement("button");
-    del.className="btn danger small btn--delete delbtn"; del.textContent="削除";
-    del.onclick=()=>{ if(confirm("削除しますか？")){ s.deleted=true; DB.save(store); renderSuppliers(); refreshHome(); closeModal(); } };
-    $(".actions").appendChild(del); // 右寄せのまま Save > Cancel > Delete の順
+    const delBtn=$("#modalDelete");
+    delBtn.classList.remove("hidden");
+    delBtn.classList.add("btn--delete");
+    delBtn.onclick=()=>{ if(confirm("削除しますか？")){ s.deleted=true; DB.save(store); renderSuppliers(); refreshHome(); closeModal(); } };
+    const actions=$(".actions");
+    actions.insertBefore(delBtn, $("#modalCancel"));
   }
 }
 
@@ -401,17 +404,19 @@ function openProductModal(p,defaultSid){
     if(!p&&store.products.some(x=>!x.deleted&&x.supplier_id===sid&&x.name===name)){if(!confirm("同一仕入れ先に同名の商品があります。登録しますか？"))return}
     const price=Number($("#mProdPrice").value||0);const tax_rate=Number($("#mProdRate").value||8);const tax_mode=$("#mProdMode").value||"excl";
     if(p){p.supplier_id=sid;p.name=name;p.default_price=price;p.tax_rate=tax_rate;p.tax_mode=tax_mode}
-    else{store.products.push({id:uid(),supplier_id:sid,name,default_price:price,tax_rate:tax_rate,tax_mode:tax_mode})}
+    else{store.products.push({id:uid(),supplier_id:sid,name,default_price:price,tax_rate,tax_mode})}
     DB.save(store);renderProducts();fillProductSelect($("#inProduct"),$("#inSupplier").value);closeModal();
   };
   $("#modalOK").onclick=onOK;
   $("#modalCancel").onclick=closeModal;
 
   if(p){
-    const del=document.createElement("button");
-    del.className="btn danger small btn--delete delbtn"; del.textContent="削除";
-    del.onclick=()=>{ if(confirm("削除しますか？")){ p.deleted=true; DB.save(store); renderProducts(); closeModal(); } };
-    $(".actions").appendChild(del);
+    const delBtn=$("#modalDelete");
+    delBtn.classList.remove("hidden");
+    delBtn.classList.add("btn--delete");
+    delBtn.onclick=()=>{ if(confirm("削除しますか？")){ p.deleted=true; DB.save(store); renderProducts(); closeModal(); } };
+    const actions=$(".actions");
+    actions.insertBefore(delBtn, $("#modalCancel"));
   }
 }
 
