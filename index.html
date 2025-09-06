@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
-<title>仕入れ管理｜MVP v0.7.0</title>
+<title>仕入れ管理｜MVP v0.7.1</title>
 <style>
 :root{
   --brand:#FFC107; --brand-ink:#1A1300;
@@ -36,8 +36,6 @@ body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-ap
 .btn.small{padding:8px 12px;font-weight:600}
 .btn.square{width:100%;height:56px;padding:8px 10px;line-height:1.1;text-align:center;flex-direction:column}
 .btn.square .twoline{display:block;line-height:1.1}
-
-/* 枠強調 */
 #btnAddLine{background:#FFF7CC;border:2px solid #E0B600}
 .btn.op{background:#FFF3B0;border:2px solid #E0B600;color:#5A3A00}
 .btn.op:active,#btnHome:active{transform:translateY(1px)}
@@ -95,7 +93,7 @@ textarea{min-height:84px;resize:vertical}
   <div class="hdr-left"><button id="btnHome" class="btn ghost small hidden" type="button">← ホーム</button></div>
   <h1 id="pageTitle">仕入れ管理</h1>
   <div class="hdr-right">
-    <small class="ver">v0.7.0</small>
+    <small class="ver">v0.7.1</small>
     <button id="themeBtn" class="theme-toggle" aria-label="テーマ切替"><div class="knob"><span id="themeIcon">☀</span></div></button>
   </div>
 </header>
@@ -136,7 +134,6 @@ textarea{min-height:84px;resize:vertical}
           <div class="label">商品（仕入れ先で絞込）</div>
           <label class="row" style="gap:6px"><input type="checkbox" id="chkFree"> 未登録で入力</label>
         </div>
-        <!-- 🔎 商品検索ボックス -->
         <input id="prodSearch" type="text" placeholder="商品名で検索（部分一致）" class="grow" />
         <select id="inProduct" style="margin-top:6px"></select>
         <div id="freeFields" class="grid cols-2 hidden" style="margin-top:8px">
@@ -218,7 +215,6 @@ textarea{min-height:84px;resize:vertical}
       <div class="row" style="gap:10px"><button class="btn primary" id="btnBackupNow" type="button">今すぐバックアップ</button><button class="btn ghost" id="btnRestore" type="button">バックアップから復元</button><input type="file" id="fileRestore" accept="application/json" class="hidden"></div>
     </div>
 
-    <!-- 🔶 年度アーカイブ -->
     <div class="card" style="margin-top:12px">
       <div class="section-title">年度アーカイブ</div>
       <div class="row" style="justify-content:space-between;align-items:center;gap:6px">
@@ -248,7 +244,6 @@ textarea{min-height:84px;resize:vertical}
     <h3 id="modalTitle">タイトル</h3>
     <div id="modalBody"></div>
     <div class="actions">
-      <!-- 左＝削除（小）／中央＝キャンセル／右＝保存（大） -->
       <button class="btn danger small btn--delete delbtn hidden" id="modalDelete">削除</button>
       <button class="btn ghost small btn--cancel" id="modalCancel">キャンセル</button>
       <button class="btn primary btn--save" id="modalOK">保存</button>
@@ -269,14 +264,16 @@ function enableSelectOnFocus(){$$('input[type="number"], input[type="text"]').fo
 
 /* ===== Theme & Header ===== */
 function applyTheme(){document.documentElement.setAttribute("data-theme",store.settings.theme==="dark"?"dark":"light");$("#themeIcon").textContent=store.settings.theme==="dark"?"☾":"☀"}
-$("#themeBtn").addEventListener("click",()=>{store.settings.theme=store.settings.theme==="dark"?"light":"dark";DB.save(store);applyTheme()});
+document.addEventListener("click",(e)=>{if(e.target.closest("#themeBtn")){store.settings.theme=store.settings.theme==="dark"?"light":"dark";DB.save(store);applyTheme();}});
+
 function setHeaderTitleByPage(id){$("#pageTitle").textContent=$("#page-"+id)?.getAttribute("data-title")||"仕入れ管理"}
 
-/* ===== Router ===== */
+/* ===== Router（委任で安定化） ===== */
 let internalNav=false;
 function showPage(id){
   $$("main section").forEach(s=>s.classList.add("hidden"));
-  $("#page-"+id)?.classList.remove("hidden");
+  const page=$("#page-"+id);
+  if(page) page.classList.remove("hidden");
 
   if(id==="home"){
     $("#btnHome").classList.add("hidden");
@@ -285,19 +282,15 @@ function showPage(id){
     $("#btnHome").classList.remove("hidden");
     setHeaderTitleByPage(id);
   }
-
-  // ← これを追加：履歴ページを表示したら毎回描画する
-  if(id==="history"){ renderHistory(); }
-
+  if(id==="history"){
+    try{ renderHistory(); }catch(err){ console.error("renderHistory failed:",err); }
+  }
   window.scrollTo(0,0);
 }
-showPage(location.hash.replace("#","")||"home");
-if ((location.hash||"") === "#history") renderHistory();  // 保険
-
 function navigate(id){internalNav=true;location.hash=id;showPage(id);internalNav=false}
-window.addEventListener("hashchange",()=>{if(internalNav)return;showPage(location.hash.replace("#","")||"home")});
-$("#btnHome").addEventListener("click",()=>navigate("home"));
-$$("[data-goto]").forEach(b=>b.addEventListener("click",()=>{const id=b.getAttribute("data-goto");navigate(id);if(id==="history")renderHistory()}));
+window.addEventListener("hashchange",()=>{ if(internalNav) return; showPage(location.hash.replace("#","")||"home"); });
+document.addEventListener("click",(e)=>{const b=e.target.closest("[data-goto]"); if(b){ e.preventDefault(); navigate(b.getAttribute("data-goto")); }});
+document.addEventListener("click",(e)=>{ if(e.target.closest("#btnHome")) navigate("home"); });
 
 /* ===== Home KPIs ===== */
 function calcTotals(days){const now=new Date(),from=new Date(now.getTime()-days*86400000);return store.entries.reduce((sum,e)=>{if(e.deleted)return sum;const t=new Date(e.date+"T00:00:00");if(t>=from&&t<=now){const base=e.taxmode==="incl"?e.price:e.price*(1+e.taxrate/100);sum+=base*e.qty}return sum},0)}
@@ -314,7 +307,7 @@ function buildProductOptionsForSupplier(supplierId, searchText=""){
   const mru = list.filter(p=>recents.includes(p.id));
   const others = list.filter(p=>!recents.includes(p.id));
   const needle = (searchText||"").trim().toLowerCase();
-  function match(p){return !needle || p.name.toLowerCase().includes(needle)}
+  const match = p => !needle || p.name.toLowerCase().includes(needle);
   return [...mru.filter(match), ...others.filter(match)];
 }
 function renderProductSelect(sel,supplierId,searchText=""){
@@ -323,7 +316,6 @@ function renderProductSelect(sel,supplierId,searchText=""){
   sel.innerHTML='<option value="">（選択してください）</option>';
   items.forEach(p=>{const o=document.createElement("option");o.value=p.id;o.textContent=p.name;sel.appendChild(o)});
   if(items.some(p=>p.id===prev)) sel.value=prev;
-  // 既定値クリア
   $("#inPrice").value=""; $("#inQty").value=1;
   $$('input[name=taxrate]').forEach(r=>r.checked=(r.value==="8")); 
   $$('input[name=taxmode]').forEach(r=>r.checked=(r.value==="excl"));
@@ -335,12 +327,11 @@ const supplierName=id=>(store.suppliers.find(x=>x.id===id)||{}).name||null;
 const prodName=(id,fb)=>(store.products.find(x=>x.id===id)||{}).name||(fb||"未登録");
 function toggleFreeInput(){const on=$("#chkFree").checked;$("#freeFields").classList.toggle("hidden",!on);$("#inSupplier").disabled=on;$("#inProduct").disabled=on;$("#prodSearch").disabled=on}
 function initInputPage(){$("#inDate").value=todayStr();fillSupplierSelect($("#inSupplier"));const sid=$("#inSupplier").value;renderProductSelect($("#inProduct"),sid,"");$("#prodSearch").value="";$("#inQty").value=1;$("#inPrice").value="";$("#inMemo").value="";toggleFreeInput()}
-$("#chkFree").addEventListener("change",toggleFreeInput);
-$("#inSupplier").addEventListener("change",e=>{renderProductSelect($("#inProduct"),e.target.value,$("#prodSearch").value||"")});
-$("#prodSearch").addEventListener("input",e=>{renderProductSelect($("#inProduct"),$("#inSupplier").value,e.target.value)});
-$("#inProduct").addEventListener("change",e=>{const p=store.products.find(x=>x.id===e.target.value);if(p){$("#inPrice").value=p.default_price||"";$$('input[name=taxrate]').forEach(r=>r.checked=String(p.tax_rate)===r.value);$$('input[name=taxmode]').forEach(r=>r.checked=(p.tax_mode||"excl")===r.value);renderPriceHistory(p.id)}else{$("#priceHistory").innerHTML=""}});
+document.addEventListener("change",(e)=>{ if(e.target.id==="chkFree") toggleFreeInput(); });
+document.addEventListener("change",(e)=>{ if(e.target.id==="inSupplier") renderProductSelect($("#inProduct"),e.target.value,$("#prodSearch").value||""); });
+document.addEventListener("input",(e)=>{ if(e.target.id==="prodSearch") renderProductSelect($("#inProduct"),$("#inSupplier").value,e.target.value); });
+document.addEventListener("change",(e)=>{ if(e.target.id==="inProduct"){ const p=store.products.find(x=>x.id===e.target.value); if(p){ $("#inPrice").value=p.default_price||""; $$('input[name=taxrate]').forEach(r=>r.checked=String(p.tax_rate)===r.value); $$('input[name=taxmode]').forEach(r=>r.checked=(p.tax_mode||"excl")===r.value); renderPriceHistory(p.id);} else { $("#priceHistory").innerHTML=""; } } });
 
-/* 合計 */
 function calcLineTotal(e){
   const p=Number(e.price)||0, q=Number(e.qty)||0, r=Number(e.taxrate)||0;
   const base = p*q;
@@ -349,7 +340,7 @@ function calcLineTotal(e){
   else { return {excl: base, incl: base}; }
 }
 
-/* MRU 更新 */
+/* MRU */
 function bumpRecentProduct(pid){
   if(!pid) return;
   const arr = store.settings.recentProducts || [];
@@ -359,6 +350,7 @@ function bumpRecentProduct(pid){
   store.settings.recentProducts = arr.slice(0,20);
 }
 
+document.addEventListener("click",(e)=>{ if(e.target.id==="btnAddLine"){ addLine(); }});
 function addLine(){
   const date=$("#inDate").value||todayStr();
   const free=$("#chkFree").checked;
@@ -368,8 +360,8 @@ function addLine(){
   const product_name_fallback=free?($("#freeProduct").value||"未登録"):null;
   const qty=Number($("#inQty").value||1);
   const price=Number($("#inPrice").value||0);
-  const taxrate=Number($('input[name=taxrate]:checked').value);
-  const taxmode=$('input[name=taxmode]:checked').value;
+  const taxrate=Number(document.querySelector('input[name=taxrate]:checked').value);
+  const taxmode=document.querySelector('input[name=taxmode]:checked').value;
   if(!price||!qty){alert("価格と数量を入力してください");return}
   store.entries.push({id:uid(),date,supplier_id,product_id,supplier_name_fallback,product_name_fallback,qty,price,taxrate,taxmode,memo:$("#inMemo").value||""});
   if(product_id){const arr=store.priceHistory[product_id]||[];arr.push({price,ts:Date.now(),taxrate,taxmode});store.priceHistory[product_id]=arr.slice(-5)}
@@ -377,14 +369,14 @@ function addLine(){
   DB.save(store);renderTodayList();refreshHome();
   if(store.settings.autoClear){$("#inProduct").value="";$("#inPrice").value="";$("#inQty").value=1;$("#inMemo").value="";$("#priceHistory").innerHTML="";}
 }
-$("#btnAddLine").addEventListener("click",addLine);
 
-$("#btnSave").addEventListener("click",()=>{alert("保存しました");navigate("home");refreshHome()});
-$("#btnClear").addEventListener("click",()=>{$("#inQty").value=1;$("#inPrice").value="";$("#inMemo").value="";$("#inProduct").value="";$("#priceHistory").innerHTML=""});
+document.addEventListener("click",(e)=>{ if(e.target.id==="btnSave"){ alert("保存しました"); navigate("home"); refreshHome(); }});
+document.addEventListener("click",(e)=>{ if(e.target.id==="btnClear"){ $("#inQty").value=1;$("#inPrice").value="";$("#inMemo").value="";$("#inProduct").value="";$("#priceHistory").innerHTML=""; }});
 
-/* 明細（本日） */
+/* Today list */
 function renderTodayList(){
-  const cont=$("#todayList");cont.innerHTML="";const d=todayStr();const group={};
+  const cont=$("#todayList"); if(!cont) return;
+  cont.innerHTML=""; const d=todayStr(); const group={};
   store.entries.filter(x=>!x.deleted && x.date===d).forEach(e=>{const key=e.supplier_id||e.supplier_name_fallback||"未指定";(group[key]=group[key]||[]).push(e)});
   Object.keys(group).forEach(k=>{
     const sup=supplierName(k)||k;const div=document.createElement("div");div.className="list-item";
@@ -401,12 +393,12 @@ function renderTodayList(){
     }).join("");
     div.innerHTML=html;cont.appendChild(div);
   });
-  cont.querySelectorAll(".entry").forEach(el=>el.addEventListener("click",()=>{const id=el.getAttribute("data-id");const ent=store.entries.find(x=>x.id===id);if(ent)openEntryModal(ent)}));
 }
 
 /* ===== Supplier/Product ===== */
 function renderSuppliers(){
-  const list=$("#supplierList"); list.innerHTML="";
+  const list=$("#supplierList"); if(!list) return;
+  list.innerHTML="";
   store.suppliers.filter(s=>!s.deleted).forEach(s=>{
     const prodCount=store.products.filter(p=>!p.deleted&&p.supplier_id===s.id).length;
     const item=document.createElement("div"); item.className="list-item supplier";
@@ -420,18 +412,38 @@ function renderSuppliers(){
         <button class="btn op small square addp" type="button"><span class="twoline">＋<br>商品追加</span></button>
         <button class="btn op small square edit" type="button">編集</button>
       </div>`;
-    // 本体タップで商品マスタへ遷移＆絞込
-    item.querySelector(".tapzone").onclick=()=>{navigate("products");$("#filterProdSupplier").value=s.id;renderProducts()};
-    item.querySelector(".addp").onclick=()=>openProductModal(null,s.id);
-    item.querySelector(".edit").onclick=()=>openSupplierModal(s);
     list.appendChild(item);
   });
 }
 
+/* 仕入先カードの委任クリック */
+document.addEventListener("click",(e)=>{
+  const addp=e.target.closest("#supplierList .addp");
+  const edit=e.target.closest("#supplierList .edit");
+  const tap=e.target.closest("#supplierList .tapzone");
+  if(addp){
+    const item=addp.closest(".list-item");
+    const name=item.querySelector("b").textContent;
+    const sup=store.suppliers.find(s=>s.name===name);
+    if(sup){ openProductModal(null,sup.id); }
+  }else if(edit){
+    const item=edit.closest(".list-item");
+    const name=item.querySelector("b").textContent;
+    const sup=store.suppliers.find(s=>s.name===name);
+    if(sup){ openSupplierModal(sup); }
+  }else if(tap){
+    const item=tap.closest(".list-item");
+    const name=item.querySelector("b").textContent;
+    const sup=store.suppliers.find(s=>s.name===name);
+    if(sup){ navigate("products"); $("#filterProdSupplier").value=sup.id; renderProducts(); }
+  }
+});
+
 function renderProducts(){
-  const list=$("#productList"); list.innerHTML="";
+  const list=$("#productList"); if(!list) return;
   const sid=$("#filterProdSupplier").value;
   const items=store.products.filter(p=>!p.deleted&&(!sid||p.supplier_id===sid));
+  list.innerHTML="";
   items.forEach(p=>{
     const sName=supplierName(p.supplier_id)||"-";
     const item=document.createElement("div"); item.className="list-item";
@@ -443,19 +455,16 @@ function renderProducts(){
         </div>
         <div style="width:102px"><button class="btn op small square edit" type="button">編集</button></div>
       </div>`;
-    item.querySelector(".edit").onclick=()=>openProductModal(p,p.supplier_id);
     list.appendChild(item);
   });
 }
-function fillFilterSupplier(){const sel=$("#filterProdSupplier");sel.innerHTML='<option value="">すべて</option>';store.suppliers.filter(s=>!s.deleted).forEach(s=>{const o=document.createElement("option");o.value=s.id;o.textContent=s.name;sel.appendChild(o)})}
-$("#filterProdSupplier").addEventListener("change",renderProducts);
+document.addEventListener("change",(e)=>{ if(e.target.id==="filterProdSupplier") renderProducts(); });
 
-/* ===== Modal基盤 ===== */
+/* ===== モーダル基盤（Cancelは常に閉じる） ===== */
 function closeModal(){ $("#modalHost").classList.add("hidden"); $("#modalHost").setAttribute("aria-hidden","true"); }
 function openModalBase(title,bodyHTML){
   $("#modalTitle").textContent=title;
   $("#modalBody").innerHTML=bodyHTML;
-
   const host=$("#modalHost");
   const ok=$("#modalOK"), cancel=$("#modalCancel"), del=$("#modalDelete");
   ok.textContent="保存"; cancel.textContent="キャンセル"; del.textContent="削除";
@@ -470,7 +479,7 @@ function openModalBase(title,bodyHTML){
   host.__bound=true;
 })();
 
-/* ===== Supplier modal ===== */
+/* ===== Supplier / Product Modals ===== */
 function openSupplierModal(s){
   openModalBase(s?"仕入れ先を編集":"仕入れ先を追加",`
     <div class="grid cols-2">
@@ -493,7 +502,6 @@ function openSupplierModal(s){
   }
 }
 
-/* ===== Product modal（メモ付き） ===== */
 function openProductModal(p,defaultSid){
   const supOpts=store.suppliers.filter(s=>!s.deleted).map(s=>`<option value="${s.id}" ${(p?.supplier_id||defaultSid)===s.id?"selected":""}>${s.name}</option>`).join("");
   openModalBase(p?"商品を編集":"商品を追加",`
@@ -562,9 +570,11 @@ function openEntryModal(e){
   $(".actions").insertBefore(delBtn, $("#modalCancel"));
 }
 
-/* ===== History / Export ===== */
+/* ===== HISTORY（委任クリック） / Export ===== */
 function renderHistory(){
-  const days=Number($("#hisRange").value);const list=$("#historyList");list.innerHTML="";
+  const list=$("#historyList"); if(!list) return;
+  const days=Number($("#hisRange").value||30);
+  list.innerHTML="";
   const now=new Date(),from=new Date(now.getTime()-days*86400000);const byDate={};
   store.entries.filter(x=>!x.deleted).forEach(e=>{const d=new Date(e.date+"T00:00:00");if(d>=from&&d<=now){(byDate[e.date]=byDate[e.date]||[]).push(e)}});
   Object.keys(byDate).sort().reverse().forEach(dkey=>{
@@ -589,71 +599,77 @@ function renderHistory(){
     });
     sec.innerHTML=html; list.appendChild(sec);
   });
-  list.querySelectorAll(".entry").forEach(el=>el.addEventListener("click",()=>{const id=el.getAttribute("data-id");const ent=store.entries.find(x=>x.id===id);if(ent)openEntryModal(ent)}));
 }
-$("#hisRange").addEventListener("change",renderHistory);
+document.addEventListener("change",(e)=>{ if(e.target.id==="hisRange") renderHistory(); });
+document.addEventListener("click",(e)=>{ const el=e.target.closest("#historyList .entry"); if(el){ const id=el.getAttribute("data-id"); const ent=store.entries.find(x=>x.id===id); if(ent) openEntryModal(ent); }});
 
-/* 出力（今は「当月」固定のまま：次版で期間選択を追加予定） */
-const ModalExport=()=>{openModalBase("データ出力","<div>Excelで開けるファイルを作成します（当月分）。よろしいですか？</div>");$("#modalOK").textContent="出力する";$("#modalOK").onclick=()=>{exportData();closeModal()}};
+/* Export（当月固定のまま。期間選択は次版で） */
+function ModalExport(){ openModalBase("データ出力","<div>Excelで開けるファイルを作成します（当月分）。よろしいですか？</div>"); $("#modalOK").textContent="出力する"; $("#modalOK").onclick=()=>{exportData();closeModal();}; }
 function exportData(){const dt=new Date();const ym=dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0");const rows=[["日付","仕入れ先","商品","数量","単価","税率","区分","税込額","メモ"]];store.entries.filter(e=>!e.deleted).forEach(e=>{if(e.date.slice(0,7)===ym){const s=supplierName(e.supplier_id)||e.supplier_name_fallback||"";const p=prodName(e.product_id,e.product_name_fallback);const g=(e.taxmode==="incl"?e.price:e.price*(1+e.taxrate/100))*e.qty;rows.push([e.date,s,p,e.qty,e.price,e.taxrate,(e.taxmode==="incl"?"税込":"税別"),Math.round(g),e.memo||""])}});const csv=rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(",")).join("\n");const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="仕入れ記録_"+ym+".csv";a.click();URL.revokeObjectURL(a.href);alert("出力しました（Excelで開けます）")}
-document.addEventListener("click",(ev)=>{const t=ev.target.closest("#btnExport, #btnExport2");if(t){ev.preventDefault();ModalExport();}},true);
+document.addEventListener("click",(e)=>{ if(e.target.closest("#btnExport, #btnExport2")){ e.preventDefault(); ModalExport(); }}, true);
 
 /* ===== Backup / Restore / Fiscal Archive ===== */
-function backupNow(){const payload={version:"1.0",exported_at:new Date().toISOString(),tables:{suppliers:store.suppliers,products:store.products,entries:store.entries,priceHistory:store.priceHistory,settings:store.settings}};const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="tabco_backup_"+fmtYMD(new Date())+".json";a.click();URL.revokeObjectURL(a.href);store.settings.lastBackupAt=Date.now();DB.save(store);refreshHome();$("#bkLast").textContent=new Date(store.settings.lastBackupAt).toLocaleString("ja-JP")}
-$("#btnBackupNow").addEventListener("click",backupNow);
-$("#btnRestore").addEventListener("click",()=>$("#fileRestore").click());
-$("#fileRestore").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;if(!confirm("バックアップから復元します。現在のデータは置き換えられます。続行しますか？"))return;const r=new FileReader();r.onload=()=>{try{const data=JSON.parse(r.result);if(!data.tables)throw 0;store.suppliers=data.tables.suppliers||[];store.products=data.tables.products||[];store.entries=data.tables.entries||[];store.priceHistory=data.tables.priceHistory||{};store.settings=Object.assign({theme:store.settings.theme,plan:store.settings.plan,autoClear:true,historyShowBoth:true,showTaxFlags:false,recentProducts:store.settings.recentProducts||[]},data.tables.settings||{});DB.save(store);alert("復元しました");applyTheme();refreshHome();initInputPage();renderSuppliers();fillFilterSupplier();renderProducts();renderHistory();navigate("home");enableSelectOnFocus()}catch{alert("復元に失敗しました。ファイルをご確認ください。")}};r.readAsText(f)});
+function backupNow(){const payload={version:"1.0",exported_at:new Date().toISOString(),tables:{suppliers:store.suppliers,products:store.products,entries:store.entries,priceHistory:store.priceHistory,settings:store.settings}};const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="tabco_backup_"+fmtYMD(new Date())+".json";a.click();URL.revokeObjectURL(a.href);store.settings.lastBackupAt=Date.now();DB.save(store);refreshHome();const bk=$("#bkLast"); if(bk) bk.textContent=new Date(store.settings.lastBackupAt).toLocaleString("ja-JP")}
+document.addEventListener("click",(e)=>{ if(e.target.id==="btnBackupNow") backupNow(); });
+document.addEventListener("click",(e)=>{ if(e.target.id==="btnRestore") $("#fileRestore").click(); });
+document.addEventListener("change",(e)=>{ if(e.target.id==="fileRestore"){ const f=e.target.files[0]; if(!f)return; if(!confirm("バックアップから復元します。現在のデータは置き換えられます。続行しますか？"))return; const r=new FileReader(); r.onload=()=>{ try{const data=JSON.parse(r.result); if(!data.tables) throw 0; store.suppliers=data.tables.suppliers||[]; store.products=data.tables.products||[]; store.entries=data.tables.entries||[]; store.priceHistory=data.tables.priceHistory||{}; store.settings=Object.assign({theme:store.settings.theme,plan:store.settings.plan,autoClear:true,historyShowBoth:true,showTaxFlags:false,recentProducts:store.settings.recentProducts||[]},data.tables.settings||{}); DB.save(store); alert("復元しました"); applyTheme(); refreshHome(); initInputPage(); renderSuppliers(); fillFilterSupplier(); renderProducts(); renderHistory(); navigate("home"); enableSelectOnFocus(); } catch{ alert("復元に失敗しました。ファイルをご確認ください。"); } }; r.readAsText(f); }});
 
-/* 年度ラベル（個人事業主：1-12月） */
-function refreshFiscalLabel(){const y=new Date().getFullYear();$("#fiscalLabel").textContent=`対象：${y}年（1月〜12月）`}
-$("#btnArchiveYear").addEventListener("click",()=>{
-  const year = new Date().getFullYear();
-  if(!confirm(`${year}年の仕入明細をアーカイブしてリセットします。\n先にバックアップ（JSON）を保存します。よろしいですか？`)) return;
-
-  // 1) バックアップ（全体）
-  backupNow();
-
-  // 2) 年度分のみのアーカイブを別名で保存（復元しやすいように）
-  const target = store.entries.filter(e=>e.date.startsWith(String(year)+"-"));
-  const archivePayload={version:"1.0",fiscal_year:year,exported_at:new Date().toISOString(),tables:{entries:target}};
-  const blob2=new Blob([JSON.stringify(archivePayload,null,2)],{type:"application/json"});
-  const a2=document.createElement("a");a2.href=URL.createObjectURL(blob2);a2.download=`tabco_archive_${year}年度.json`;a2.click();URL.revokeObjectURL(a2.href);
-
-  // 3) 対象年の entries だけ削除（仕入先・商品は残す）
-  store.entries = store.entries.filter(e=>!e.date.startsWith(String(year)+"-"));
-  DB.save(store);
-  alert(`${year}年の明細をリセットしました（仕入先・商品は残しています）`);
-  renderTodayList(); renderHistory(); refreshHome();
+function refreshFiscalLabel(){const y=new Date().getFullYear();const el=$("#fiscalLabel"); if(el) el.textContent=`対象：${y}年（1月〜12月）`}
+document.addEventListener("click",(e)=>{
+  if(e.target.id==="btnArchiveYear"){
+    const year = new Date().getFullYear();
+    if(!confirm(`${year}年の仕入明細をアーカイブしてリセットします。\n先にバックアップ（JSON）を保存します。よろしいですか？`)) return;
+    backupNow();
+    const target = store.entries.filter(e=>e.date && e.date.startsWith(String(year)+"-"));
+    const archivePayload={version:"1.0",fiscal_year:year,exported_at:new Date().toISOString(),tables:{entries:target}};
+    const blob2=new Blob([JSON.stringify(archivePayload,null,2)],{type:"application/json"});
+    const a2=document.createElement("a");a2.href=URL.createObjectURL(blob2);a2.download=`tabco_archive_${year}年度.json`;a2.click();URL.revokeObjectURL(a2.href);
+    store.entries = store.entries.filter(e=>!(e.date && e.date.startsWith(String(year)+"-")));
+    DB.save(store);
+    alert(`${year}年の明細をリセットしました（仕入先・商品は残しています）`);
+    renderTodayList(); renderHistory(); refreshHome();
+  }
 });
 
 /* ===== Factory Reset ===== */
-$("#btnFactoryReset").addEventListener("click",()=>{
-  if(!confirm("バックアップは取得済みですか？\n\n未取得の場合は「キャンセル」でバックアップ設定へ移動します。")){navigate("backup");return;}
-  if(!confirm("本当に全データを削除しますか？\nこの操作は取り消せません。")) return;
-  const keep={theme:store.settings.theme,plan:store.settings.plan,autoClear:store.settings.autoClear,lastBackupAt:store.settings.lastBackupAt,historyShowBoth:store.settings.historyShowBoth,showTaxFlags:store.settings.showTaxFlags,recentProducts:store.settings.recentProducts||[]};
-  store={suppliers:[],products:[],entries:[],priceHistory:{},settings:keep};
-  DB.save(store);
-  alert("データを初期化しました。");
-  applyTheme();refreshHome();initInputPage();renderSuppliers();fillFilterSupplier();renderProducts();renderHistory();navigate("home");
+document.addEventListener("click",(e)=>{
+  if(e.target.id==="btnFactoryReset"){
+    if(!confirm("バックアップは取得済みですか？\n\n未取得の場合は「キャンセル」でバックアップ設定へ移動します。")){navigate("backup");return;}
+    if(!confirm("本当に全データを削除しますか？\nこの操作は取り消せません。")) return;
+    const keep={theme:store.settings.theme,plan:store.settings.plan,autoClear:store.settings.autoClear,lastBackupAt:store.settings.lastBackupAt,historyShowBoth:store.settings.historyShowBoth,showTaxFlags:store.settings.showTaxFlags,recentProducts:store.settings.recentProducts||[]};
+    store={suppliers:[],products:[],entries:[],priceHistory:{},settings:keep};
+    DB.save(store);
+    alert("データを初期化しました。");
+    applyTheme();refreshHome();initInputPage();renderSuppliers();fillFilterSupplier();renderProducts();renderHistory();navigate("home");
+  }
 });
 
 /* ===== License mock ===== */
 function setPlan(p){store.settings.plan=p;DB.save(store);refreshHome();alert("プランが更新されました（デモ）")}
-$("#mockBuyMid").addEventListener("click",()=>setPlan("middle"));
-$("#mockBuyPro").addEventListener("click",()=>setPlan("pro"));
+document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyMid") setPlan("middle"); });
+document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyPro") setPlan("pro"); });
 
-/* 追加ボタンハンドラ */
-$("#btnAddSupplier").addEventListener("click",()=>openSupplierModal(null));
-$("#btnAddProduct").addEventListener("click",()=>{const sid=$("#filterProdSupplier").value || (store.suppliers.find(s=>!s.deleted)?.id || "");openProductModal(null,sid)});
-$("#toggleAutoClear").checked=!!store.settings.autoClear;
-$("#toggleAutoClear").addEventListener("change",e=>{store.settings.autoClear=!!e.target.checked;DB.save(store)});
-
-/* Init */
-function init(){ensureSample();applyTheme();refreshHome();initInputPage();renderTodayList();enableSelectOnFocus();renderSuppliers();fillFilterSupplier();renderProducts();showPage(location.hash.replace("#","")||"home");refreshFiscalLabel()}
+/* Init（安全化） */
+function init(){
+  try{
+    ensureSample();
+    applyTheme();
+    refreshHome();
+    initInputPage();
+    renderTodayList();
+    enableSelectOnFocus();
+    renderSuppliers();
+    fillFilterSupplier();
+    renderProducts();
+    refreshFiscalLabel();
+    showPage(location.hash.replace("#","")||"home");
+    if ((location.hash||"") === "#history") { try{ renderHistory(); }catch(e){ console.error(e); } }
+  }catch(err){
+    console.error("init failed:", err);
+    alert("初期化中に問題が発生しました。ページを再読み込みしてください。");
+  }
+}
 init();
-
-/* 履歴トグル初期反映 */
-window.addEventListener('load',()=>{ $("#toggleGross").checked = !!store.settings.historyShowBoth; $("#showDetail").checked = !!store.settings.showTaxFlags; });
 </script>
 </body>
 </html>
