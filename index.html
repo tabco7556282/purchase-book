@@ -3,16 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>仕入れ管理｜MVP v0.4.3</title>
+<title>仕入れ管理｜MVP v0.4.4</title>
 <style>
 :root{
-  /* もっとイエロー寄り（モックよりの明るいアンバー） */
-  --brand:#FFC107;        /* ヘッダー/主ボタン（明るいイエローオレンジ） */
-  --brand-ink:#1A1300;    /* ブランド上の文字色 */
-  --bg:#FFFDE7;           /* 全体：レモンイエロー（ごく淡い） */
-  --card:#FFF9CF;         /* カード：薄めのレモンイエロー */
+  --brand:#FFC107;           /* 明るいイエロー寄り */
+  --brand-ink:#1A1300;
+  --bg:#FFFDE7;              /* レモンイエロー */
+  --card:#FFF9CF;            /* 薄レモンイエロー */
   --text:#111; --muted:#6B6B6B;
-  --divider:#F0E4A8;      /* 枠は黄色系で柔らかく */
+  --divider:#F0E4A8;
   --danger:#D73C3C;
   --shadow:0 2px 10px rgba(0,0,0,.06);
 }
@@ -23,24 +22,15 @@
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans JP",sans-serif}
 
-/* ヘッダー：中央固定＋版数表示＋ホーム強調 */
-.app-header{
-  position:sticky;top:0;z-index:10;background:var(--brand);color:var(--brand-ink);
-  padding:10px 12px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;box-shadow:var(--shadow)
-}
+/* ヘッダー */
+.app-header{position:sticky;top:0;z-index:10;background:var(--brand);color:var(--brand-ink);
+  padding:10px 12px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;box-shadow:var(--shadow)}
 .app-header h1{margin:0;text-align:center;font-size:18px;letter-spacing:.04em}
-.hdr-left{justify-self:start}
-.hdr-right{justify-self:end;display:flex;align-items:center;gap:8px}
-.ver{opacity:.95;background:#ffffff80;border:1px solid #ffffffa6;border-radius:999px;padding:2px 8px}
-
-/* 目立つホームボタン（同系色） */
-#btnHome{
-  background:#FFE082; color:#5A3A00;
-  border:1px solid #FFFFFF99; box-shadow:0 1px 0 rgba(0,0,0,.06)
-}
+.hdr-left{justify-self:start}.hdr-right{justify-self:end;display:flex;gap:8px;align-items:center}
+.ver{background:#ffffff80;border:1px solid #ffffffa6;border-radius:999px;padding:2px 8px}
+#btnHome{background:#FFE082;color:#5A3A00;border:1px solid #FFFFFF99;box-shadow:0 1px 0 rgba(0,0,0,.06)}
 #btnHome:active{transform:translateY(1px)}
 
-/* 基本UI */
 .container{padding:14px;max-width:960px;margin:0 auto}
 .nav-vertical{display:flex;flex-direction:column;gap:10px;margin:10px 0}
 .btn{appearance:none;border:none;border-radius:12px;padding:14px 16px;font-weight:700;letter-spacing:.02em;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
@@ -51,41 +41,33 @@ body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-ap
 .btn.square{width:100%;height:56px;padding:8px 10px;line-height:1.1;text-align:center;flex-direction:column}
 .btn.square .twoline{display:block;line-height:1.1}
 
+/* ① マスタの操作ボタンだけ強調（枠&色濃く） */
+.btn.op{background:#FFF3B0;border:2px solid #E0B600;color:#5A3A00}
+.btn.op:active{transform:translateY(1px)}
+
 .label{font-size:13px;color:var(--muted);margin:0 0 6px 2px}
 .card{background:var(--card);border:1px solid var(--divider);border-radius:16px;padding:14px;box-shadow:var(--shadow)}
 .grid{display:grid;gap:10px}
 .grid.cols-2{grid-template-columns:1fr 1fr}
-input,select,textarea{width:100%;box-sizing:border-box;border-radius:10px;border:1px solid var(--divider);background:#fff; /* 入力欄は白に近い */
-  color:var(--text);padding:12px;font-size:16px}
+input,select,textarea{width:100%;box-sizing:border-box;border-radius:10px;border:1px solid var(--divider);background:#fff;color:var(--text);padding:12px;font-size:16px}
 .row{display:flex;gap:10px;align-items:center}
 .row .grow{flex:1}
 .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#FFECB3;color:#5A3A00;font-size:12px}
-[data-theme="dark"] .pill{background:#3A2A00;color:#FFD28A}
 .section-title{font-weight:800;margin:6px 0 8px}
 .fixed-bar{position:sticky;bottom:0;display:flex;gap:10px;background:linear-gradient(180deg, rgba(0,0,0,0) 0%, var(--bg) 30%);padding:12px 14px}
-.fixed-bar .neg{flex:1}
-.fixed-bar .pos{flex:2}
+.fixed-bar .neg{flex:1}.fixed-bar .pos{flex:2}
 .list{display:flex;flex-direction:column;gap:8px}
 .list-item{padding:10px 12px;border:1px solid var(--divider);border-radius:12px;background:var(--card)}
 .muted{color:var(--muted)}
-hr{border:none;border-top:1px solid var(--divider);margin:12px 0}
 .ad{border:1px dashed var(--brand);background:rgba(255,193,7,.08);border-radius:12px;padding:12px}
-.hidden{display:none !important}
-.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.kpi{background:var(--card);border:1px solid var(--divider);border-radius:14px;padding:12px}
-.kpi .v{font-weight:800;font-size:20px}
-a.btnlink{color:inherit;text-decoration:none;display:inline-block}
 
-/* サプライヤーカード：サイズ一定＋右側ボタン縦積み */
-.list-item.supplier{
-  display:grid;grid-template-columns:1fr 102px;gap:10px;min-height:120px
-}
+/* 仕入先カード：サイズ一定＋右側縦積み */
+.list-item.supplier{display:grid;grid-template-columns:1fr 102px;gap:10px;min-height:120px}
 .ops-col{display:flex;flex-direction:column;gap:8px;align-items:stretch}
 
-/* ダーク/ライト切替トグル */
+/* テーマトグル */
 .theme-toggle{width:40px;height:28px;border-radius:20px;border:1px solid rgba(0,0,0,.15);background:rgba(255,255,255,.9);display:flex;align-items:center;padding:2px;cursor:pointer}
 .theme-toggle .knob{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#FFD54F;transition:transform .2s ease}
-.theme-toggle .icon{font-size:14px;line-height:1}
 [data-theme="dark"] .theme-toggle{background:#2C2C2E;border-color:#444}
 [data-theme="dark"] .theme-toggle .knob{background:#B0B3FF;transform:translateX(12px)}
 
@@ -95,248 +77,153 @@ a.btnlink{color:inherit;text-decoration:none;display:inline-block}
 .modal h3{margin:2px 0 8px}
 .modal .grid{margin-top:8px}
 .modal .actions{display:flex;gap:10px;margin-top:12px}
+.modal .actions .btn{height:44px;min-width:92px}  /* ② 高さを揃える */
 .sheet{max-width:560px;margin:0 auto}
+.hidden{display:none!important}
 </style>
 </head>
 <body>
-  <!-- 中央固定ヘッダー（版数右側／ホーム強調） -->
-  <header class="app-header">
-    <div class="hdr-left">
-      <button id="btnHome" class="btn ghost small hidden" type="button" aria-label="ホームへ戻る">← ホーム</button>
+<header class="app-header">
+  <div class="hdr-left"><button id="btnHome" class="btn ghost small hidden" type="button">← ホーム</button></div>
+  <h1 id="pageTitle">仕入れ管理</h1>
+  <div class="hdr-right">
+    <small class="ver">v0.4.4</small>
+    <button id="themeBtn" class="theme-toggle" aria-label="テーマ切替"><div class="knob"><span id="themeIcon">☀</span></div></button>
+  </div>
+</header>
+
+<main class="container">
+  <!-- HOME -->
+  <section id="page-home">
+    <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="pill" id="pillBackup">最終バックアップ：未実施</span>
+      <span class="pill" id="pillPlan">プラン：無料</span>
     </div>
-    <h1 id="pageTitle">仕入れ管理</h1>
-    <div class="hdr-right">
-      <small id="verBadge" class="ver">v0.4.3</small>
-      <button id="themeBtn" class="theme-toggle" aria-label="テーマ切替" title="テーマ切替">
-        <div class="knob"><span class="icon" id="themeIcon">☀</span></div>
-      </button>
+    <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+      <div class="card"><div class="label">今週の仕入れ合計（税込）</div><div id="kpiWeek" style="font-weight:800;font-size:20px">¥0</div></div>
+      <div class="card"><div class="label">今月の仕入れ合計（税込）</div><div id="kpiMonth" style="font-weight:800;font-size:20px">¥0</div></div>
     </div>
-  </header>
+    <div class="nav-vertical" style="margin-top:12px">
+      <button class="btn primary" data-goto="input" type="button">仕入入力</button>
+      <button class="btn ghost" data-goto="history" type="button">履歴・集計</button>
+      <button class="btn ghost" data-goto="suppliers" type="button">仕入れ先マスタ</button>
+      <button class="btn ghost" data-goto="products" type="button">商品マスタ</button>
+      <button class="btn ghost" id="btnExport" type="button">データ出力</button>
+      <button class="btn ghost" data-goto="backup" type="button">バックアップ設定</button>
+      <button class="btn ghost" data-goto="license" type="button">ライセンス</button>
+    </div>
+  </section>
 
-  <main class="container">
-    <!-- HOME -->
-    <section id="page-home">
-      <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap">
-        <span class="pill" id="pillBackup">最終バックアップ：未実施</span>
-        <span class="pill" id="pillPlan">プラン：無料</span>
+  <!-- INPUT -->
+  <section id="page-input" class="hidden" data-title="仕入入力">
+    <div class="card grid">
+      <div class="grid cols-2">
+        <div><div class="label">日付</div><input type="date" id="inDate"></div>
+        <div><div class="label">仕入れ先</div><select id="inSupplier"></select></div>
       </div>
-      <div class="kpis" style="margin-top:10px">
-        <div class="kpi"><div class="label">今週の仕入れ合計（税込）</div><div class="v" id="kpiWeek">¥0</div></div>
-        <div class="kpi"><div class="label">今月の仕入れ合計（税込）</div><div class="v" id="kpiMonth">¥0</div></div>
-      </div>
-
-      <div class="nav-vertical" style="margin-top:12px">
-        <button class="btn primary" data-goto="input" type="button">仕入入力</button>
-        <button class="btn ghost" data-goto="history" type="button">履歴・集計</button>
-        <button class="btn ghost" data-goto="suppliers" type="button">仕入れ先マスタ</button>
-        <button class="btn ghost" data-goto="products" type="button">商品マスタ</button>
-        <button class="btn ghost" id="btnExport" type="button">データ出力</button>
-        <button class="btn ghost" data-goto="backup" type="button">バックアップ設定</button>
-        <button class="btn ghost" data-goto="license" type="button">ライセンス</button>
-      </div>
-
-      <div class="card" id="quotaCard" style="margin-top:8px">
-        <div class="label">上限の目安（無料プラン）</div>
-        <div>仕入れ先：<b id="qSup">0</b> / 5　｜　商品：<b id="qProd">0</b> / 50</div>
-      </div>
-
-      <div class="ad" style="margin-top:12px">
-        <div class="label">【広告】</div>
-        季節限定！お得な食材セットはこちら ▶
-      </div>
-    </section>
-
-    <!-- INPUT -->
-    <section id="page-input" class="hidden" data-title="仕入入力">
-      <div class="card grid">
-        <div class="grid cols-2">
-          <div>
-            <div class="label">日付</div>
-            <input type="date" id="inDate">
-          </div>
-          <div>
-            <div class="label">仕入れ先</div>
-            <select id="inSupplier"></select>
-          </div>
+      <div>
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div class="label">商品（仕入れ先で絞込）</div>
+          <label class="row" style="gap:6px"><input type="checkbox" id="chkFree"> 未登録で入力</label>
         </div>
-
-        <div>
-          <div class="row" style="justify-content:space-between;align-items:center">
-            <div class="label">商品（仕入れ先で絞込）</div>
-            <label class="row" style="gap:6px"><input type="checkbox" id="chkFree"> 未登録で入力</label>
-          </div>
-          <select id="inProduct"></select>
-          <div id="freeFields" class="grid cols-2 hidden" style="margin-top:8px">
-            <div>
-              <div class="label">仕入れ先名（未登録）</div>
-              <input id="freeSupplier" type="text" placeholder="例：臨時の市場">
-            </div>
-            <div>
-              <div class="label">商品名（未登録）</div>
-              <input id="freeProduct" type="text" placeholder="例：旬の野菜">
-            </div>
-          </div>
-        </div>
-
-        <div class="grid cols-2">
-          <div>
-            <div class="label">価格</div>
-            <input type="number" id="inPrice" inputmode="numeric" pattern="[0-9]*">
-          </div>
-          <div>
-            <div class="label">数量</div>
-            <input type="number" id="inQty" value="1" inputmode="numeric" pattern="[0-9]*">
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="row" style="gap:16px">
-            <label><input type="radio" name="taxmode" value="incl"> 税込</label>
-            <label><input type="radio" name="taxmode" value="excl" checked> 税別</label>
-          </div>
-          <div class="row" style="gap:10px;margin-left:auto">
-            <span class="label">税率</span>
-            <label><input type="radio" name="taxrate" value="10">10%</label>
-            <label><input type="radio" name="taxrate" value="8" checked>8%</label>
-            <label><input type="radio" name="taxrate" value="0">非課税</label>
-          </div>
-        </div>
-
-        <div>
-          <div class="label">価格履歴（直近）</div>
-          <div id="priceHistory" class="row" style="flex-wrap:wrap"></div>
-        </div>
-        <div>
-          <div class="label">メモ（任意）</div>
-          <input id="inMemo">
-        </div>
-        <button class="btn ghost" id="btnAddLine" type="button">＋ 明細を追加</button>
-      </div>
-
-      <div class="card" style="margin-top:12px">
-        <div class="section-title">本日の明細（仕入れ先で自動グループ）</div>
-        <div id="todayList" class="list"></div>
-      </div>
-
-      <div class="fixed-bar">
-        <button class="btn ghost small neg" id="btnClear" type="button">クリア</button>
-        <button class="btn primary pos" id="btnSave" type="button">保存</button>
-      </div>
-    </section>
-
-    <!-- SUPPLIERS -->
-    <section id="page-suppliers" class="hidden" data-title="仕入れ先マスタ">
-      <div class="row" style="justify-content:space-between;align-items:center">
-        <div class="section-title">仕入れ先一覧</div>
-        <button class="btn primary small" id="btnAddSupplier" type="button">＋ 追加</button>
-      </div>
-      <div id="supplierList" class="list"></div>
-    </section>
-
-    <!-- PRODUCTS -->
-    <section id="page-products" class="hidden" data-title="商品マスタ">
-      <div class="row" style="gap:8px;align-items:center">
-        <div class="grow">
-          <div class="label">仕入れ先で絞込</div>
-          <select id="filterProdSupplier"></select>
-        </div>
-        <button class="btn primary small" id="btnAddProduct" type="button">＋ 追加</button>
-      </div>
-      <div id="productList" class="list" style="margin-top:8px"></div>
-    </section>
-
-    <!-- HISTORY -->
-    <section id="page-history" class="hidden" data-title="履歴・集計">
-      <div class="row" style="gap:10px;align-items:flex-end;flex-wrap:wrap">
-        <div>
-          <div class="label">期間</div>
-          <select id="hisRange">
-            <option value="7">1週間</option>
-            <option value="30" selected>1ヶ月</option>
-          </select>
-        </div>
-        <div>
-          <div class="label">表示</div>
-          <label><input type="checkbox" id="toggleGross" checked> 税別小計+税込表示</label>
+        <select id="inProduct"></select>
+        <div id="freeFields" class="grid cols-2 hidden" style="margin-top:8px">
+          <div><div class="label">仕入れ先名（未登録）</div><input id="freeSupplier" type="text"></div>
+          <div><div class="label">商品名（未登録）</div><input id="freeProduct" type="text"></div>
         </div>
       </div>
-      <div id="historyList" class="list" style="margin-top:10px"></div>
-      <div class="ad" style="margin-top:12px">
-        <div class="label">【広告】</div>
-        まとめ買い割引中！仕入れ先直送サービス ▶
+      <div class="grid cols-2">
+        <div><div class="label">価格</div><input type="number" id="inPrice" inputmode="numeric" pattern="[0-9]*"></div>
+        <div><div class="label">数量</div><input type="number" id="inQty" value="1" inputmode="numeric" pattern="[0-9]*"></div>
       </div>
-      <div class="fixed-bar">
-        <button class="btn ghost neg" id="btnExport2" type="button">データ出力</button>
-        <button class="btn primary pos" data-goto="home" type="button">ホームへ</button>
-      </div>
-    </section>
-
-    <!-- BACKUP -->
-    <section id="page-backup" class="hidden" data-title="バックアップ設定">
-      <div class="card">
-        <div class="label">最終バックアップ</div>
-        <div id="bkLast">未実施</div>
-        <hr>
-        <div class="label">自動バックアップ（将来拡張）</div>
+      <div class="row">
         <div class="row" style="gap:16px">
-          <label><input type="radio" name="bksched" value="daily" checked> 毎日22:00</label>
-          <label><input type="radio" name="bksched" value="weekly"> 毎週 月曜</label>
-          <label><input type="radio" name="bksched" value="manual"> 手動のみ</label>
+          <label><input type="radio" name="taxmode" value="incl"> 税込</label>
+          <label><input type="radio" name="taxmode" value="excl" checked> 税別</label>
         </div>
-        <hr>
-        <div class="row" style="gap:10px">
-          <button class="btn primary" id="btnBackupNow" type="button">今すぐバックアップ</button>
-          <button class="btn ghost" id="btnRestore" type="button">バックアップから復元</button>
-          <input type="file" id="fileRestore" accept="application/json" class="hidden">
+        <div class="row" style="gap:10px;margin-left:auto">
+          <span class="label">税率</span>
+          <label><input type="radio" name="taxrate" value="10">10%</label>
+          <label><input type="radio" name="taxrate" value="8" checked>8%</label>
+          <label><input type="radio" name="taxrate" value="0">非課税</label>
         </div>
       </div>
-    </section>
+      <div><div class="label">価格履歴（直近）</div><div id="priceHistory" class="row" style="flex-wrap:wrap"></div></div>
+      <div><div class="label">メモ（任意）</div><input id="inMemo"></div>
+      <button class="btn ghost" id="btnAddLine" type="button">＋ 明細を追加</button>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="section-title">本日の明細（仕入れ先で自動グループ）</div>
+      <div id="todayList" class="list"></div>
+    </div>
+    <div class="fixed-bar"><button class="btn ghost small neg" id="btnClear" type="button">クリア</button><button class="btn primary pos" id="btnSave" type="button">保存</button></div>
+  </section>
 
-    <!-- LICENSE -->
-    <section id="page-license" class="hidden" data-title="ライセンス">
-      <div class="grid" style="grid-template-columns:1fr;gap:12px">
-        <div class="card">
-          <h3>無料版</h3>
-          <ul>
-            <li>広告あり</li>
-            <li>仕入れ先 5社まで／商品 合計50品まで</li>
-            <li>出力は直近1か月</li>
-          </ul>
-          <button class="btn ghost small" type="button" disabled>使用中</button>
-        </div>
-        <div class="card">
-          <h3>ミドル（¥700）</h3>
-          <ul>
-            <li>広告なし</li>
-            <li>仕入れ先 20社まで／1社15品の目安</li>
-            <li>出力は過去6か月</li>
-          </ul>
-          <button class="btn primary small" id="mockBuyMid" type="button">アップグレードする</button>
-        </div>
-        <div class="card">
-          <h3>プロ（¥1,500）</h3>
-          <ul>
-            <li>広告なし</li>
-            <li>上限なし</li>
-            <li>出力は無制限</li>
-          </ul>
-          <button class="btn primary small" id="mockBuyPro" type="button">フル機能で使う</button>
-        </div>
-      </div>
-    </section>
-  </main>
+  <!-- SUPPLIERS -->
+  <section id="page-suppliers" class="hidden" data-title="仕入れ先マスタ">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <div class="section-title">仕入れ先一覧</div>
+      <button class="btn primary small" id="btnAddSupplier" type="button">＋ 追加</button>
+    </div>
+    <div id="supplierList" class="list"></div>
+  </section>
 
-  <!-- モーダル（共通） -->
-  <div id="modalHost" class="modal-backdrop hidden" aria-hidden="true">
-    <div class="modal sheet" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <h3 id="modalTitle">タイトル</h3>
-      <div id="modalBody"></div>
-      <div class="actions">
-        <button class="btn ghost small" id="modalCancel">キャンセル</button>
-        <button class="btn primary" id="modalOK">保存</button>
-      </div>
+  <!-- PRODUCTS -->
+  <section id="page-products" class="hidden" data-title="商品マスタ">
+    <div class="row" style="gap:8px;align-items:center">
+      <div class="grow"><div class="label">仕入れ先で絞込</div><select id="filterProdSupplier"></select></div>
+      <button class="btn primary small" id="btnAddProduct" type="button">＋ 追加</button>
+    </div>
+    <div id="productList" class="list" style="margin-top:8px"></div>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="page-history" class="hidden" data-title="履歴・集計">
+    <div class="row" style="gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <div><div class="label">期間</div><select id="hisRange"><option value="7">1週間</option><option value="30" selected>1ヶ月</option></select></div>
+      <div><div class="label">表示</div><label><input type="checkbox" id="toggleGross" checked> 税別小計+税込表示</label></div>
+    </div>
+    <div id="historyList" class="list" style="margin-top:10px"></div>
+    <div class="ad" style="margin-top:12px"><div class="label">【広告】</div>まとめ買い割引中！仕入れ先直送サービス ▶</div>
+    <div class="fixed-bar"><button class="btn ghost neg" id="btnExport2" type="button">データ出力</button><button class="btn primary pos" data-goto="home" type="button">ホームへ</button></div>
+  </section>
+
+  <!-- BACKUP -->
+  <section id="page-backup" class="hidden" data-title="バックアップ設定">
+    <div class="card">
+      <div class="label">最終バックアップ</div><div id="bkLast">未実施</div><hr>
+      <div class="label">自動バックアップ（将来拡張）</div>
+      <div class="row" style="gap:16px">
+        <label><input type="radio" name="bksched" value="daily" checked> 毎日22:00</label>
+        <label><input type="radio" name="bksched" value="weekly"> 毎週 月曜</label>
+        <label><input type="radio" name="bksched" value="manual"> 手動のみ</label>
+      </div><hr>
+      <div class="row" style="gap:10px"><button class="btn primary" id="btnBackupNow" type="button">今すぐバックアップ</button><button class="btn ghost" id="btnRestore" type="button">バックアップから復元</button><input type="file" id="fileRestore" accept="application/json" class="hidden"></div>
+    </div>
+  </section>
+
+  <!-- LICENSE -->
+  <section id="page-license" class="hidden" data-title="ライセンス">
+    <div class="grid" style="grid-template-columns:1fr;gap:12px">
+      <div class="card"><h3>無料版</h3><ul><li>広告あり</li><li>仕入れ先 5社まで／商品 合計50品まで</li><li>出力は直近1か月</li></ul><button class="btn ghost small" type="button" disabled>使用中</button></div>
+      <div class="card"><h3>ミドル（¥700）</h3><ul><li>広告なし</li><li>仕入れ先 20社まで／1社15品の目安</li><li>出力は過去6か月</li></ul><button class="btn primary small" id="mockBuyMid" type="button">アップグレードする</button></div>
+      <div class="card"><h3>プロ（¥1,500）</h3><ul><li>広告なし</li><li>上限なし</li><li>出力は無制限</li></ul><button class="btn primary small" id="mockBuyPro" type="button">フル機能で使う</button></div>
+    </div>
+  </section>
+</main>
+
+<!-- モーダル -->
+<div id="modalHost" class="modal-backdrop hidden" aria-hidden="true">
+  <div class="modal sheet" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <h3 id="modalTitle">タイトル</h3>
+    <div id="modalBody"></div>
+    <div class="actions">
+      <button class="btn primary" id="modalOK">保存</button>
+      <button class="btn ghost small" id="modalCancel">キャンセル</button>
+      <!-- 削除は都度挿入 -->
     </div>
   </div>
+</div>
 
 <script>
 /* ===== Storage ===== */
@@ -352,64 +239,42 @@ function enableSelectOnFocus(){$$('input[type="number"], input[type="text"]').fo
 /* ===== Theme & Header ===== */
 function applyTheme(){document.documentElement.setAttribute("data-theme",store.settings.theme==="dark"?"dark":"light");$("#themeIcon").textContent=store.settings.theme==="dark"?"☾":"☀"}
 $("#themeBtn").addEventListener("click",()=>{store.settings.theme=store.settings.theme==="dark"?"light":"dark";DB.save(store);applyTheme()});
-function setHeaderTitleByPage(id){const sec=$("#page-"+id);const title=sec?.getAttribute("data-title")||"仕入れ管理";$("#pageTitle").textContent=title}
+function setHeaderTitleByPage(id){$("#pageTitle").textContent=$("#page-"+id)?.getAttribute("data-title")||"仕入れ管理"}
 
-/* ===== Hashルーター（戻るボタンでページ遷移） ===== */
+/* ===== Hash Router（戻るで遷移） ===== */
 let internalNav=false;
-function showPage(id){
-  $$("main section").forEach(s=>s.classList.add("hidden"));
-  $("#page-"+id)?.classList.remove("hidden");
-  if(id==="home"){$("#btnHome").classList.add("hidden");$("#pageTitle").textContent="仕入れ管理";}
-  else{$("#btnHome").classList.remove("hidden");setHeaderTitleByPage(id)}
-  window.scrollTo(0,0);
-}
-function navigate(id){
-  internalNav=true;
-  location.hash = id;
-  showPage(id);
-  internalNav=false;
-}
-window.addEventListener("hashchange",()=>{
-  if(internalNav) return;
-  const id=location.hash.replace("#","")||"home";
-  showPage(id);
-});
-
-/* ===== Navigation buttons ===== */
+function showPage(id){$$("main section").forEach(s=>s.classList.add("hidden"));$("#page-"+id)?.classList.remove("hidden");
+  if(id==="home"){$("#btnHome").classList.add("hidden");$("#pageTitle").textContent="仕入れ管理"}else{$("#btnHome").classList.remove("hidden");setHeaderTitleByPage(id)}window.scrollTo(0,0)}
+function navigate(id){internalNav=true;location.hash=id;showPage(id);internalNav=false}
+window.addEventListener("hashchange",()=>{if(internalNav)return;showPage(location.hash.replace("#","")||"home")});
 $("#btnHome").addEventListener("click",()=>navigate("home"));
-$$("[data-goto]").forEach(b=>b.addEventListener("click",()=>{
-  const id=b.getAttribute("data-goto");
-  navigate(id);
-  if(id==="history") renderHistory();
-}));
+$$("[data-goto]").forEach(b=>b.addEventListener("click",()=>{const id=b.getAttribute("data-goto");navigate(id);if(id==="history")renderHistory()}));
 
-/* ===== Home KPI ===== */
+/* ===== Home ===== */
 function calcTotals(days){const now=new Date(),from=new Date(now.getTime()-days*86400000);return store.entries.reduce((sum,e)=>{const t=new Date(e.date+"T00:00:00");if(t>=from&&t<=now){const base=e.taxmode==="incl"?e.price:e.price*(1+e.taxrate/100);sum+=base*e.qty}return sum},0)}
-function refreshHome(){$("#kpiWeek").textContent=yen(calcTotals(7));$("#kpiMonth").textContent=yen(calcTotals(30));$("#qSup").textContent=store.suppliers.filter(s=>!s.deleted).length;$("#qProd").textContent=store.products.filter(p=>!p.deleted).length;$("#pillPlan").textContent="プラン："+(store.settings.plan==="free"?"無料":store.settings.plan);const bk=store.settings.lastBackupAt?new Date(store.settings.lastBackupAt):null;$("#pillBackup").textContent=bk?("最終バックアップ："+bk.toLocaleString("ja-JP")):"最終バックアップ：未実施"}
+function refreshHome(){$("#kpiWeek").textContent=yen(calcTotals(7));$("#kpiMonth").textContent=yen(calcTotals(30));$("#pillPlan").textContent="プラン："+(store.settings.plan==="free"?"無料":store.settings.plan);const bk=store.settings.lastBackupAt?new Date(store.settings.lastBackupAt):null;$("#pillBackup").textContent=bk?("最終バックアップ："+bk.toLocaleString("ja-JP")):"最終バックアップ：未実施"}
 
-/* ===== Sample data ===== */
+/* ===== Sample ===== */
 function ensureSample(){if(store.suppliers.length===0){store.suppliers.push({id:uid(),name:"玉屋商店",contact:"山田",phone:"075-000-0000",invoice_number:"T1234567890123"});store.suppliers.push({id:uid(),name:"佐藤青果",contact:"佐藤",phone:"090-000-0000",invoice_number:"T0000000000000"});const s1=store.suppliers[0].id,s2=store.suppliers[1].id;store.products.push({id:uid(),supplier_id:s1,name:"牛肩ロース",default_price:2000,tax_rate:10,tax_mode:"incl"});store.products.push({id:uid(),supplier_id:s2,name:"トマト",default_price:180,tax_rate:8,tax_mode:"excl"});DB.save(store)}}
 
-/* ===== Input Page ===== */
+/* ===== Input ===== */
 function fillSupplierSelect(sel){sel.innerHTML="";store.suppliers.filter(s=>!s.deleted).forEach(s=>{const o=document.createElement("option");o.value=s.id;o.textContent=s.name;sel.appendChild(o)})}
 function fillProductSelect(sel,supplierId){
   sel.innerHTML="";
   const list=store.products.filter(p=>!p.deleted&&(!supplierId||p.supplier_id===supplierId));
   list.forEach(p=>{const o=document.createElement("option");o.value=p.id;o.textContent=p.name;sel.appendChild(o)});
   if(list.length>0){
-    const first=list[0];
-    $("#inProduct").value=first.id;
-    $("#inPrice").value=first.default_price||"";
-    $$('.row input[name=taxrate]').forEach(r=>r.checked=String(first.tax_rate)===r.value);
-    $$('.row input[name=taxmode]').forEach(r=>r.checked=(first.tax_mode||"excl")===r.value);
+    const first=list[0];$("#inProduct").value=first.id;$("#inPrice").value=first.default_price||"";
+    $$('input[name=taxrate]').forEach(r=>r.checked=String(first.tax_rate)===r.value);
+    $$('input[name=taxmode]').forEach(r=>r.checked=(first.tax_mode||"excl")===r.value);
     renderPriceHistory(first.id);
   }else{$("#priceHistory").innerHTML=""}
 }
-function renderPriceHistory(prodId){const wrap=$("#priceHistory");wrap.innerHTML="";(store.priceHistory[prodId]||[]).slice(-3).reverse().forEach(v=>{const b=document.createElement("button");b.className="btn ghost small";b.type="button";b.textContent="¥"+v.price;b.onclick=()=>$("#inPrice").value=v.price;wrap.appendChild(b)})}
+function renderPriceHistory(pid){const w=$("#priceHistory");w.innerHTML="";(store.priceHistory[pid]||[]).slice(-3).reverse().forEach(v=>{const b=document.createElement("button");b.className="btn ghost small";b.type="button";b.textContent="¥"+v.price;b.onclick=()=>$("#inPrice").value=v.price;w.appendChild(b)})}
 const supplierName=id=>(store.suppliers.find(x=>x.id===id)||{}).name||null;
 const prodName=(id,fb)=>(store.products.find(x=>x.id===id)||{}).name||(fb||"未登録");
 function toggleFreeInput(){const on=$("#chkFree").checked;$("#freeFields").classList.toggle("hidden",!on);$("#inSupplier").disabled=on;$("#inProduct").disabled=on}
-function initInputPage(){$("#inDate").value=todayStr();fillSupplierSelect($("#inSupplier"));const sid=$("#inSupplier").value;fillProductSelect($("#inProduct"),sid);renderPriceHistory($("#inProduct").value);$$('.row input[name="taxmode"]').forEach(r=>r.checked=(r.value==="excl"));$$('.row input[name="taxrate"]').forEach(r=>r.checked=(r.value==="8"));toggleFreeInput()}
+function initInputPage(){$("#inDate").value=todayStr();fillSupplierSelect($("#inSupplier"));const sid=$("#inSupplier").value;fillProductSelect($("#inProduct"),sid);renderPriceHistory($("#inProduct").value);$$('input[name="taxmode"]').forEach(r=>r.checked=(r.value==="excl"));$$('input[name="taxrate"]').forEach(r=>r.checked=(r.value==="8"));toggleFreeInput()}
 $("#chkFree").addEventListener("change",toggleFreeInput);
 $("#inSupplier").addEventListener("change",e=>{fillProductSelect($("#inProduct"),e.target.value);renderPriceHistory($("#inProduct").value)});
 $("#inProduct").addEventListener("change",e=>{const p=store.products.find(x=>x.id===e.target.value);if(p){$("#inPrice").value=p.default_price||"";$$('input[name=taxrate]').forEach(r=>r.checked=String(p.tax_rate)===r.value);$$('input[name=taxmode]').forEach(r=>r.checked=(p.tax_mode||"excl")===r.value);renderPriceHistory(p.id)}});
@@ -435,8 +300,8 @@ function renderSuppliers(){
         <div class="muted">｜商品${prodCount}件</div>
       </div>
       <div class="ops-col">
-        <button class="btn ghost small square addp" type="button"><span class="twoline">＋<br>商品追加</span></button>
-        <button class="btn ghost small square edit" type="button">編集</button>
+        <button class="btn op small square addp" type="button"><span class="twoline">＋<br>商品追加</span></button>
+        <button class="btn op small square edit" type="button">編集</button>
       </div>`;
     item.querySelector(".addp").onclick=()=>openProductModal(null,s.id);
     item.querySelector(".edit").onclick=()=>openSupplierModal(s);
@@ -456,9 +321,7 @@ function renderProducts(){
         <div><b>${p.name}</b>
           <div class="muted">${sName}｜既定価格 ${yen(p.default_price||0)}｜${p.tax_rate}%｜${p.tax_mode==="incl"?"税込":"税別"}</div>
         </div>
-        <div style="width:102px">
-          <button class="btn ghost small square edit" type="button">編集</button>
-        </div>
+        <div style="width:102px"><button class="btn op small square edit" type="button">編集</button></div>
       </div>`;
     item.querySelector(".edit").onclick=()=>openProductModal(p,p.supplier_id);
     list.appendChild(item);
@@ -467,75 +330,98 @@ function renderProducts(){
 function fillFilterSupplier(){const sel=$("#filterProdSupplier");sel.innerHTML='<option value="">すべて</option>';store.suppliers.filter(s=>!s.deleted).forEach(s=>{const o=document.createElement("option");o.value=s.id;o.textContent=s.name;sel.appendChild(o)})}
 $("#filterProdSupplier").addEventListener("change",renderProducts);
 
-/* ===== モーダル基盤 ===== */
-const Modal={open({title,bodyHTML,okText="保存",onOK}){$("#modalTitle").textContent=title;$("#modalBody").innerHTML=bodyHTML;$("#modalOK").textContent=okText;$("#modalHost").classList.remove("hidden");$("#modalHost").setAttribute("aria-hidden","false");const close=()=>{$("#modalHost").classList.add("hidden");$("#modalHost").setAttribute("aria-hidden","true")};$("#modalCancel").onclick=close;$("#modalOK").onclick=async()=>{const res=await onOK?.();if(res!==false)close()};const esc=e=>{if(e.key==="Escape"){close();document.removeEventListener("keydown",esc)}};document.addEventListener("keydown",esc);const first=$("#modalBody input, #modalBody select");first&&first.focus()}};
+/* ===== モーダル基盤（② 並び順を常に 保存>キャンセル>削除） ===== */
+function openModalBase(title,bodyHTML){$("#modalTitle").textContent=title;$("#modalBody").innerHTML=bodyHTML;$("#modalHost").classList.remove("hidden");$("#modalHost").setAttribute("aria-hidden","false");
+  // 既存の削除ボタンを必ず除去（重複防止）
+  $$(".actions .delbtn").forEach(b=>b.remove());
+}
+function closeModal(){ $("#modalHost").classList.add("hidden"); $("#modalHost").setAttribute("aria-hidden","true"); }
 
 /* ===== Supplier modal ===== */
-function openSupplierModal(s){Modal.open({title:s?"仕入れ先を編集":"仕入れ先を追加",bodyHTML:`
-  <div class="grid cols-2">
-    <div><div class="label">社名</div><input id="mSupName" type="text" value="${s?.name||""}"></div>
-    <div><div class="label">担当者</div><input id="mSupContact" type="text" value="${s?.contact||""}"></div>
-    <div><div class="label">電話</div><input id="mSupPhone" type="text" value="${s?.phone||""}" inputmode="tel"></div>
-    <div><div class="label">インボイス番号</div><input id="mSupInv" type="text" value="${s?.invoice_number||""}"></div>
-  </div>`,
-onOK:()=>{const name=$("#mSupName").value.trim();if(!name){alert("社名を入力してください");return false}const contact=$("#mSupContact").value.trim();const phone=$("#mSupPhone").value.trim();const inv=$("#mSupInv").value.trim();if(s){s.name=name;s.contact=contact;s.phone=phone;s.invoice_number=inv}else{store.suppliers.push({id:uid(),name,contact,phone,invoice_number:inv})}DB.save(store);renderSuppliers();refreshHome();fillSupplierSelect($("#inSupplier"))}});
-if(s){const delBtn=document.createElement("button");delBtn.className="btn danger small square";delBtn.textContent="削除";delBtn.onclick=()=>{if(confirm("削除しますか？")){s.deleted=true;DB.save(store);renderSuppliers();refreshHome();$("#modalCancel").click()}};$("#modalHost .actions").insertBefore(delBtn,$("#modalCancel"))}}
+function openSupplierModal(s){
+  openModalBase(s?"仕入れ先を編集":"仕入れ先を追加",`
+    <div class="grid cols-2">
+      <div><div class="label">社名</div><input id="mSupName" type="text" value="${s?.name||""}"></div>
+      <div><div class="label">担当者</div><input id="mSupContact" type="text" value="${s?.contact||""}"></div>
+      <div><div class="label">電話</div><input id="mSupPhone" type="text" value="${s?.phone||""}" inputmode="tel"></div>
+      <div><div class="label">インボイス番号</div><input id="mSupInv" type="text" value="${s?.invoice_number||""}"></div>
+    </div>`);
+  const onOK=()=>{const name=$("#mSupName").value.trim();if(!name){alert("社名を入力してください");return}
+    const contact=$("#mSupContact").value.trim();const phone=$("#mSupPhone").value.trim();const inv=$("#mSupInv").value.trim();
+    if(s){s.name=name;s.contact=contact;s.phone=phone;s.invoice_number=inv}else{store.suppliers.push({id:uid(),name,contact,phone,invoice_number:inv})}
+    DB.save(store);renderSuppliers();refreshHome();fillSupplierSelect($("#inSupplier"));closeModal();
+  };
+  $("#modalOK").onclick=onOK;
+  $("#modalCancel").onclick=closeModal;
+
+  if(s){
+    const del=document.createElement("button");
+    del.className="btn danger small delbtn"; del.textContent="削除";
+    del.onclick=()=>{ if(confirm("削除しますか？")){ s.deleted=true; DB.save(store); renderSuppliers(); refreshHome(); closeModal(); } };
+    $(".actions").appendChild(del);  // 並びは OK > Cancel > Delete
+  }
+}
 
 /* ===== Product modal ===== */
-function openProductModal(p,defaultSid){const supOpts=store.suppliers.filter(s=>!s.deleted).map(s=>{const sel=(p?.supplier_id||defaultSid)===s.id?"selected":"";return `<option value="${s.id}" ${sel}>${s.name}</option>`}).join("");Modal.open({title:p?"商品を編集":"商品を追加",bodyHTML:`
-  <div class="grid cols-2">
-    <div><div class="label">仕入れ先</div><select id="mProdSup">${supOpts}</select></div>
-    <div><div class="label">商品名</div><input id="mProdName" type="text" value="${p?.name||""}"></div>
-    <div><div class="label">既定価格</div><input id="mProdPrice" type="number" inputmode="numeric" value="${p?.default_price??""}"></div>
-    <div><div class="label">税率</div><select id="mProdRate">
-      <option value="10" ${p?.tax_rate===10?"selected":""}>10%</option>
-      <option value="8" ${p?.tax_rate===8||p==null?"selected":""}>8%</option>
-      <option value="0" ${p?.tax_rate===0?"selected":""}>非課税</option>
-    </select></div>
-    <div><div class="label">区分</div><select id="mProdMode">
-      <option value="excl" ${(p?.tax_mode||"excl")==="excl"?"selected":""}>税別</option>
-      <option value="incl" ${(p?.tax_mode||"excl")==="incl"?"selected":""}>税込</option>
-    </select></div>
-  </div>`,
-onOK:()=>{const sid=$("#mProdSup").value;const name=$("#mProdName").value.trim();if(!sid||!name){alert("仕入れ先と商品名を入力してください");return false}if(!p&&store.products.some(x=>!x.deleted&&x.supplier_id===sid&&x.name===name)){if(!confirm("同一仕入れ先に同名の商品があります。登録しますか？"))return false}const price=Number($("#mProdPrice").value||0);const tax_rate=Number($("#mProdRate").value||8);const tax_mode=$("#mProdMode").value||"excl";if(p){p.supplier_id=sid;p.name=name;p.default_price=price;p.tax_rate=tax_rate;p.tax_mode=tax_mode}else{store.products.push({id:uid(),supplier_id:sid,name,default_price:price,tax_rate,tax_mode})}DB.save(store);renderProducts();fillProductSelect($("#inProduct"),$("#inSupplier").value)}});
-if(p){const delBtn=document.createElement("button");delBtn.className="btn danger small square";delBtn.textContent="削除";delBtn.onclick=()=>{if(confirm("削除しますか？")){p.deleted=true;DB.save(store);renderProducts();$("#modalCancel").click()}};$("#modalHost .actions").insertBefore(delBtn,$("#modalCancel"))}}
+function openProductModal(p,defaultSid){
+  const supOpts=store.suppliers.filter(s=>!s.deleted).map(s=>`<option value="${s.id}" ${(p?.supplier_id||defaultSid)===s.id?"selected":""}>${s.name}</option>`).join("");
+  openModalBase(p?"商品を編集":"商品を追加",`
+    <div class="grid cols-2">
+      <div><div class="label">仕入れ先</div><select id="mProdSup">${supOpts}</select></div>
+      <div><div class="label">商品名</div><input id="mProdName" type="text" value="${p?.name||""}"></div>
+      <div><div class="label">既定価格</div><input id="mProdPrice" type="number" inputmode="numeric" value="${p?.default_price??""}"></div>
+      <div><div class="label">税率</div><select id="mProdRate">
+        <option value="10" ${p?.tax_rate===10?"selected":""}>10%</option>
+        <option value="8" ${p?.tax_rate===8||p==null?"selected":""}>8%</option>
+        <option value="0" ${p?.tax_rate===0?"selected":""}>非課税</option>
+      </select></div>
+      <div><div class="label">区分</div><select id="mProdMode">
+        <option value="excl" ${(p?.tax_mode||"excl")==="excl"?"selected":""}>税別</option>
+        <option value="incl" ${(p?.tax_mode||"excl")==="incl"?"selected":""}>税込</option>
+      </select></div>
+    </div>`);
+  const onOK=()=>{const sid=$("#mProdSup").value;const name=$("#mProdName").value.trim();if(!sid||!name){alert("仕入れ先と商品名を入力してください");return}
+    if(!p&&store.products.some(x=>!x.deleted&&x.supplier_id===sid&&x.name===name)){if(!confirm("同一仕入れ先に同名の商品があります。登録しますか？"))return}
+    const price=Number($("#mProdPrice").value||0);const tax_rate=Number($("#mProdRate").value||8);const tax_mode=$("#mProdMode").value||"excl";
+    if(p){p.supplier_id=sid;p.name=name;p.default_price=price;p.tax_rate=tax_rate;p.tax_mode=tax_mode}
+    else{store.products.push({id:uid(),supplier_id:sid,name,default_price:price,tax_rate,tax_mode})}
+    DB.save(store);renderProducts();fillProductSelect($("#inProduct"),$("#inSupplier").value);closeModal();
+  };
+  $("#modalOK").onclick=onOK;
+  $("#modalCancel").onclick=closeModal;
 
-/* ===== History ===== */
-function renderHistory(){const days=Number($("#hisRange").value);const list=$("#historyList");list.innerHTML="";const now=new Date(),from=new Date(now.getTime()-days*86400000);const byDate={};store.entries.forEach(e=>{const d=new Date(e.date+"T00:00:00");if(d>=from&&d<=now){(byDate[e.date]=byDate[e.date]||[]).push(e)}});Object.keys(byDate).sort().reverse().forEach(dkey=>{const group={};byDate[dkey].forEach(e=>{const key=e.supplier_id||e.supplier_name_fallback||"未指定";(group[key]=group[key]||[]).push(e)});const sec=document.createElement("div");sec.className="card";const dateLabel=new Date(dkey+"T00:00:00").toLocaleDateString("ja-JP",{year:"numeric",month:"long",day:"numeric",weekday:"短"});let html=`<b>${dateLabel}</b>`;Object.keys(group).forEach(key=>{const name=supplierName(key)||key;let net=0,gross=0;group[key].forEach(e=>{const n=e.taxmode==="excl"?e.price:(e.price/(1+e.taxrate/100));const g=e.taxmode==="incl"?e.price:(e.price*(1+e.taxrate/100));net+=n*e.qty;gross+=g*e.qty});html+=`<div style="margin-top:6px"><u>${name}</u>　<span class="muted">税別 ${yen(net)}｜税込 ${yen(gross)}</span>`;html+=group[key].map(e=>`<div class="row" style="justify-content:space-between"><span>・${prodName(e.product_id,e.product_name_fallback)} ×${e.qty}</span><span>${yen(e.price)}（${e.taxrate}%｜${e.taxmode==="incl"?"税込":"税別"}）</span></div>`).join("");html+=`</div>`});sec.innerHTML=html;list.appendChild(sec)})}
+  if(p){
+    const del=document.createElement("button");
+    del.className="btn danger small delbtn"; del.textContent="削除";
+    del.onclick=()=>{ if(confirm("削除しますか？")){ p.deleted=true; DB.save(store); renderProducts(); closeModal(); } };
+    $(".actions").appendChild(del);  // OK > Cancel > Delete
+  }
+}
+
+/* ===== History / Export / Backup ===== */
+function renderHistory(){const days=Number($("#hisRange").value);const list=$("#historyList");list.innerHTML="";const now=new Date(),from=new Date(now.getTime()-days*86400000);const byDate={};store.entries.forEach(e=>{const d=new Date(e.date+"T00:00:00");if(d>=from&&d<=now){(byDate[e.date]=byDate[e.date]||[]).push(e)}});Object.keys(byDate).sort().reverse().forEach(dkey=>{const group={};byDate[dkey].forEach(e=>{const key=e.supplier_id||e.supplier_name_fallback||"未指定";(group[key]=group[key]||[]).push(e)});const sec=document.createElement("div");sec.className="card";let html=`<b>${new Date(dkey+"T00:00:00").toLocaleDateString("ja-JP",{year:"numeric",month:"long",day:"numeric",weekday:"short"})}</b>`;Object.keys(group).forEach(key=>{const name=supplierName(key)||key;let net=0,gross=0;group[key].forEach(e=>{const n=e.taxmode==="excl"?e.price:(e.price/(1+e.taxrate/100));const g=e.taxmode==="incl"?e.price:(e.price*(1+e.taxrate/100));net+=n*e.qty;gross+=g*e.qty});html+=`<div style="margin-top:6px"><u>${name}</u>　<span class="muted">税別 ${yen(net)}｜税込 ${yen(gross)}</span>`;html+=group[key].map(e=>`<div class="row" style="justify-content:space-between"><span>・${prodName(e.product_id,e.product_name_fallback)} ×${e.qty}</span><span>${yen(e.price)}（${e.taxrate}%｜${e.taxmode==="incl"?"税込":"税別"}）</span></div>`).join("");html+=`</div>`});sec.innerHTML=html;list.appendChild(sec)})}
 $("#hisRange").addEventListener("change",renderHistory);$("#toggleGross").addEventListener("change",renderHistory);
 
-/* ===== Export (confirm) ===== */
-const ModalExport=()=>Modal.open({title:"データ出力",bodyHTML:`<div>Excelで開けるファイルを作成します。よろしいですか？</div>`,okText:"出力する",onOK:()=>exportData()});
-function exportData(){const dt=new Date();const ym=dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0");const rows=[["日付","仕入れ先","商品","数量","単価","税率","区分","税込額","メモ"]];store.entries.forEach(e=>{if(e.date.slice(0,7)===ym){const s=supplierName(e.supplier_id)||e.supplier_name_fallback||"";const p=prodName(e.product_id,e.product_name_fallback);const gross=(e.taxmode==="incl"?e.price:e.price*(1+e.taxrate/100))*e.qty;rows.push([e.date,s,p,e.qty,e.price,e.taxrate,(e.taxmode==="incl"?"税込":"税別"),Math.round(gross),e.memo||""])}});const csv=rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(",")).join("\n");const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="仕入れ記録_"+ym+".csv";a.click();URL.revokeObjectURL(a.href);alert("出力しました（Excelで開けます）")}
+const ModalExport=()=>{openModalBase("データ出力","<div>Excelで開けるファイルを作成します。よろしいですか？</div>");$("#modalOK").textContent="出力する";$("#modalOK").onclick=()=>{exportData();closeModal()};$("#modalCancel").onclick=closeModal};
+function exportData(){const dt=new Date();const ym=dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0");const rows=[["日付","仕入れ先","商品","数量","単価","税率","区分","税込額","メモ"]];store.entries.forEach(e=>{if(e.date.slice(0,7)===ym){const s=supplierName(e.supplier_id)||e.supplier_name_fallback||"";const p=prodName(e.product_id,e.product_name_fallback);const g=(e.taxmode==="incl"?e.price:e.price*(1+e.taxrate/100))*e.qty;rows.push([e.date,s,p,e.qty,e.price,e.taxrate,(e.taxmode==="incl"?"税込":"税別"),Math.round(g),e.memo||""])}});const csv=rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(",")).join("\n");const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="仕入れ記録_"+ym+".csv";a.click();URL.revokeObjectURL(a.href);alert("出力しました（Excelで開けます）")}
 $("#btnExport").addEventListener("click",ModalExport);$("#btnExport2").addEventListener("click",ModalExport);
 
-/* ===== Backup/Restore ===== */
 function backupNow(){const payload={version:"1.0",exported_at:new Date().toISOString(),tables:{suppliers:store.suppliers,products:store.products,entries:store.entries,priceHistory:store.priceHistory,settings:store.settings}};const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="tabco_backup_"+fmtYMD(new Date())+".json";a.click();URL.revokeObjectURL(a.href);store.settings.lastBackupAt=Date.now();DB.save(store);refreshHome();$("#bkLast").textContent=new Date(store.settings.lastBackupAt).toLocaleString("ja-JP")}
 $("#btnBackupNow").addEventListener("click",backupNow);
 $("#btnRestore").addEventListener("click",()=>$("#fileRestore").click());
-$("#fileRestore").addEventListener("change",e=>{const file=e.target.files[0];if(!file)return;if(!confirm("バックアップから復元します。現在のデータは置き換えられます。続行しますか？"))return;const reader=new FileReader();reader.onload=()=>{try{const data=JSON.parse(reader.result);if(!data.tables)throw new Error("invalid");store.suppliers=data.tables.suppliers||[];store.products=data.tables.products||[];store.entries=data.tables.entries||[];store.priceHistory=data.tables.priceHistory||{};store.settings=data.tables.settings||store.settings;DB.save(store);alert("復元しました");applyTheme();refreshHome();initInputPage();renderSuppliers();fillFilterSupplier();renderProducts();renderHistory();navigate("home");enableSelectOnFocus()}catch(err){alert("復元に失敗しました。ファイルをご確認ください。")}};reader.readAsText(file)});
+$("#fileRestore").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;if(!confirm("バックアップから復元します。現在のデータは置き換えられます。続行しますか？"))return;const r=new FileReader();r.onload=()=>{try{const data=JSON.parse(r.result);if(!data.tables)throw 0;store.suppliers=data.tables.suppliers||[];store.products=data.tables.products||[];store.entries=data.tables.entries||[];store.priceHistory=data.tables.priceHistory||{};store.settings=data.tables.settings||store.settings;DB.save(store);alert("復元しました");applyTheme();refreshHome();initInputPage();renderSuppliers();fillFilterSupplier();renderProducts();renderHistory();navigate("home");enableSelectOnFocus()}catch{alert("復元に失敗しました。ファイルをご確認ください。")}};r.readAsText(f)});
 
 /* ===== License mock ===== */
 function setPlan(p){store.settings.plan=p;DB.save(store);refreshHome();alert("プランが更新されました（デモ）")}
 $("#mockBuyMid").addEventListener("click",()=>setPlan("middle"));
 $("#mockBuyPro").addEventListener("click",()=>setPlan("pro"));
 
-/* ===== 追加ボタン（効かない問題の修正） ===== */
+/* 追加ボタンハンドラ（効かない問題の再確認用） */
 $("#btnAddSupplier").addEventListener("click",()=>openSupplierModal(null));
-$("#btnAddProduct").addEventListener("click",()=>{
-  const sid=$("#filterProdSupplier").value || (store.suppliers.find(s=>!s.deleted)?.id || "");
-  openProductModal(null,sid);
-});
+$("#btnAddProduct").addEventListener("click",()=>{const sid=$("#filterProdSupplier").value || (store.suppliers.find(s=>!s.deleted)?.id || "");openProductModal(null,sid)});
 
-/* ===== Init ===== */
-function init(){
-  ensureSample(); applyTheme(); refreshHome();
-  initInputPage(); renderTodayList(); enableSelectOnFocus();
-  renderSuppliers(); fillFilterSupplier(); renderProducts();
-  // 初期ページはハッシュ優先
-  const initial = location.hash.replace("#","") || "home";
-  showPage(initial);
-}
+/* Init */
+function init(){ensureSample();applyTheme();refreshHome();initInputPage();renderTodayList();enableSelectOnFocus();renderSuppliers();fillFilterSupplier();renderProducts();showPage(location.hash.replace("#","")||"home")}
 init();
 </script>
 </body>
