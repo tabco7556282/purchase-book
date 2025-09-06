@@ -384,6 +384,16 @@ function addLine(){
 
 document.addEventListener("click",(e)=>{ if(e.target.id==="btnSave"){ alert("保存しました"); navigate("home"); refreshHome(); }});
 document.addEventListener("click",(e)=>{ if(e.target.id==="btnClear"){ $("#inQty").value=1;$("#inPrice").value="";$("#inMemo").value="";$("#inProduct").value="";$("#priceHistory").innerHTML=""; }});
+// 商品マスタ：編集（委譲）
+document.addEventListener("click",(e)=>{
+  const btn = e.target.closest("#productList .edit");
+  if(!btn) return;
+  const pid = btn.getAttribute("data-id");
+  if(!pid){ alert("商品IDが見つかりません"); return; }
+  const p = store.products.find(x=>!x.deleted && x.id===pid);
+  if(!p){ alert("商品が見つかりません"); return; }
+  openProductModal(p); // 既存の編集モーダル関数を呼ぶ
+});
 
 /* Today list */
 function renderTodayList(){
@@ -479,7 +489,11 @@ function renderProducts(){
           <div class="muted">${sName}｜既定価格 ${yen(p.default_price||0)}｜${p.tax_rate}%｜${p.tax_mode==="incl"?"税込":"税別"}</div>
           ${p.note?(`<div class="muted">メモ：${p.note}</div>`):""}
         </div>
-        <div style="width:102px"><button class="btn op small square edit" type="button">編集</button></div>
+        <div style="width:102px">
+          <button class="btn op small square edit" type="button" data-id="${p.id}">
+            編集
+          </button>
+        </div>
       </div>`;
     list.appendChild(item);
   });
