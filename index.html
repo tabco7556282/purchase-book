@@ -274,8 +274,26 @@ function setHeaderTitleByPage(id){$("#pageTitle").textContent=$("#page-"+id)?.ge
 
 /* ===== Router ===== */
 let internalNav=false;
-function showPage(id){$$("main section").forEach(s=>s.classList.add("hidden"));$("#page-"+id)?.classList.remove("hidden");
-  if(id==="home"){$("#btnHome").classList.add("hidden");$("#pageTitle").textContent="仕入れ管理"}else{$("#btnHome").classList.remove("hidden");setHeaderTitleByPage(id)}window.scrollTo(0,0)}
+function showPage(id){
+  $$("main section").forEach(s=>s.classList.add("hidden"));
+  $("#page-"+id)?.classList.remove("hidden");
+
+  if(id==="home"){
+    $("#btnHome").classList.add("hidden");
+    $("#pageTitle").textContent="仕入れ管理";
+  }else{
+    $("#btnHome").classList.remove("hidden");
+    setHeaderTitleByPage(id);
+  }
+
+  // ← これを追加：履歴ページを表示したら毎回描画する
+  if(id==="history"){ renderHistory(); }
+
+  window.scrollTo(0,0);
+}
+showPage(location.hash.replace("#","")||"home");
+if ((location.hash||"") === "#history") renderHistory();  // 保険
+
 function navigate(id){internalNav=true;location.hash=id;showPage(id);internalNav=false}
 window.addEventListener("hashchange",()=>{if(internalNav)return;showPage(location.hash.replace("#","")||"home")});
 $("#btnHome").addEventListener("click",()=>navigate("home"));
