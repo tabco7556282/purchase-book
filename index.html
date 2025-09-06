@@ -617,5 +617,27 @@ window.addEventListener('load',()=>{
   $("#showDetail").checked = !!store.settings.showTaxFlags;
 });
 </script>
+<!-- ここから追記：データ出力ボタンを確実に結び直す -->
+<script>
+(function(){
+  function bindExportButtons(){
+    ["#btnExport", "#btnExport2"].forEach(function(sel){
+      var el = document.querySelector(sel);
+      if(!el) return;
+      // 既存リスナーをリセットして再バインド
+      var clone = el.cloneNode(true);
+      el.parentNode.replaceChild(clone, el);
+      clone.addEventListener("click", function(){
+        if (typeof ModalExport === "function") ModalExport();
+      });
+    });
+  }
+  // 初回・ハッシュ遷移後にも効かせる
+  if (document.readyState !== "loading") bindExportButtons();
+  else document.addEventListener("DOMContentLoaded", bindExportButtons);
+  window.addEventListener("hashchange", bindExportButtons);
+})();
+</script>
+<!-- 追記ここまで -->
 </body>
 </html>
