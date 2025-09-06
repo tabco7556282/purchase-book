@@ -331,6 +331,18 @@ document.addEventListener("change",(e)=>{ if(e.target.id==="chkFree") toggleFree
 document.addEventListener("change",(e)=>{ if(e.target.id==="inSupplier") renderProductSelect($("#inProduct"),e.target.value,$("#prodSearch").value||""); });
 document.addEventListener("input",(e)=>{ if(e.target.id==="prodSearch") renderProductSelect($("#inProduct"),$("#inSupplier").value,e.target.value); });
 document.addEventListener("change",(e)=>{ if(e.target.id==="inProduct"){ const p=store.products.find(x=>x.id===e.target.value); if(p){ $("#inPrice").value=p.default_price||""; $$('input[name=taxrate]').forEach(r=>r.checked=String(p.tax_rate)===r.value); $$('input[name=taxmode]').forEach(r=>r.checked=(p.tax_mode||"excl")===r.value); renderPriceHistory(p.id);} else { $("#priceHistory").innerHTML=""; } } });
+// 仕入れ先マスタ：＋追加
+document.addEventListener("click",(e)=>{
+  if(e.target.id === "btnAddSupplier"){ openSupplierModal(null); }
+});
+
+// 商品マスタ：＋追加（絞込の選択を初期値にする）
+document.addEventListener("click",(e)=>{
+  if(e.target.id === "btnAddProduct"){
+    const sid = $("#filterProdSupplier")?.value || (store.suppliers[0]?.id || "");
+    openProductModal(null, sid);
+  }
+});
 
 function calcLineTotal(e){
   const p=Number(e.price)||0, q=Number(e.qty)||0, r=Number(e.taxrate)||0;
@@ -414,6 +426,20 @@ function renderSuppliers(){
       </div>`;
     list.appendChild(item);
   });
+}
+  /* 仕入先セレクト（商品ページの絞り込み用） */
+function fillFilterSupplier(){
+  const sel = $("#filterProdSupplier");
+  if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">すべて</option>';
+  store.suppliers.filter(s=>!s.deleted).forEach(s=>{
+    const o = document.createElement("option");
+    o.value = s.id; o.textContent = s.name;
+    sel.appendChild(o);
+  });
+  // 以前の選択が存在すれば保持
+  if(cur && [...sel.options].some(o=>o.value===cur)) sel.value = cur;
 }
 
 /* 仕入先カードの委任クリック */
