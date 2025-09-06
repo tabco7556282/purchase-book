@@ -414,28 +414,32 @@ function openModalBase(title, bodyHTML){
   $("#modalTitle").textContent = title;
   $("#modalBody").innerHTML = bodyHTML;
 
+  const host = $("#modalHost");
   const delBtn = $("#modalDelete");
   const okBtn  = $("#modalOK");
   const cancelBtn = $("#modalCancel");
 
-  // 文言と表示の初期化（←ここがポイント）
+  // 文言と表示の初期化
   okBtn.textContent = "保存";
   cancelBtn.textContent = "キャンセル";
   delBtn.textContent = "削除";
 
-  delBtn.classList.add("hidden");        // デフォは非表示（編集時だけ出す）
+  // 既存ハンドラをクリア
   delBtn.onclick = null;
   okBtn.onclick = null;
-  cancelBtn.onclick = null;
 
-  // 幅クラスを再付与（他モーダルで弄られても回復）
+  // 既定のキャンセル挙動は「閉じる」に固定（どのモーダルでも効く）
+  cancelBtn.onclick = closeModal;
+
+  // 表示状態と幅クラスを整える
+  delBtn.classList.add("hidden");
   okBtn.classList.add("btn--save");
   cancelBtn.classList.add("btn--cancel");
   delBtn.classList.add("btn--delete");
 
-  // 表示
-  $("#modalHost").classList.remove("hidden");
-  $("#modalHost").setAttribute("aria-hidden","false");
+  // モーダル表示
+  host.classList.remove("hidden");
+  host.setAttribute("aria-hidden","false");
 }
 
 
