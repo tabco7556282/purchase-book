@@ -410,15 +410,34 @@ function fillFilterSupplier(){const sel=$("#filterProdSupplier");sel.innerHTML='
 $("#filterProdSupplier").addEventListener("change",renderProducts);
 
 /* ===== Modal基盤 ===== */
-function openModalBase(title,bodyHTML){
-  $("#modalTitle").textContent=title;
-  $("#modalBody").innerHTML=bodyHTML;
+function openModalBase(title, bodyHTML){
+  $("#modalTitle").textContent = title;
+  $("#modalBody").innerHTML = bodyHTML;
+
+  const delBtn = $("#modalDelete");
+  const okBtn  = $("#modalOK");
+  const cancelBtn = $("#modalCancel");
+
+  // 文言と表示の初期化（←ここがポイント）
+  okBtn.textContent = "保存";
+  cancelBtn.textContent = "キャンセル";
+  delBtn.textContent = "削除";
+
+  delBtn.classList.add("hidden");        // デフォは非表示（編集時だけ出す）
+  delBtn.onclick = null;
+  okBtn.onclick = null;
+  cancelBtn.onclick = null;
+
+  // 幅クラスを再付与（他モーダルで弄られても回復）
+  okBtn.classList.add("btn--save");
+  cancelBtn.classList.add("btn--cancel");
+  delBtn.classList.add("btn--delete");
+
+  // 表示
   $("#modalHost").classList.remove("hidden");
   $("#modalHost").setAttribute("aria-hidden","false");
-  const delBtn=$("#modalDelete"); delBtn.classList.add("hidden"); delBtn.onclick=null;
-  $("#modalOK").classList.add("btn--save"); $("#modalCancel").classList.add("btn--cancel");
 }
-function closeModal(){ $("#modalHost").classList.add("hidden"); $("#modalHost").setAttribute("aria-hidden","true"); }
+
 
 /* ===== Supplier modal ===== */
 function openSupplierModal(s){
