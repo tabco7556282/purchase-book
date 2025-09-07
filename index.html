@@ -267,6 +267,36 @@ function applyTheme(){document.documentElement.setAttribute("data-theme",store.s
 document.addEventListener("click",(e)=>{if(e.target.closest("#themeBtn")){store.settings.theme=store.settings.theme==="dark"?"light":"dark";DB.save(store);applyTheme();}});
 
 function setHeaderTitleByPage(id){$("#pageTitle").textContent=$("#page-"+id)?.getAttribute("data-title")||"仕入れ管理"}
+// --- 履歴UIと設定の同期（追加） ---
+let boundHistoryControls = false;
+function syncHistoryControls(){
+  // 設定 → UIへ反映
+  const cb = $("#toggleGross");
+  if (cb) cb.checked = !!store.settings.historyShowBoth;
+
+  const sel = $("#hisRange");
+  if (sel && store.settings.hisRangeDays) {
+    sel.value = String(store.settings.hisRangeDays);
+  }
+}
+
+// 変更イベントは一度だけ束ねる（重複防止）
+function bindHistoryControlsOnce(){
+  if (boundHistoryControls) return;
+  document.addEventListener("change", (e)=>{
+    if (e.target && e.target.id === "toggleGross"){
+      store.settings.historyShowBoth = !!e.target.checked;
+      DB.save(store);
+      renderHistory();
+    }
+    if (e.target && e.target.id === "hisRange"){
+      store.settings.hisRangeDays = Number(e.target.value || 30);
+      DB.save(store);
+      renderHistory();
+    }
+  });
+  boundHistoryControls = true;
+}
 
 /* ===== Router（委任で安定化） ===== */
 let internalNav=false;
@@ -282,11 +312,38 @@ function showPage(id){
     $("#btnHome").classList.remove("hidden");
     setHeaderTitleByPage(id);
   }
-  if(id==="history"){
-    try{ renderHistory(); }catch(err){ console.error("renderHistory failed:",err); }
+  // --- 履歴UIと設定の同期（追加） ---
+let boundHistoryControls = false;
+
+function syncHistoryControls(){
+  // 設定 → UIへ反映
+  const cb = $("#toggleGross");
+  if (cb) cb.checked = !!store.settings.historyShowBoth;
+
+  const sel = $("#hisRange");
+  if (sel && store.settings.hisRangeDays) {
+    sel.value = String(store.settings.hisRangeDays);
   }
-  window.scrollTo(0,0);
 }
+
+// 変更イベントは一度だけ束ねる（重複防止）
+function bindHistoryControlsOnce(){
+  if (boundHistoryControls) return;
+  document.addEventListener("change", (e)=>{
+    if (e.target && e.target.id === "toggleGross"){
+      store.settings.historyShowBoth = !!e.target.checked;
+      DB.save(store);
+      renderHistory();
+    }
+    if (e.target && e.target.id === "hisRange"){
+      store.settings.hisRangeDays = Number(e.target.value || 30);
+      DB.save(store);
+      renderHistory();
+    }
+  });
+  boundHistoryControls = true;
+}
+
 function navigate(id){internalNav=true;location.hash=id;showPage(id);internalNav=false}
 window.addEventListener("hashchange",()=>{ if(internalNav) return; showPage(location.hash.replace("#","")||"home"); });
 document.addEventListener("click",(e)=>{const b=e.target.closest("[data-goto]"); if(b){ e.preventDefault(); navigate(b.getAttribute("data-goto")); }});
@@ -613,7 +670,8 @@ function openEntryModal(e){
 /* ===== HISTORY（委任クリック） / Export ===== */
 function renderHistory(){
   const list=$("#historyList"); if(!list) return;
-  const days=Number($("#hisRange").value||30);
+  let days = Number(store.settings.hisRangeDays ?? ($("#hisRange")?.value || 30));
+  if (!Number.isFinite(days) || days <= 0) days = 30;
   list.innerHTML="";
   const now=new Date(),from=new Date(now.getTime()-days*86400000);const byDate={};
   store.entries.filter(x=>!x.deleted).forEach(e=>{const d=new Date(e.date+"T00:00:00");if(d>=from&&d<=now){(byDate[e.date]=byDate[e.date]||[]).push(e)}});
