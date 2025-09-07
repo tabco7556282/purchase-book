@@ -712,34 +712,105 @@ function openEntryModal(e){
 
 /* ===== HISTORY（委任クリック） / Export ===== */
 function renderHistory(){
-  const list=$("#historyList"); if(!list) return;
+  const list = $("#historyList");
+  if (!list) return;
+
+  // 設定優先（未保存ユーザーはセレクト値 or 30）
   let days = Number(store.settings.hisRangeDays ?? ($("#hisRange")?.value || 30));
   if (!Number.isFinite(days) || days <= 0) days = 30;
-  list.innerHTML="";
-  const now=new Date(),from=new Date(now.getTime()-days*86400000);const byDate={};
-  store.entries.filter(x=>!x.deleted).forEach(e=>{const d=new Date(e.date+"T00:00:00");if(d>=from&&d<=now){(byDate[e.date]=byDate[e.date]||[]).push(e)}});
-  Object.keys(byDate).sort().reverse().forEach(dkey=>{
-    const group={};byDate[dkey].forEach(e=>{const key=e.supplier_id||e.supplier_name_fallback||"未指定";(group[key]=group[key]||[]).push(e)});
-    const sec=document.createElement("div");sec.className="card";
-    let html=`<b>${new Date(dkey+"T00:00:00").toLocaleDateString("ja-JP",{year:"numeric",month:"long",day:"numeric",weekday:"short"})}</b>`;
-    Object.keys(group).forEach(key=>{
-      const name=supplierName(key)||key;let net=0,gross=0;group[key].forEach(e=>{const t=calcLineTotal(e);net+=t.excl;gross+=t.incl});
-      const showBoth=!!store.settings.historyShowBoth;
-      const headerTotals= showBoth ? `税別 ${yen(net)}｜税込 ${yen(gross)}` : `税込 ${yen(gross)}`;
-      html+=`<div style="margin-top:6px"><u>${name}</u>　<span class="muted">${headerTotals}</span>`;
-      html+=group[key].map(e=>{
-        const t=calcLineTotal(e); const txLabel=e.taxmode==="incl"?"税込":(e.taxrate===0?"非課税":"税別");
-        const show=(e.taxmode==="incl")?t.incl:t.excl;
-        const meta = store.settings.showTaxFlags ? `<br><span class="mini-meta">単価 ${yen(e.price)} / ${e.taxrate}% / ${txLabel}</span>` : "";
+
+  // DOMではなく設定を見る（チェックボックスはsyncが上書き）
+  const showBoth = !!store.settings.historyShowBoth;
+
+  // 期間境界（00:00:00 ～ 23:59:59）
+  const now = new Date(); now.setHours(23,59,59,999);
+  const from = new Date(now.getTime() - (days - 1) * 86400000); from.setHours(0,0,0,0);
+
+  // 描画リセット
+  list.innerHTML = "";
+
+  // エントリ存在チェック
+  const entries = (store.entries || []).filter(e => !e?.deleted);
+  if (!entries.length){
+    list.innerHTML = `<div class="muted">対象期間の履歴はありません。</div>`;
+    return;
+  }
+
+  // 日付→配列 でグルーピング（ISO日付を信頼）
+  const byDate = {};
+  for (const e of entries){
+    // e.date は "YYYY-MM-DD" 前提。ない場合はスキップ
+    if (!e.date || typeof e.date !== "string") continue;
+    const d = new Date(e.date + "T12:00:00"); // TZ差吸収
+    if (d >= from && d <= now){
+      (byDate[e.date] = byDate[e.date] || []).push(e);
+    }
+  }
+
+  const dates = Object.keys(byDate).sort().reverse();
+  if (!dates.length){
+    list.innerHTML = `<div class="muted">対象期間の履歴はありません。</div>`;
+    return;
+  }
+
+  // 日付セクションごとに描画
+  for (const dkey of dates){
+    const sec = document.createElement("div");
+    sec.className = "card";
+
+    let html = `<b>${new Date(dkey+"T12:00:00").toLocaleDateString(
+      "ja-JP", {year:"numeric",month:"long",day:"numeric",weekday:"short"}
+    )}</b>`;
+
+    // 同日内を仕入先でグルーピング
+    const group = {};
+    for (const e of byDate[dkey]){
+      const skey = e.supplier_id || e.supplier_name_fallback || "未指定";
+      (group[skey] = group[skey] || []).push(e);
+    }
+
+    for (const skey of Object.keys(group)){
+      const name = supplierName(skey) || skey;
+
+      // 合計算出
+      let net = 0, gross = 0;
+      for (const e of group[skey]){
+        const t = calcLineTotal(e);
+        net += t.excl;
+        gross += t.incl;
+      }
+
+      // ヘッダーの合計表示
+      const headerTotals = showBoth
+        ? `税別 ${yen(net)}｜税込 ${yen(gross)}`
+        : `税込 ${yen(gross)}`;
+
+      html += `<div style="margin-top:6px"><u>${name}</u>　<span class="muted">${headerTotals}</span>`;
+
+      // 明細行：商品名 ×数量　合計（設定に応じて）
+      html += group[skey].map(e=>{
+        const t = calcLineTotal(e);
+        // 行の右側に出す金額は「商品別合計」：税込/税別は入力行の税モードに合わせる
+        const show = (e.taxmode === "incl") ? t.incl : t.excl;
+
+        // 詳細メタ（設定で表示）
+        const txLabel = (e.taxmode==="incl") ? "税込" : (e.taxrate===0 ? "非課税" : "税別");
+        const meta = store.settings.showTaxFlags
+          ? `<br><span class="mini-meta">単価 ${yen(e.price)} / ${e.taxrate||0}% / ${txLabel}</span>`
+          : "";
+
         return `<div class="row entry" data-id="${e.id}" style="justify-content:space-between;cursor:pointer">
-          <span>・${prodName(e.product_id,e.product_name_fallback)} ×${e.qty}${meta}</span>
+          <span>・${prodName(e.product_id, e.product_name_fallback)} ×${e.qty}${meta}</span>
           <span>${yen(show)}</span>
         </div>`;
       }).join("");
-      html+=`</div>`;
-    });
-    sec.innerHTML=html; list.appendChild(sec);
-  });
+
+      html += `</div>`; // 仕入先ブロック閉じ
+    }
+
+    sec.innerHTML = html;
+    list.appendChild(sec);
+  }
 }
 document.addEventListener("change",(e)=>{ if(e.target.id==="hisRange") renderHistory(); });
 document.addEventListener("click",(e)=>{ const el=e.target.closest("#historyList .entry"); if(el){ const id=el.getAttribute("data-id"); const ent=store.entries.find(x=>x.id===id); if(ent) openEntryModal(ent); }});
