@@ -313,29 +313,55 @@ function setHeaderTitleByPage(id){
 
 /* ===== History Controls（一本化） ===== */
 window.HistoryUI = (function(){
-  let bound=false;
+  let bound = false;
 
   function sync(){
-    const cb=$("#toggleGross"); if(cb) cb.checked = !!store.settings.historyShowBoth;
-    const sel=$("#hisRange");  if(sel){
+    // 税別小計＋税込表示
+    const cbGross = $("#toggleGross");
+    if (cbGross) cbGross.checked = !!store.settings.historyShowBoth;
+
+    // ▼ 追加：明細の詳細
+    const cbDet = $("#showDetail");
+    if (cbDet) cbDet.checked = !!store.settings.showTaxFlags;
+
+    // 期間セレクト
+    const sel = $("#hisRange");
+    if (sel) {
       const v = String(store.settings.hisRangeDays ?? sel.value ?? 30);
-      if(sel.value!==v) sel.value = v;
+      if (sel.value !== v) sel.value = v;
     }
   }
+
   function bindOnce(){
-    if(bound) return;
-    document.addEventListener("change",(e)=>{
-      const t=e.target; if(!t) return;
-      if(t.id==="toggleGross"){
+    if (bound) return;
+
+    document.addEventListener("change", (e) => {
+      const t = e.target;
+      if (!t) return;
+
+      if (t.id === "toggleGross") {
         store.settings.historyShowBoth = !!t.checked;
-        DB.save(store); renderHistory();
-      }else if(t.id==="hisRange"){
-        store.settings.hisRangeDays = Number(t.value||30);
-        DB.save(store); renderHistory();
+        DB.save(store);
+        renderHistory();
+      }
+
+      // ▼ 追加：明細の詳細
+      if (t.id === "showDetail") {
+        store.settings.showTaxFlags = !!t.checked;
+        DB.save(store);
+        renderHistory(); // ON/OFF即反映
+      }
+
+      if (t.id === "hisRange") {
+        store.settings.hisRangeDays = Number(t.value || 30);
+        DB.save(store);
+        renderHistory();
       }
     });
-    bound=true;
+
+    bound = true;
   }
+
   return { sync, bindOnce };
 })();
 
