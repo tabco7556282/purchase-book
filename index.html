@@ -266,19 +266,47 @@ function enableSelectOnFocus(){$$('input[type="number"], input[type="text"]').fo
 function applyTheme(){document.documentElement.setAttribute("data-theme",store.settings.theme==="dark"?"dark":"light");$("#themeIcon").textContent=store.settings.theme==="dark"?"☾":"☀"}
 document.addEventListener("click",(e)=>{if(e.target.closest("#themeBtn")){store.settings.theme=store.settings.theme==="dark"?"light":"dark";DB.save(store);applyTheme();}});
 
-function setHeaderTitleByPage(id){$("#pageTitle").textContent=$("#page-"+id)?.getAttribute("data-title")||"仕入れ管理"}
-// --- 履歴UIと設定の同期（追加） ---
-let boundHistoryControls = false;
-function syncHistoryControls(){
-  // 設定 → UIへ反映
-  const cb = $("#toggleGross");
-  if (cb) cb.checked = !!store.settings.historyShowBoth;
+/* ===== History Controls (Consolidated) ===== */
+window.HistoryUI = (function(){
+  // 内部状態はIIFE内に閉じ込め、再読み込み時の二重宣言を避ける
+  let bound = false;
 
-  const sel = $("#hisRange");
-  if (sel && store.settings.hisRangeDays) {
-    sel.value = String(store.settings.hisRangeDays);
+  function sync(){
+    // 設定 → UIへ
+    const cb = $("#toggleGross");
+    if (cb) cb.checked = !!store.settings.historyShowBoth;
+
+    const sel = $("#hisRange");
+    if (sel) {
+      const v = String(store.settings.hisRangeDays ?? sel.value ?? 30);
+      if (sel.value !== v) sel.value = v;
+    }
   }
-}
+
+  function bindOnce(){
+    if (bound) return;
+    document.addEventListener("change", (e)=>{
+      const t = e.target;
+      if (!t) return;
+
+      if (t.id === "toggleGross"){
+        store.settings.historyShowBoth = !!t.checked;
+        DB.save(store);
+        renderHistory();
+      }
+
+      if (t.id === "hisRange"){
+        store.settings.hisRangeDays = Number(t.value || 30);
+        DB.save(store);
+        renderHistory();
+      }
+    });
+    bound = true;
+  }
+
+  return { sync, bindOnce };
+})();
+
 
 // 変更イベントは一度だけ束ねる（重複防止）
 function bindHistoryControlsOnce(){
@@ -312,6 +340,21 @@ function showPage(id){
     $("#btnHome").classList.remove("hidden");
     setHeaderTitleByPage(id);
   }
+
+  if(id==="history"){
+    HistoryUI.sync();
+    HistoryUI.bindOnce();
+    try {
+      renderHistory();
+    } catch(err) {
+      console.error("renderHistory failed:", err);
+    }
+  }
+
+  window.scrollTo(0,0);
+}
+
+
   // --- 履歴UIと設定の同期（追加） ---
 let boundHistoryControls = false;
 
