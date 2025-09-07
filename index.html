@@ -306,26 +306,6 @@ window.HistoryUI = (function(){
 
   return { sync, bindOnce };
 })();
-
-
-// 変更イベントは一度だけ束ねる（重複防止）
-function bindHistoryControlsOnce(){
-  if (boundHistoryControls) return;
-  document.addEventListener("change", (e)=>{
-    if (e.target && e.target.id === "toggleGross"){
-      store.settings.historyShowBoth = !!e.target.checked;
-      DB.save(store);
-      renderHistory();
-    }
-    if (e.target && e.target.id === "hisRange"){
-      store.settings.hisRangeDays = Number(e.target.value || 30);
-      DB.save(store);
-      renderHistory();
-    }
-  });
-  boundHistoryControls = true;
-}
-
 /* ===== Router（委任で安定化） ===== */
 let internalNav=false;
 function showPage(id){
