@@ -1061,11 +1061,8 @@ window.exportCsv = function exportCsv(rows){
   const isTrial = hasTLP ? TLP.license?.isTrial?.() : true;
   const name = isTrial ? `TLP_${ymd}_trial.csv` : `TLP_${ymd}.csv`;
 
-  if (hasTLP && typeof TLP.csv.download === 'function') {
-    TLP.csv.download(name, csv);
-  } else {
-    legacyDownload(name, csv);
-  }
+  downloadCsvExcelSafe(name, csv);
+
 };
 // Excelでの日本語文字化けを防ぐため、UTF-16LEで保存する関数
 function downloadCsvExcelSafe(filename, text){
