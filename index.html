@@ -1104,25 +1104,43 @@ init();
   });
 })();
 <script>
-  // TSVを保存（Excelで文字化けしない）
-  function saveAsTsvUTF16(name, text){
+  // 文字化けしない保存（UTF-16LE）
+  function saveAsUTF16(name, text){
     var bytes = new Uint8Array(2 + text.length * 2);
     bytes[0] = 0xFF; bytes[1] = 0xFE;
     for (var i=0;i<text.length;i++){ var c=text.charCodeAt(i); bytes[2+i*2]=c&0xFF; bytes[3+i*2]=c>>8; }
-    var blob = new Blob([bytes], { type:'text/tab-separated-values;charset=utf-16le;' });
+    // 拡張子に合わせてタイプだけ軽く切替（どっちでもOK）
+    var isTsv = /\.tsv$/i.test(name);
+    var mime  = isTsv ? 'text/tab-separated-values' : 'text/csv';
+    var blob = new Blob([bytes], { type: mime + ';charset=utf-16le;' });
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
     URL.revokeObjectURL(a.href);
   }
 
-  // これだけが本番の出力関数（常に .tsv）
-  window.exportCsv = function(rows){
-    var txt = TLP.csv.toCSV(rows, { watermark: TLP.license.isTrial(), sep:'\t' });
-    var ymd = new Date().toISOString().slice(0,10);
-    var name = TLP.license.isTrial() ? ('TLP_'+ymd+'_trial.tsv') : ('TLP_'+ymd+'.tsv');
-    saveAsTsvUTF16(name, txt);
+  // これひとつで新旧どちらの呼び方にも対応
+  window.exportCsv = function(arg1, arg2){
+    // 新方式：exportCsv(行配列)
+    if (Array.isArray(arg1)) {
+      var rows = arg1;
+      var txt  = TLP.csv.toCSV(rows, { watermark: TLP.license.isTrial(), sep:'\t' });
+      var ymd  = new Date().toISOString().slice(0,10);
+      var name = TLP.license.isTrial() ? ('TLP_'+ymd+'_trial.tsv') : ('TLP_'+ymd+'.tsv');
+      saveAsUTF16(name, txt);
+      return;
+    }
+    // 旧方式：downloadCsv(ファイル名, CSV文字列) など
+    if (typeof arg1 === 'string' && typeof arg2 === 'string') {
+      var name2 = arg1;
+      var text2 = arg2;
+      // 改行だけ整える（\r\nに統一）
+      text2 = text2.replace(/\r?\n/g, '\r\n');
+      saveAsUTF16(name2, text2);
+      return;
+    }
+    alert('出力データが見つかりません。');
   };
 
-  // どの名前で呼ばれても、このexportCsvを使う（1回だけ書けばOK）
+  // どの名前で呼ばれても、このexportCsvを使う
   window.downloadCsv = window.exportCsv;
   window.exportCSV   = window.exportCsv;
   window.exportData  = window.exportCsv;
