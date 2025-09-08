@@ -1067,7 +1067,25 @@ window.exportCsv = function exportCsv(rows){
     legacyDownload(name, csv);
   }
 };
-
+// Excelでの日本語文字化けを防ぐため、UTF-16LEで保存する関数
+function downloadCsvExcelSafe(filename, text){
+  // 先頭に UTF-16LE BOM (FF FE) を付けてエンコード
+  const bytes = new Uint8Array(2 + text.length * 2);
+  bytes[0] = 0xFF; bytes[1] = 0xFE;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    bytes[2 + i*2] = c & 0xFF;      // low byte
+    bytes[3 + i*2] = c >> 8;        // high byte
+  }
+  const blob = new Blob([bytes], { type: 'text/csv;charset=utf-16le;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}// ここで「呼ばれる側」を差し替えるだけ（exportCsvはそのまま）
+if (window.TLP?.csv) TLP.csv.download = downloadCsvExcelSafe;
+window.legacyDownload = downloadCsvExcelSafe;
 // TLP未読込でも壊れないお守り
 function legacyToCsv(rows){
   if (!rows || !rows.length) return '';
