@@ -1320,168 +1320,32 @@ function tlpHash(str){
   return ('00000000'+h.toString(16)).slice(-8);
 }
 
-// --- UTF-16LE + BOM でBlob化 ---
-function tlpEncodeUTF16LE(str){
-  const buf = new Uint8Array((str.length+1)*2);
-  buf[0]=0xFF; buf[1]=0xFE; // BOM
-  for (let i=0;i<str.length;i++){
-    const c=str.charCodeAt(i);
-    buf[2+i*2]=c & 0xFF; buf[3+i*2]=c>>>8;
-  }
-  return new Blob([buf], {type:'text/csv;charset=utf-16le;'});
-}
-
-// --- 末尾に可視ウォーターマーク行を追加（既にあるなら重複させない） ---
-function tlpAppendWatermark(csvCore){
-  const hasMeta = /(?:^|\r?\n)__tlp_meta,/.test(csvCore);
-  if (hasMeta) return csvCore.replace(/\s*$/,'') + '\r\n';
-  const meta = (window.__tlp_meta||{});
-  const sig = tlpHash(csvCore);
-  const line = [
-    '__tlp_meta',
-    `app=${meta.app||'TLP'}`,
-    `ver=${meta.version||''}`,
-    `build=${meta.build||''}`,
-    `eula=${meta.eulaVersion||''}`,
-    `site=${meta.site||''}`,
-    `ts=${new Date().toISOString()}`,
-    `sig=${sig}`
-  ].join(',');
-  return csvCore.replace(/\s*$/,'') + '\r\n' + line + '\r\n';
-}
-
-// --- ダウンロード（既存互換: exportCsv / downloadCsv / saveUTF16） ---
-function downloadCsv(filename, csvText){
-  // 改行は CRLF に正規化
-  const core = (csvText||'').replace(/\r?\n/g, '\r\n');
-  const withMeta = tlpAppendWatermark(core);
-  const blob = tlpEncodeUTF16LE(withMeta);
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = filename || `tlp_export_${Date.now()}.csv`;
-  document.body.appendChild(a); a.click();
-  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },0);
-}
-window.downloadCsv = window.exportCsv = downloadCsv;
-// 既存コードが saveUTF16(name,text) を呼んでいても動くようにシム
-window.saveUTF16 = function(name, text){ downloadCsv(name, text); };
-</script>
 <script>
-/* --- TLP CSV 強制パッチ（最終防御） --- */
 (function(){
-  // 1) 透かし付きダウンロード本体
-  function tlpHash(str){ let h=0x811c9dc5>>>0; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=(h+((h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24)))>>>0; } return ('00000000'+h.toString(16)).slice(-8); }
-  function tlpEncodeUTF16LE(str){
-    const buf=new Uint8Array((str.length+1)*2); buf[0]=0xFF; buf[1]=0xFE;
-    for(let i=0;i<str.length;i++){ const c=str.charCodeAt(i); buf[2+i*2]=c&0xFF; buf[3+i*2]=c>>>8; }
-    return new Blob([buf],{type:'text/csv;charset=utf-16le;'});
-  }
-  function tlpAppendWatermark(csvCore){
-    if (/(^|\r?\n)__tlp_meta,/.test(csvCore)) return csvCore.replace(/\s*$/,'')+'\r\n';
-    const meta=window.__tlp_meta||{}; const sig=tlpHash(csvCore);
-    const line=['__tlp_meta',`app=${meta.app||'TLP'}`,`ver=${meta.version||''}`,`build=${meta.build||''}`,`eula=${meta.eulaVersion||''}`,`site=${meta.site||''}`,`ts=${new Date().toISOString()}`,`sig=${sig}`].join(',');
-    return csvCore.replace(/\s*$/,'')+'\r\n'+line+'\r\n';
-  }
-  function tlpDownloadCsv(filename, csvText){
-    const core=(csvText||'').replace(/\r?\n/g,'\r\n');
-    const withMeta=tlpAppendWatermark(core);
-    const blob=tlpEncodeUTF16LE(withMeta);
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(blob); a.download=filename||`tlp_export_${Date.now()}.csv`;
-    document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },0);
+  // UTF-16LE + BOM でCSVを保存（Excel文字化け対策のみ）
+  function encodeUTF16LE(str){
+    const s = String(str||'');
+    const buf = new Uint8Array((s.length+1)*2);
+    buf[0]=0xFF; buf[1]=0xFE;  // BOM
+    for (let i=0;i<s.length;i++){
+      const c=s.charCodeAt(i);
+      buf[2+i*2]=c & 0xFF; buf[3+i*2]=c >>> 8;
+    }
+    return new Blob([buf], {type:'text/csv;charset=utf-16le;'});
   }
 
-  // 2) 既存のどんな関数名でも最終的に tlpDownloadCsv が使われるよう吸収
-  function bindAll(){
-    ['downloadCsv','exportCsv','saveUTF16','saveCsv','saveCSV','downloadCSV','CSVdownload','saveAsCsv']
-      .forEach(n=>{ try{ window[n]=tlpDownloadCsv; }catch(_){ } });
+  function saveUTF16(name, text){
+    const norm = String(text||'').replace(/\r?\n/g, '\r\n'); // 改行をCRLFに統一
+    const blob = encodeUTF16LE(norm);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name || `tlp_export_${Date.now()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
   }
-  bindAll();
 
-  // 3) 他スクリプトに上書きされても取り戻す（軽めの再バインド）
-  window.addEventListener('load', bindAll);
-  setTimeout(bindAll, 300);
-  setTimeout(bindAll, 1500);
-
-  // 4) 動作ログ（Consoleで true ならOK）
-  console.log('TLP csv patch active:', /__tlp_meta/.test(tlpDownloadCsv.toString()));
+  // 既存呼び出し名をすべてこの最小実装に割り当て（互換）
+  window.downloadCsv = window.exportCsv = window.saveUTF16 = saveUTF16;
 })();
 </script>
-<script>
-/* --- TLP CSV ユニバーサル・フック（全部乗せ） --- */
-(function(){
-  // 共通メタ
-  window.__tlp_meta = Object.assign({
-    app:"Tabco Ledger Plus",
-    version:(window.TLP && TLP.APP && TLP.APP.VERSION)||"0.8.0",
-    build:"v0.8.0-20250908",
-    eulaVersion:(window.TLP && TLP.APP && TLP.APP.EULA_VERSION)||"2025-09-08",
-    site:"cafetabco.com"
-  }, window.__tlp_meta||{});
-
-  // 1) 透かしユーティリティ
-  function tlpHash(s){let h=0x811c9dc5>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=(h+((h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24)))>>>0;}return("00000000"+h.toString(16)).slice(-8);}
-  function tlpEncodeUTF16LE(str){const b=new Uint8Array((str.length+1)*2);b[0]=0xFF;b[1]=0xFE;for(let i=0;i<str.length;i++){const c=str.charCodeAt(i);b[2+i*2]=c&255;b[3+i*2]=c>>>8;}return new Blob([b],{type:"text/csv;charset=utf-16le;"});}
-  function hasMeta(s){return /(^|\r?\n)__tlp_meta,/.test(s);}
-  function appendMeta(core){
-    if (hasMeta(core)) return core.replace(/\s*$/,'')+'\r\n';
-    const m=window.__tlp_meta, line=['__tlp_meta',`app=${m.app||'TLP'}`,`ver=${m.version||''}`,`build=${m.build||''}`,`eula=${m.eulaVersion||''}`,`site=${m.site||''}`,`ts=${new Date().toISOString()}`,`sig=${tlpHash(core)}`].join(',');
-    return core.replace(/\s*$/,'')+'\r\n'+line+'\r\n';
-  }
-
-  // 2) 正規の保存関数を上書き（どの名前で呼ばれてもOK）
-  function downloadCsv(name, csvText){
-    const core=(csvText||'').replace(/\r?\n/g,'\r\n');
-    const withMeta=appendMeta(core);
-    const blob=tlpEncodeUTF16LE(withMeta);
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(blob); a.download=name||`tlp_export_${Date.now()}.csv`;
-    document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},0);
-  }
-  ['downloadCsv','exportCsv','saveUTF16','saveCsv','saveCSV','downloadCSV','CSVdownload','saveAsCsv']
-    .forEach(n=>{ try{ window[n]=downloadCsv; }catch(_){} });
-
-  // 3) TLP.csv.toCSV を使っているルートも確実に透かし付与
-  (function(){
-    const ns = (window.TLP && TLP.csv) ? TLP.csv : (window.TLP = window.TLP||{}, TLP.csv = TLP.csv||{});
-    const orig = ns.toCSV;
-    ns.toCSV = function(rows, opts){
-      let s = (typeof orig==='function') ? orig.call(this, rows, opts) : (()=>{ // 最低限のCSV化
-        if(!rows||!rows.length) return '';
-        const sep=(opts&&opts.sep)||','; const H=Object.keys(rows[0]);
-        const esc=v=>{v=(v??'')+''; if(v.includes('"')) v=v.replace(/"/g,'""'); return (v.includes('\n')||v.includes('\r')||v.includes(sep))?`"${v}"`:v;};
-        const out=[H.map(esc).join(sep)]; for(const r of rows) out.push(H.map(h=>esc(r[h])).join(sep)); return out.join('\r\n');
-      })();
-      return appendMeta(s);
-    };
-  })();
-
-  // 4) Blob 経由の保存にも対応（text/csv を検知して透かし注入）
-  (function(){
-    const OrigBlob = window.Blob;
-    window.Blob = function(parts, opts){
-      try{
-        const type=((opts&&opts.type)||'').toLowerCase();
-        if (type.includes('text/csv')){
-          let str=''; let allString=true;
-          for(const p of parts){ if(typeof p==='string'){ str+=p; } else { allString=false; } }
-          if (allString){
-            const withMeta = appendMeta(str.replace(/\r?\n/g,'\r\n'));
-            return new OrigBlob([tlpEncodeUTF16LE(withMeta)], {type:'text/csv;charset=utf-16le;'});
-          }
-        }
-      }catch(_){}
-      return new OrigBlob(parts, opts);
-    };
-    window.Blob.prototype = OrigBlob.prototype;
-  })();
-
-  // 5) 念のためロード後にも再バインド
-  const rebind=()=>['downloadCsv','exportCsv','saveUTF16','saveCsv','saveCSV','downloadCSV','CSVdownload','saveAsCsv']
-    .forEach(n=>{ try{ window[n]=downloadCsv; }catch(_){} });
-  window.addEventListener('load', rebind); setTimeout(rebind,300); setTimeout(rebind,1500);
-
-  console.log('TLP CSV hook ready');
-})();
-</script>
-
