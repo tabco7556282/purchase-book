@@ -1123,5 +1123,12 @@ init();
 })();
 </script>
 <!-- === /SafePack === -->
+<script>
+document.getElementById('btnExport')?.addEventListener('click', () => {
+  const rows = buildRowsForExport(); // ←あなたの既存ロジックで行配列を作る
+  exportCsv(rows);
+});
+</script>
+<script>window.downloadCsv = window.exportCsv;</script>
 
 
