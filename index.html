@@ -1407,4 +1407,81 @@ window.saveUTF16 = function(name, text){ downloadCsv(name, text); };
   console.log('TLP csv patch active:', /__tlp_meta/.test(tlpDownloadCsv.toString()));
 })();
 </script>
+<script>
+/* --- TLP CSV ユニバーサル・フック（全部乗せ） --- */
+(function(){
+  // 共通メタ
+  window.__tlp_meta = Object.assign({
+    app:"Tabco Ledger Plus",
+    version:(window.TLP && TLP.APP && TLP.APP.VERSION)||"0.8.0",
+    build:"v0.8.0-20250908",
+    eulaVersion:(window.TLP && TLP.APP && TLP.APP.EULA_VERSION)||"2025-09-08",
+    site:"cafetabco.com"
+  }, window.__tlp_meta||{});
+
+  // 1) 透かしユーティリティ
+  function tlpHash(s){let h=0x811c9dc5>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=(h+((h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24)))>>>0;}return("00000000"+h.toString(16)).slice(-8);}
+  function tlpEncodeUTF16LE(str){const b=new Uint8Array((str.length+1)*2);b[0]=0xFF;b[1]=0xFE;for(let i=0;i<str.length;i++){const c=str.charCodeAt(i);b[2+i*2]=c&255;b[3+i*2]=c>>>8;}return new Blob([b],{type:"text/csv;charset=utf-16le;"});}
+  function hasMeta(s){return /(^|\r?\n)__tlp_meta,/.test(s);}
+  function appendMeta(core){
+    if (hasMeta(core)) return core.replace(/\s*$/,'')+'\r\n';
+    const m=window.__tlp_meta, line=['__tlp_meta',`app=${m.app||'TLP'}`,`ver=${m.version||''}`,`build=${m.build||''}`,`eula=${m.eulaVersion||''}`,`site=${m.site||''}`,`ts=${new Date().toISOString()}`,`sig=${tlpHash(core)}`].join(',');
+    return core.replace(/\s*$/,'')+'\r\n'+line+'\r\n';
+  }
+
+  // 2) 正規の保存関数を上書き（どの名前で呼ばれてもOK）
+  function downloadCsv(name, csvText){
+    const core=(csvText||'').replace(/\r?\n/g,'\r\n');
+    const withMeta=appendMeta(core);
+    const blob=tlpEncodeUTF16LE(withMeta);
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download=name||`tlp_export_${Date.now()}.csv`;
+    document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},0);
+  }
+  ['downloadCsv','exportCsv','saveUTF16','saveCsv','saveCSV','downloadCSV','CSVdownload','saveAsCsv']
+    .forEach(n=>{ try{ window[n]=downloadCsv; }catch(_){} });
+
+  // 3) TLP.csv.toCSV を使っているルートも確実に透かし付与
+  (function(){
+    const ns = (window.TLP && TLP.csv) ? TLP.csv : (window.TLP = window.TLP||{}, TLP.csv = TLP.csv||{});
+    const orig = ns.toCSV;
+    ns.toCSV = function(rows, opts){
+      let s = (typeof orig==='function') ? orig.call(this, rows, opts) : (()=>{ // 最低限のCSV化
+        if(!rows||!rows.length) return '';
+        const sep=(opts&&opts.sep)||','; const H=Object.keys(rows[0]);
+        const esc=v=>{v=(v??'')+''; if(v.includes('"')) v=v.replace(/"/g,'""'); return (v.includes('\n')||v.includes('\r')||v.includes(sep))?`"${v}"`:v;};
+        const out=[H.map(esc).join(sep)]; for(const r of rows) out.push(H.map(h=>esc(r[h])).join(sep)); return out.join('\r\n');
+      })();
+      return appendMeta(s);
+    };
+  })();
+
+  // 4) Blob 経由の保存にも対応（text/csv を検知して透かし注入）
+  (function(){
+    const OrigBlob = window.Blob;
+    window.Blob = function(parts, opts){
+      try{
+        const type=((opts&&opts.type)||'').toLowerCase();
+        if (type.includes('text/csv')){
+          let str=''; let allString=true;
+          for(const p of parts){ if(typeof p==='string'){ str+=p; } else { allString=false; } }
+          if (allString){
+            const withMeta = appendMeta(str.replace(/\r?\n/g,'\r\n'));
+            return new OrigBlob([tlpEncodeUTF16LE(withMeta)], {type:'text/csv;charset=utf-16le;'});
+          }
+        }
+      }catch(_){}
+      return new OrigBlob(parts, opts);
+    };
+    window.Blob.prototype = OrigBlob.prototype;
+  })();
+
+  // 5) 念のためロード後にも再バインド
+  const rebind=()=>['downloadCsv','exportCsv','saveUTF16','saveCsv','saveCSV','downloadCSV','CSVdownload','saveAsCsv']
+    .forEach(n=>{ try{ window[n]=downloadCsv; }catch(_){} });
+  window.addEventListener('load', rebind); setTimeout(rebind,300); setTimeout(rebind,1500);
+
+  console.log('TLP CSV hook ready');
+})();
+</script>
 
