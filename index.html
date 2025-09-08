@@ -1103,19 +1103,18 @@ init();
     }
   });
 })();
-</script>
-<!-- === /SafePack === --><script>
-  // Excelで確実に読める .tsv で保存（文字化け対策込み）
+<script>
+  // TSVを保存（Excelで文字化けしない）
   function saveAsTsvUTF16(name, text){
     var bytes = new Uint8Array(2 + text.length * 2);
-    bytes[0] = 0xFF; bytes[1] = 0xFE; // UTF-16LE の目印
+    bytes[0] = 0xFF; bytes[1] = 0xFE;
     for (var i=0;i<text.length;i++){ var c=text.charCodeAt(i); bytes[2+i*2]=c&0xFF; bytes[3+i*2]=c>>8; }
     var blob = new Blob([bytes], { type:'text/tab-separated-values;charset=utf-16le;' });
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
     URL.revokeObjectURL(a.href);
   }
 
-  // これが唯一のエクスポート関数（常に .tsv で出す）
+  // これだけが本番の出力関数（常に .tsv）
   window.exportCsv = function(rows){
     var txt = TLP.csv.toCSV(rows, { watermark: TLP.license.isTrial(), sep:'\t' });
     var ymd = new Date().toISOString().slice(0,10);
@@ -1123,14 +1122,8 @@ init();
     saveAsTsvUTF16(name, txt);
   };
 
-  // 既存コードが downloadCsv(...) を呼んでいても動くように橋渡し
-  window.downloadCsv = window.exportCsv;
-</script>
-<script>
-  // どの名前で呼ばれても、新方式 exportCsv を使うように橋渡し
+  // どの名前で呼ばれても、このexportCsvを使う（1回だけ書けばOK）
   window.downloadCsv = window.exportCsv;
   window.exportCSV   = window.exportCsv;
   window.exportData  = window.exportCsv;
 </script>
-
-
