@@ -1099,11 +1099,12 @@ init();
 
   // 既存アプリが呼ぶ窓口（ここだけ呼べばOK）
   window.exportCsv = function exportCsv(rows){
-    const csv = TLP.csv.toCSV(rows, { watermark: TLP.license.isTrial() });
-    const ymd = new Date().toISOString().slice(0,10);
-    const name = TLP.license.isTrial() ? `TLP_${ymd}_trial.csv` : `TLP_${ymd}.csv`;
-    downloadCsvExcelSafe(name, csv); // ← ここで強制的にUTF-16LE保存
-  };
+    const sep = '\t'; // ← 1) 区切りをタブに
+  const txt = TLP.csv.toCSV(rows, { watermark: TLP.license.isTrial(), sep }); // ← 2) タブで生成
+  const ymd = new Date().toISOString().slice(0,10);
+  const name = TLP.license.isTrial() ? `TLP_${ymd}_trial.tsv` : `TLP_${ymd}.tsv`; // ← 3) 拡張子を .tsv に
+  downloadCsvExcelSafe(name, txt); // 既存のUTF-16LE保存をそのまま利用
+};
   // 互換：もしHTMLが downloadCsv を呼んでいたら
   window.downloadCsv = window.exportCsv;
 
