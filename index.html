@@ -1126,12 +1126,11 @@ init();
   // 既存コードが downloadCsv(...) を呼んでいても動くように橋渡し
   window.downloadCsv = window.exportCsv;
 </script>
-
 <script>
-document.getElementById('btnExport')?.addEventListener('click', () => {
-  const rows = buildRowsForExport(); // ←あなたの既存ロジックで行配列を作る
-  exportCsv(rows);
-});
+  // どの名前で呼ばれても、新方式 exportCsv を使うように橋渡し
+  window.downloadCsv = window.exportCsv;
+  window.exportCSV   = window.exportCsv;
+  window.exportData  = window.exportCsv;
 </script>
 
 
