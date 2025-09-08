@@ -1210,3 +1210,41 @@ init();
   }, true); // ← capture=true で先取り
 })();
 </script>
+<script>
+(function(){
+  // 行データの取得（あれば関数→無ければ自動推測）
+  function getRows(){
+    if (typeof window.buildRowsForExport === 'function') return window.buildRowsForExport();
+    if (typeof window.__tlpAutoFindRows   === 'function') return window.__tlpAutoFindRows();
+    return [];
+  }
+  // 文字列から全空白除去
+  function flat(t){ return String(t||'').replace(/\s/g,''); }
+
+  // 画面内の「出力」系の要素を探して先取り配線
+  var labels = /^(データ出力|出力|CSV出力|CSV保存|エクスポート)$/;
+  document.addEventListener('click', function(e){
+    var el = e.target.closest('*'); if(!el) return;
+
+    // テキスト/値/ID/data-action のどれかに該当語があれば“出力ボタン”とみなす
+    var txt = flat(el.innerText || el.value);
+    var id  = flat(el.id);
+    var act = flat((el.dataset && el.dataset.action) || '');
+    var looks = labels.test(txt) || /(export|csv|tsv)/i.test(id) || /(export|csv|tsv)/i.test(act);
+    if (!looks) return;
+
+    // こちらで出力を実行
+    e.preventDefault(); e.stopImmediatePropagation();
+    var rows = getRows();
+    if (Array.isArray(rows) && rows.length){
+      exportCsv(rows);                     // 透かし対応の新ルート
+    } else if (typeof window.exportCsv === 'function') {
+      exportCsv();                         // 旧ルートに委譲（ゼロ引数）
+    } else if (typeof window.downloadCsv === 'function') {
+      downloadCsv();                       // さらに旧名
+    } else {
+      alert('出力対象が見つかりません（画面や期間を確認してください）。');
+    }
+  }, true);
+})();
+</script>
