@@ -1177,3 +1177,36 @@ init();
 
   console.log('[TLP] bridge ready:', typeof window.exportCsv);
 </script>
+<script>
+// 「データ出力」ボタンのクリックを先取りして exportCsv を呼ぶ
+(function(){
+  function tryRows(){
+    // あれば既存の行生成関数を使う → 無ければ自動推測
+    if (typeof window.buildRowsForExport === 'function') return window.buildRowsForExport();
+    // 自動推測（前のブリッジに入っている関数があれば使う）
+    if (typeof window.__tlpAutoFindRows === 'function') return window.__tlpAutoFindRows();
+    return [];
+  }
+
+  document.addEventListener('click', function(e){
+    var el = e.target && e.target.closest('button, a, input[type=button], input[type=submit]');
+    if (!el) return;
+    var label = (el.innerText || el.value || '').replace(/\s/g,'');  // 空白除去
+    // ラベルが「データ出力 / 出力 / エクスポート」なら先取り
+    if (/^(データ出力|出力|エクスポート)$/i.test(label)) {
+      e.preventDefault();
+      e.stopImmediatePropagation();  // 元の処理より先に止める
+      // まず旧実装（2引数）を救う：ファイル名入力欄＋テキストが直前にあれば拾う、なければ行配列
+      var rows = tryRows();
+      if (Array.isArray(rows) && rows.length){
+        window.exportCsv(rows);
+      } else {
+        // 行が作れない場合は、最後の手段として既存の処理に譲る
+        if (typeof window.exportCsv === 'function') { window.exportCsv(); return; }
+        if (typeof window.downloadCsv === 'function') { window.downloadCsv(); return; }
+        alert('出力対象が見つかりません（画面や期間を確認してください）。');
+      }
+    }
+  }, true); // ← capture=true で先取り
+})();
+</script>
