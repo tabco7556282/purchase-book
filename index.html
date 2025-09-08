@@ -1090,65 +1090,57 @@ init();
 })();
 </script>
   <script>
-(function(){
-  // 既存の関数を退避（あれば）
-  var __origExportCsv   = (typeof window.exportCsv   === 'function') ? window.exportCsv   : null;
-  var __origDownloadCsv = (typeof window.downloadCsv === 'function') ? window.downloadCsv : null;
-
-  // 文字化けしない保存（UTF-16LE）
-  function saveAsUTF16(name, text){
-    var bytes = new Uint8Array(2 + text.length * 2);
-    bytes[0] = 0xFF; bytes[1] = 0xFE;
-    for (var i=0;i<text.length;i++){ var c=text.charCodeAt(i); bytes[2+i*2]=c&0xFF; bytes[3+i*2]=c>>8; }
-    var isTsv = /\.tsv$/i.test(name);
-    var mime  = isTsv ? 'text/tab-separated-values' : 'text/csv';
-    var blob  = new Blob([bytes], { type: mime + ';charset=utf-16le;' });
-    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  // --- 文字化けしない保存（UTF-16LE） ---
+  function __tlpSaveUTF16(name, text){
+    var b=new Uint8Array(2+text.length*2); b[0]=0xFF; b[1]=0xFE;
+    for(var i=0;i<text.length;i++){ var c=text.charCodeAt(i); b[2+i*2]=c&0xFF; b[3+i*2]=c>>8; }
+    var mime=/\.tsv$/i.test(name)?'text/tab-separated-values':'text/csv';
+    var blob=new Blob([b],{type:mime+';charset=utf-16le;'});
+    var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
     URL.revokeObjectURL(a.href);
   }
 
-  // 旧ルート：downloadCsv(name, text) を受け止め
-  window.downloadCsv = function(name, text){
-    if (typeof name === 'string' && typeof text === 'string'){
-      saveAsUTF16(name, text.replace(/\r?\n/g, '\r\n'));
-      return;
-    }
-    if (__origDownloadCsv) return __origDownloadCsv.apply(this, arguments);
-    alert('出力データが見つかりません。');
-  };
+  // --- 旧/新/引数なし ぜんぶ受け止め ---
+  window.downloadCsv = (function(prev){
+    return function(name,text){
+      if(typeof name==='string' && typeof text==='string'){
+        __tlpSaveUTF16(name, text.replace(/\r?\n/g,'\r\n')); return;
+      }
+      if(prev) return prev.apply(this, arguments);
+      alert('出力データが見つかりません。');
+    };
+  })(window.downloadCsv);
 
-  // 新ルート：exportCsv(...) を全部受け止め
-  window.exportCsv = function(arg1, arg2){
-    // exportCsv(rows)
-    if (Array.isArray(arg1)) {
-      var rows = arg1;
-      var txt  = (window.TLP && TLP.csv && TLP.csv.toCSV)
-                  ? TLP.csv.toCSV(rows, { watermark: TLP.license?.isTrial?.(), sep:'\t' })
-                  : '';
-      var ymd  = new Date().toISOString().slice(0,10);
-      var name = (window.TLP && TLP.license?.isTrial?.())
-                  ? ('TLP_'+ymd+'_trial.tsv') : ('TLP_'+ymd+'.tsv');
-      saveAsUTF16(name, txt);
-      return;
-    }
-    // 互換：exportCsv(name, text)
-    if (typeof arg1 === 'string' && typeof arg2 === 'string') {
-      saveAsUTF16(arg1, arg2.replace(/\r?\n/g, '\r\n'));
-      return;
-    }
-    // ゼロ引数：ページ側の行生成関数があれば使う
-    if (typeof window.buildRowsForExport === 'function') {
-      return window.exportCsv( window.buildRowsForExport() );
-    }
-    // 旧実装に委譲
-    if (__origExportCsv)   return __origExportCsv.apply(this, arguments);
-    if (__origDownloadCsv) return __origDownloadCsv.apply(this, arguments);
-    alert('出力データが見つかりません。');
-  };
+  window.exportCsv = (function(prevExp, prevDown){
+    return function(a,b){
+      // 新式：exportCsv(rows)
+      if (Array.isArray(a)) {
+        var rows=a;
+        var txt=TLP.csv.toCSV(rows,{watermark:TLP.license.isTrial(), sep:'\t'});
+        var y=new Date().toISOString().slice(0,10);
+        var name=TLP.license.isTrial()?('TLP_'+y+'_trial.tsv'):('TLP_'+y+'.tsv');
+        __tlpSaveUTF16(name, txt); return;
+      }
+      // 互換：exportCsv(name,text)
+      if (typeof a==='string' && typeof b==='string'){
+        __tlpSaveUTF16(a, b.replace(/\r?\n/g,'\r\n')); return;
+      }
+      // 引数なし：ページ側の行生成があれば使う
+      if (typeof window.buildRowsForExport==='function'){
+        return window.exportCsv(window.buildRowsForExport());
+      }
+      // 旧実装に委譲
+      if (prevExp)  return prevExp.apply(this, arguments);
+      if (prevDown) return prevDown.apply(this, arguments);
+      alert('出力データが見つかりません。');
+    };
+  })(window.exportCsv, window.downloadCsv);
 
-  // 別名もこの1本に統一
+  // 別名も同じ関数にそろえる
   window.exportCSV  = window.exportCsv;
   window.exportData = window.exportCsv;
-})();
+
+  console.log('[TLP] bridge ready:', typeof window.exportCsv);
 </script>
+
 
