@@ -1310,30 +1310,60 @@ init();
 </script>
 
 <script>
-(function(){
-  // 文字化けしない保存（UTF-16LE）
-  function saveUTF16(name, text){
-    var b=new Uint8Array(2+text.length*2); b[0]=0xFF; b[1]=0xFE;
-    for(var i=0;i<text.length;i++){ var c=text.charCodeAt(i); b[2+i*2]=c&0xFF; b[3+i*2]=c>>8; }
-    var mime=/\.tsv$/i.test(name)?'text/tab-separated-values':'text/csv';
-    var blob=new Blob([b],{type:mime+';charset=utf-16le;'});
-    var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
-    URL.revokeObjectURL(a.href);
+// --- 軽量ハッシュ（FNV-1a 32bit） ---
+function tlpHash(str){
+  let h = 0x811c9dc5>>>0;
+  for (let i=0;i<str.length;i++){
+    h ^= str.charCodeAt(i);
+    h = (h + ((h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24))) >>> 0;
   }
+  return ('00000000'+h.toString(16)).slice(-8);
+}
 
-  // 既存の downloadCsv を壊さず“2引数の時だけ”差し替える
-  var prev = window.downloadCsv;
-  window.downloadCsv = function(name, text){
-    if (typeof name==='string' && typeof text==='string'){
-      // 正式な保存呼び出しだけ UTF-16 で保存して終了
-      saveUTF16(name, String(text).replace(/\r?\n/g,'\r\n'));
-      return;
-    }
-    // それ以外（0引数など）は一切触らず旧処理へ
-    if (typeof prev==='function') return prev.apply(this, arguments);
-    // 旧処理が無ければ何もしない（誤アラートを出さない）
-  };
+// --- UTF-16LE + BOM でBlob化 ---
+function tlpEncodeUTF16LE(str){
+  const buf = new Uint8Array((str.length+1)*2);
+  buf[0]=0xFF; buf[1]=0xFE; // BOM
+  for (let i=0;i<str.length;i++){
+    const c=str.charCodeAt(i);
+    buf[2+i*2]=c & 0xFF; buf[3+i*2]=c>>>8;
+  }
+  return new Blob([buf], {type:'text/csv;charset=utf-16le;'});
+}
 
-  console.log('[TLP] downloadCsv minimal patch active');
-})();
+// --- 末尾に可視ウォーターマーク行を追加（既にあるなら重複させない） ---
+function tlpAppendWatermark(csvCore){
+  const hasMeta = /(?:^|\r?\n)__tlp_meta,/.test(csvCore);
+  if (hasMeta) return csvCore.replace(/\s*$/,'') + '\r\n';
+  const meta = (window.__tlp_meta||{});
+  const sig = tlpHash(csvCore);
+  const line = [
+    '__tlp_meta',
+    `app=${meta.app||'TLP'}`,
+    `ver=${meta.version||''}`,
+    `build=${meta.build||''}`,
+    `eula=${meta.eulaVersion||''}`,
+    `site=${meta.site||''}`,
+    `ts=${new Date().toISOString()}`,
+    `sig=${sig}`
+  ].join(',');
+  return csvCore.replace(/\s*$/,'') + '\r\n' + line + '\r\n';
+}
+
+// --- ダウンロード（既存互換: exportCsv / downloadCsv / saveUTF16） ---
+function downloadCsv(filename, csvText){
+  // 改行は CRLF に正規化
+  const core = (csvText||'').replace(/\r?\n/g, '\r\n');
+  const withMeta = tlpAppendWatermark(core);
+  const blob = tlpEncodeUTF16LE(withMeta);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename || `tlp_export_${Date.now()}.csv`;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },0);
+}
+window.downloadCsv = window.exportCsv = downloadCsv;
+// 既存コードが saveUTF16(name,text) を呼んでいても動くようにシム
+window.saveUTF16 = function(name, text){ downloadCsv(name, text); };
 </script>
+
