@@ -1021,29 +1021,157 @@ function init(){
 }
 init();
 </script>
-<div id="tlpEula" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.66);align-items:center;justify-content:center;padding:16px;z-index:9999">
-  <div style="max-width:720px;width:100%;background:#fff;border-radius:16px;box-shadow:0 16px 64px rgba(0,0,0,.35);overflow:hidden">
-    <header style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #e5e7eb;background:#f8fafc">
-      <h2 style="margin:0;font-size:1.1rem">エンドユーザー使用許諾契約（EULA）</h2>
-      <button id="tlpEulaClose" type="button">閉じる</button>
+<!-- ===== TLP EULA Modal (drop-in) ===== -->
+<div id="tlpEula" class="tlp-eula-overlay" aria-hidden="true">
+  <div class="tlp-eula-dialog" role="dialog" aria-modal="true" aria-labelledby="tlp-eula-title">
+    <header class="tlp-eula-header">
+      <h2 id="tlp-eula-title">エンドユーザー使用許諾契約（EULA）</h2>
+      <button id="tlpEulaClose" type="button" class="tlp-eula-close" aria-label="閉じる">×</button>
     </header>
-    <div style="max-height:50vh;overflow:auto;padding:16px">
+
+    <section class="tlp-eula-body">
+      <!-- ★ここを本番EULA本文に差し替えればOK（雛形は暫定） -->
+      <p><strong>App:</strong> Tabco Ledger Plus / <strong>Version:</strong> 0.8.0 /
+         <strong>EULA Ver:</strong> <span id="tlp-eula-ver-label">2025-09-08</span></p>
       <ol>
         <li><b>ライセンス付与：</b>非独占・譲渡不可。再配布/逆コンパイル禁止。</li>
-        <li><b>データとプライバシー：</b>ローカル保存はユーザー責任。</li>
-        <li><b>知的財産：</b>本ソフト/ロゴ等は開発者に帰属。</li>
-        <li><b>保証の否認：</b>現状有姿。損害賠償免責。</li>
-        <li><b>更新：</b>最新版EULAへ同意が必要。</li>
+        <li><b>データとプライバシー：</b>出力データの管理は利用者の責任。</li>
+        <li><b>知的財産：</b>本ソフト/名称/ロゴ等は開発者に帰属。</li>
+        <li><b>保証の否認：</b>現状有姿。損害・逸失利益等は免責。</li>
+        <li><b>準拠法・裁判管轄：</b>日本法・京都地方裁判所。</li>
       </ol>
-      <p style="opacity:.7">※本番文面は後で差し替え</p>
-    </div>
-    <footer style="display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid #e5e7eb;background:#f9fafb">
-      <button id="tlpEulaDecline" type="button">同意しない</button>
-      <button id="tlpEulaAccept" type="button">同意する</button>
+      <p class="tlp-muted">※本番文面は後で差し替え可能</p>
+    </section>
+
+    <footer class="tlp-eula-footer">
+      <button id="tlpEulaDecline" type="button" class="btn btn-outline">同意しない</button>
+      <!-- 互換性のため旧IDも拾えるようにJS側で両対応 -->
+      <button id="tlpEulaAccept" type="button" class="btn btn-primary">同意する</button>
     </footer>
   </div>
 </div>
+
+<style>
+  :root{ color-scheme: light dark; }
+  .tlp-eula-overlay{
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    background: rgba(15,23,42,.60); /* slate系の暗幕 */
+    z-index: 2147483647;
+    padding:16px;
+  }
+  .tlp-eula-overlay.is-open{ display:flex; }
+  .tlp-eula-dialog{
+    width:100%; max-width:720px; border-radius:16px; overflow:hidden;
+    background:#fff; color:#111; border:1px solid #e5e7eb;
+    box-shadow:0 16px 64px rgba(0,0,0,.35);
+    box-sizing:border-box;
+  }
+  .tlp-eula-header, .tlp-eula-footer{
+    display:flex; align-items:center; gap:8px; padding:12px 16px;
+    background:#f9fafb; border-bottom:1px solid #e5e7eb;
+  }
+  .tlp-eula-footer{ justify-content:flex-end; border-top:1px solid #e5e7eb; border-bottom:none; }
+  .tlp-eula-header h2{ margin:0; font-size:1.05rem; }
+  .tlp-eula-close{
+    margin-left:auto; border:1px solid #e5e7eb; border-radius:10px; background:#fff;
+    padding:6px 10px; cursor:pointer;
+  }
+  .tlp-eula-body{ max-height:60vh; overflow:auto; padding:16px 18px; }
+  .tlp-muted{ opacity:.7; }
+
+  .btn{ padding:10px 14px; border-radius:10px; border:1px solid #e5e7eb; cursor:pointer; }
+  .btn-outline{ background:#fff; color:#111; }
+  .btn-primary{ background:#111; color:#fff; }
+
+  @media (prefers-color-scheme: dark){
+    .tlp-eula-overlay{ background: rgba(0,0,0,.5); }
+    .tlp-eula-dialog{ background:#121212; color:#f5f5f5; border-color:#2a2a2a;
+      box-shadow:0 20px 70px rgba(0,0,0,.6);
+    }
+    .tlp-eula-header, .tlp-eula-footer{
+      background:#171717; border-color:#2a2a2a;
+    }
+    .tlp-eula-close{ background:#1f1f1f; color:#f5f5f5; border-color:#2a2a2a; }
+    .btn-outline{ background:#1f1f1f; color:#f5f5f5; border-color:#2a2a2a; }
+    .btn-primary{ background:#f5f5f5; color:#121212; border-color:#d4d4d4; }
+    a{ color:#4da3ff; }
+  }
+
+  /* モーダル時のスクロール抑止（付与クラスでON） */
+  body.tlp-modal-open{ overflow:hidden; }
+</style>
+
 <script>
+(function(){
+  const overlay = document.getElementById('tlpEula');
+  const dlg = overlay?.querySelector('.tlp-eula-dialog');
+  const btnAccept = document.getElementById('tlpEulaAccept'); // 既存互換ID
+  const btnDecline = document.getElementById('tlpEulaDecline');
+  const btnClose = document.getElementById('tlpEulaClose');
+  const verLabel = document.getElementById('tlp-eula-ver-label');
+
+  // 設定：同意が必須なら true（Decline/×/背景クリックでは閉じない）
+  const LOCK_MODE = false;
+
+  // __tlp_meta からEULA版を拾う（無ければ表示中ラベル値）
+  const REQUIRED_EULA_VERSION =
+    (window.__tlp_meta && __tlp_meta.eulaVersion) ||
+    (verLabel ? verLabel.textContent.trim() : '1.0');
+
+  // 初期表示ラベルも最新版に同期
+  if (verLabel) verLabel.textContent = REQUIRED_EULA_VERSION;
+
+  function isOpen(){ return overlay.classList.contains('is-open'); }
+  function open(){
+    overlay.classList.add('is-open');
+    overlay.setAttribute('aria-hidden','false');
+    document.body.classList.add('tlp-modal-open');
+    // 初期フォーカス
+    setTimeout(()=>{ (btnAccept || btnClose)?.focus(); }, 0);
+  }
+  function close(){
+    if (LOCK_MODE) return; // 必須モードでは閉じられない
+    overlay.classList.remove('is-open');
+    overlay.setAttribute('aria-hidden','true');
+    document.body.classList.remove('tlp-modal-open');
+  }
+
+  // 背景クリックで閉じる（LOCK_MODE=false時のみ）
+  overlay.addEventListener('click', (e)=>{
+    if (!LOCK_MODE && e.target === overlay) close();
+  });
+
+  // Escで閉じる（LOCK_MODE=false時のみ）
+  document.addEventListener('keydown', (e)=>{
+    if (!LOCK_MODE && e.key === 'Escape' && isOpen()) close();
+  });
+
+  btnClose?.addEventListener('click', close);
+  btnDecline?.addEventListener('click', ()=>{ 
+    // 同意しない → 何もしない（必要ならアプリ側でハンドル）
+    close();
+    document.dispatchEvent(new CustomEvent('tlp:eula-declined'));
+  });
+
+  btnAccept?.addEventListener('click', ()=>{
+    try { localStorage.setItem('tlp_eula_version', REQUIRED_EULA_VERSION); } catch(_) {}
+    document.dispatchEvent(new CustomEvent('tlp:eula-accepted', { detail:{ version: REQUIRED_EULA_VERSION }}));
+    close();
+  });
+
+  // 起動時：保存版と不一致なら表示
+  try {
+    const saved = localStorage.getItem('tlp_eula_version');
+    if (saved !== REQUIRED_EULA_VERSION) open();
+  } catch(_){ open(); }
+
+  // 外部から操作できるように公開（任意）
+  window.tlpOpenEula = open;
+  window.tlpCloseEula = close;
+})();
+</script>
+<!-- ===== /TLP EULA Modal ===== -->
+
 (function(){
   const TLP = (window.TLP = window.TLP || {});
   TLP.APP = { NAME:'Tabco Ledger Plus', VERSION:'0.8.0', EULA_VERSION:'2025-09-01' };
