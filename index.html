@@ -1308,6 +1308,21 @@ init();
   }
 })();
 </script>
+<style>
+  /* バッジは最前面ではなく、モーダルより一段下へ */
+  #tlp-brand-badge{
+    z-index: 2147483000 !important;           /* EULAの 2147483647 より下 */
+    bottom: calc(10px + env(safe-area-inset-bottom)); /* iPhoneの安全領域対応 */
+  }
+  /* モーダルやEULA表示中は隠す（クリック邪魔防止） */
+  .tlp-modal-open #tlp-brand-badge{ display:none !important; }
+  /* 印刷時は非表示 */
+  @media print{ #tlp-brand-badge{ display:none !important; } }
+  /* 狭い画面では少しだけコンパクトに */
+  @media (max-width: 480px){
+    #tlp-brand-badge{ font-size:11px; padding:6px 8px; opacity:.9; }
+  }
+</style>
 
 
 <script>
