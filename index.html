@@ -1366,4 +1366,45 @@ window.downloadCsv = window.exportCsv = downloadCsv;
 // 既存コードが saveUTF16(name,text) を呼んでいても動くようにシム
 window.saveUTF16 = function(name, text){ downloadCsv(name, text); };
 </script>
+<script>
+/* --- TLP CSV 強制パッチ（最終防御） --- */
+(function(){
+  // 1) 透かし付きダウンロード本体
+  function tlpHash(str){ let h=0x811c9dc5>>>0; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=(h+((h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24)))>>>0; } return ('00000000'+h.toString(16)).slice(-8); }
+  function tlpEncodeUTF16LE(str){
+    const buf=new Uint8Array((str.length+1)*2); buf[0]=0xFF; buf[1]=0xFE;
+    for(let i=0;i<str.length;i++){ const c=str.charCodeAt(i); buf[2+i*2]=c&0xFF; buf[3+i*2]=c>>>8; }
+    return new Blob([buf],{type:'text/csv;charset=utf-16le;'});
+  }
+  function tlpAppendWatermark(csvCore){
+    if (/(^|\r?\n)__tlp_meta,/.test(csvCore)) return csvCore.replace(/\s*$/,'')+'\r\n';
+    const meta=window.__tlp_meta||{}; const sig=tlpHash(csvCore);
+    const line=['__tlp_meta',`app=${meta.app||'TLP'}`,`ver=${meta.version||''}`,`build=${meta.build||''}`,`eula=${meta.eulaVersion||''}`,`site=${meta.site||''}`,`ts=${new Date().toISOString()}`,`sig=${sig}`].join(',');
+    return csvCore.replace(/\s*$/,'')+'\r\n'+line+'\r\n';
+  }
+  function tlpDownloadCsv(filename, csvText){
+    const core=(csvText||'').replace(/\r?\n/g,'\r\n');
+    const withMeta=tlpAppendWatermark(core);
+    const blob=tlpEncodeUTF16LE(withMeta);
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download=filename||`tlp_export_${Date.now()}.csv`;
+    document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },0);
+  }
+
+  // 2) 既存のどんな関数名でも最終的に tlpDownloadCsv が使われるよう吸収
+  function bindAll(){
+    ['downloadCsv','exportCsv','saveUTF16','saveCsv','saveCSV','downloadCSV','CSVdownload','saveAsCsv']
+      .forEach(n=>{ try{ window[n]=tlpDownloadCsv; }catch(_){ } });
+  }
+  bindAll();
+
+  // 3) 他スクリプトに上書きされても取り戻す（軽めの再バインド）
+  window.addEventListener('load', bindAll);
+  setTimeout(bindAll, 300);
+  setTimeout(bindAll, 1500);
+
+  // 4) 動作ログ（Consoleで true ならOK）
+  console.log('TLP csv patch active:', /__tlp_meta/.test(tlpDownloadCsv.toString()));
+})();
+</script>
 
