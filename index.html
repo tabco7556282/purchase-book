@@ -1089,7 +1089,7 @@ init();
   });
 })();
 </script>
-  <script>
+ <script>
   // --- 文字化けしない保存（UTF-16LE） ---
   function __tlpSaveUTF16(name, text){
     var b=new Uint8Array(2+text.length*2); b[0]=0xFF; b[1]=0xFE;
@@ -1100,7 +1100,40 @@ init();
     URL.revokeObjectURL(a.href);
   }
 
-  // --- 旧/新/引数なし ぜんぶ受け止め ---
+  // --- ゼロ引数のときに自動で行データを探す ---
+  function __tlpAutoFindRows(){
+    // 1) 既知の関数名があれば使う
+    var cands=['buildRowsForExport','getExportRows','exportRows','rowsForExport','makeExportRows'];
+    for(var i=0;i<cands.length;i++){
+      var fn=cands[i];
+      try{
+        if(typeof window[fn]==='function'){
+          var r=window[fn]();
+          if(Array.isArray(r) && r.length) return r;
+        }
+      }catch(e){}
+    }
+    // 2) localStorage から推測（date/supplier/item/qty/unit/price を持つ配列）
+    try{
+      for(var j=0;j<localStorage.length;j++){
+        var k=localStorage.key(j);
+        var v=localStorage.getItem(k);
+        try{
+          var obj=JSON.parse(v);
+          if(Array.isArray(obj) && obj.length && typeof obj[0]==='object'){
+            var s=obj[0];
+            var keys=Object.keys(s);
+            var need=['date','supplier','item','qty','unit','price'];
+            var hit=need.every(function(x){return keys.indexOf(x)>=0;});
+            if(hit) return obj;
+          }
+        }catch(e){}
+      }
+    }catch(e){}
+    return [];
+  }
+
+  // --- 旧 downloadCsv(name,text) を受け止め（2引数）
   window.downloadCsv = (function(prev){
     return function(name,text){
       if(typeof name==='string' && typeof text==='string'){
@@ -1111,9 +1144,10 @@ init();
     };
   })(window.downloadCsv);
 
+  // --- 新 exportCsv(...) を全部受け止め ---
   window.exportCsv = (function(prevExp, prevDown){
     return function(a,b){
-      // 新式：exportCsv(rows)
+      // 1) exportCsv(rows)
       if (Array.isArray(a)) {
         var rows=a;
         var txt=TLP.csv.toCSV(rows,{watermark:TLP.license.isTrial(), sep:'\t'});
@@ -1121,26 +1155,25 @@ init();
         var name=TLP.license.isTrial()?('TLP_'+y+'_trial.tsv'):('TLP_'+y+'.tsv');
         __tlpSaveUTF16(name, txt); return;
       }
-      // 互換：exportCsv(name,text)
+      // 2) 互換：exportCsv(name,text)
       if (typeof a==='string' && typeof b==='string'){
         __tlpSaveUTF16(a, b.replace(/\r?\n/g,'\r\n')); return;
       }
-      // 引数なし：ページ側の行生成があれば使う
-      if (typeof window.buildRowsForExport==='function'){
-        return window.exportCsv(window.buildRowsForExport());
+      // 3) ゼロ引数：自動で行データを作って再実行
+      var rows2=__tlpAutoFindRows();
+      if (Array.isArray(rows2) && rows2.length){
+        return window.exportCsv(rows2);
       }
-      // 旧実装に委譲
+      // 4) 旧実装に委譲（あれば）
       if (prevExp)  return prevExp.apply(this, arguments);
       if (prevDown) return prevDown.apply(this, arguments);
       alert('出力データが見つかりません。');
     };
   })(window.exportCsv, window.downloadCsv);
 
-  // 別名も同じ関数にそろえる
+  // 別名もそろえる
   window.exportCSV  = window.exportCsv;
   window.exportData = window.exportCsv;
 
   console.log('[TLP] bridge ready:', typeof window.exportCsv);
 </script>
-
-
