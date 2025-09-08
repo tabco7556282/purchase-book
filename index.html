@@ -1021,8 +1021,6 @@ function init(){
 }
 init();
 </script>
-<!-- === Tabco Ledger Plus v0.8.0 SafePack (一発導入) === -->
-<!-- EULAモーダル（シンプル版） -->
 <div id="tlpEula" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.66);align-items:center;justify-content:center;padding:16px;z-index:9999">
   <div style="max-width:720px;width:100%;background:#fff;border-radius:16px;box-shadow:0 16px 64px rgba(0,0,0,.35);overflow:hidden">
     <header style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #e5e7eb;background:#f8fafc">
@@ -1045,22 +1043,17 @@ init();
     </footer>
   </div>
 </div>
-
 <script>
-/* ===== Tabco Ledger Plus v0.8.0 SafePack ===== */
+// ========== Tabco Ledger Plus v0.8.0 — 末尾まとめ ==========
 (function(){
-  // --- 基本情報＆状態 ---
+  // 基本情報・EULA・ライセンス
   const TLP = (window.TLP = window.TLP || {});
-  TLP.APP = { NAME:'Tabco Ledger Plus', VERSION:'0.8.0', BRAND:'Tabco', EULA_VERSION:'2025-09-01' };
-
-  // ライセンス状態（永続化）
+  TLP.APP = { NAME:'Tabco Ledger Plus', VERSION:'0.8.0', EULA_VERSION:'2025-09-01' };
   TLP.license = {
     status: localStorage.getItem('tlp_license_status') || 'trial',
     isTrial(){ return this.status!=='licensed'; },
     set(s){ this.status=s; localStorage.setItem('tlp_license_status', s); }
   };
-
-  // EULA
   TLP.keys = { EULA_VER:'tlp_eula_version_accepted', EULA_AT:'tlp_eula_accepted_at' };
   TLP.eula = {
     needs(){ return localStorage.getItem(TLP.keys.EULA_VER)!==TLP.APP.EULA_VERSION; },
@@ -1069,14 +1062,15 @@ init();
   };
   TLP.showEula = function(){ const r=document.getElementById('tlpEula'); if(r) r.style.display='flex'; };
 
-  // CSV生成（trial時のみ __tlp_meta 列を付与）
+  // CSV/TSV 文字列生成（trialなら __tlp_meta 列を付与）
   TLP.csv = {
     toCSV(rows,{watermark=false,sep=','}={}){
       if(!rows?.length) return '';
       const headers = Object.keys(rows[0]);
       const data = rows.map(r=>({...r}));
       if (watermark && !headers.includes('__tlp_meta')){
-        headers.push('__tlp_meta'); data.forEach(r=>r.__tlp_meta=`${TLP.APP.NAME} v${TLP.APP.VERSION} (Trial)`);
+        headers.push('__tlp_meta');
+        data.forEach(r=>r.__tlp_meta=`${TLP.APP.NAME} v${TLP.APP.VERSION} (Trial)`);
       }
       const esc=v=>{ v=(v??'')+''; if(v.includes('"')) v=v.replace(/"/g,'""'); return (v.includes('\n')||v.includes('\r')||v.includes(sep))?`"${v}"`:v; };
       const lines=[];
@@ -1088,22 +1082,21 @@ init();
     }
   };
 
-  
-
-  // EULA配線
+  // EULAボタン配線＆初回表示
   document.addEventListener('DOMContentLoaded', ()=>{
     const r=document.getElementById('tlpEula');
-    if(r){
-      const close=()=>{ r.style.display='none'; };
-      const byId=id=>document.getElementById(id);
-      byId('tlpEulaClose')?.addEventListener('click', close);
-      byId('tlpEulaAccept')?.addEventListener('click', ()=>{ TLP.eula.accept(); close(); });
-      byId('tlpEulaDecline')?.addEventListener('click', ()=>{ close(); TLP.license.set('trial'); alert('EULA未同意のため体験版モードになります。'); });
-      if (TLP.eula.needs()) TLP.showEula();
-    }
+    if(!r) return;
+    const byId=id=>document.getElementById(id);
+    const close=()=>{ r.style.display='none'; };
+    byId('tlpEulaClose')?.addEventListener('click', close);
+    byId('tlpEulaAccept')?.addEventListener('click', ()=>{ TLP.eula.accept(); close(); });
+    byId('tlpEulaDecline')?.addEventListener('click', ()=>{ close(); TLP.license.set('trial'); alert('EULA未同意のため体験版モードになります。'); });
+    if (TLP.eula.needs()) TLP.showEula();
   });
 })();
-<script>
+
+// ===== 出力（新旧どちらの呼び方でもOK） =====
+
 // 文字化けしない保存（UTF-16LE）
 function saveAsUTF16(name, text){
   var bytes = new Uint8Array(2 + text.length * 2);
@@ -1116,10 +1109,9 @@ function saveAsUTF16(name, text){
   URL.revokeObjectURL(a.href);
 }
 
-// 新方式：exportCsv(行配列) → .tsv（日本語OK・透かし対応）
+// exportCsv(rows) も downloadCsv(name, text) も受け付ける一本化関数
 window.exportCsv = function(arg1, arg2){
-  // exportCsv(rows)
-  if (Array.isArray(arg1)) {
+  if (Array.isArray(arg1)) { // 新方式：行配列
     var rows = arg1;
     var txt  = TLP.csv.toCSV(rows, { watermark: TLP.license.isTrial(), sep:'\t' });
     var ymd  = new Date().toISOString().slice(0,10);
@@ -1127,18 +1119,18 @@ window.exportCsv = function(arg1, arg2){
     saveAsUTF16(name, txt);
     return;
   }
-  // 旧方式：downloadCsv(ファイル名, CSV文字列)
-  if (typeof arg1 === 'string' && typeof arg2 === 'string') {
+  if (typeof arg1 === 'string' && typeof arg2 === 'string') { // 旧方式：名前＋文字列
     var name2 = arg1;
-    var text2 = arg2.replace(/\r?\n/g, '\r\n'); // 改行を統一
-    saveAsUTF16(name2, text2);                  // 拡張子が .csv のままでも日本語OK
+    var text2 = arg2.replace(/\r?\n/g, '\r\n');
+    saveAsUTF16(name2, text2); // .csv のままでも日本語OK
     return;
   }
   alert('出力データが見つかりません。');
 };
 
-// どの名前で呼ばれても、この exportCsv を使う
+// どの名前で呼ばれても、この exportCsv を使う（1回だけでOK）
 window.downloadCsv = window.exportCsv;
 window.exportCSV   = window.exportCsv;
 window.exportData  = window.exportCsv;
+// ========== /まとめ ==========
 </script>
