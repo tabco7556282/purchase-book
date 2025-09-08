@@ -1309,16 +1309,6 @@ init();
 })();
 </script>
 
-<script>
-// --- 軽量ハッシュ（FNV-1a 32bit） ---
-function tlpHash(str){
-  let h = 0x811c9dc5>>>0;
-  for (let i=0;i<str.length;i++){
-    h ^= str.charCodeAt(i);
-    h = (h + ((h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24))) >>> 0;
-  }
-  return ('00000000'+h.toString(16)).slice(-8);
-}
 
 <script>
 (function(){
@@ -1349,3 +1339,39 @@ function tlpHash(str){
   window.downloadCsv = window.exportCsv = window.saveUTF16 = saveUTF16;
 })();
 </script>
+<!-- === BEGIN: TLP CSV MINIMAL BLOCK (v0.8.0) === -->
+<script>
+(function(){
+  "use strict";
+
+  // UTF-16LE + BOM でCSVを保存（Excel文字化け対策のみ）
+  function encodeUTF16LE(str){
+    const s = String(str || "");
+    const buf = new Uint8Array((s.length + 1) * 2);
+    buf[0] = 0xFF; buf[1] = 0xFE; // BOM
+    for (let i = 0; i < s.length; i++){
+      const c = s.charCodeAt(i);
+      buf[2 + i*2] = c & 0xFF;
+      buf[3 + i*2] = c >>> 8;
+    }
+    return new Blob([buf], { type: "text/csv;charset=utf-16le;" });
+  }
+
+  function saveUTF16(name, text){
+    const norm = String(text || "").replace(/\r?\n/g, "\r\n"); // CRLF 統一
+    const blob = encodeUTF16LE(norm);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name || `tlp_export_${Date.now()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+  }
+
+  // 互換エイリアス（どの名前で呼ばれてもこの最小実装が動く）
+  window.downloadCsv = window.exportCsv = window.saveUTF16 = saveUTF16;
+
+  console.log("[TLP] CSV minimal block loaded");
+})();
+</script>
+<!-- === END: TLP CSV MINIMAL BLOCK === -->
