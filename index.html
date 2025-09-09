@@ -1359,7 +1359,8 @@ init();
 #tlp-brand-badge{
   position: fixed;
   right: 12px;
-  bottom: calc(var(--tlp-badge-offset, 12px) + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--tlp-badge-offset, 12px) + env(safe-area-inset-bottom, 0px)) !important;
+
   z-index: 1000 !important;
   pointer-events: none;
 }
@@ -1547,6 +1548,9 @@ init();
   // 初期実行
   (document.readyState === 'loading') ? addEventListener('DOMContentLoaded', update) : update();
 })();
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('tlp-brand-badge'); if(b){b.style.removeProperty('bottom'); b.style.removeProperty('z-index');}});
 </script>
 
 
