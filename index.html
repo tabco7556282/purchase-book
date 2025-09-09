@@ -1371,38 +1371,40 @@ init();
 
 /* --- モバイル時の“物理的に被らない”逃げ（クロスブラウザ） --- */
 @media (max-width:600px){
-  /* A: よくある“スクロール親”に下余白を確保 */
+/* モバイル系だけに適用（幅広スマホやタブも拾う） */
+@media (max-width:768px), (hover:none) and (pointer:coarse){
+
+  /* A: 実際のスクロール親に“下余白”を確保（共通） */
   html, body,
   :where(#app,#root,main,.app,.main,.page,.content,.container,.view,.panel,.wrapper,
          .scroll,.scroller,.list,.lists,.body,.screen,.layout){
-    padding-bottom: calc(var(--badge-h) + 20px) !important;
+    padding-bottom: calc(var(--badge-h,56px) + 20px) !important;
   }
-  /* B: 下部のボタン列は右下に逃げ */
-  :where(.tlp-form-actions,.form-actions,.footer-actions,.actions,.btn-row,
-         .action-bar,.button-bar,.buttons,.btns){
-    padding-right: calc(var(--badge-w) + 16px) !important;
-    margin-bottom: 12px !important;
-  }
-  /* C: ダイアログ内のボタン列も逃がす */
-  :where([role="dialog"],[aria-modal="true"],.modal,.dialog,.confirm)
-  :where(.actions,.btn-row,.dialog-actions,.button-bar,.buttons){
-    padding-right: calc(var(--badge-w) + 16px) !important;
-    margin-bottom: 12px !important;
-  }
-/* D: 貼り付いた下部アクション行を“バッジ分だけ”上にずらす */
+
+  /* B: 画面下部のアクション列（保存/クリアなど）を右下に逃がす */
   :where(.tlp-form-actions,.form-actions,.footer-actions,.actions,.btn-row,
          .action-bar,.button-bar,.buttons,.btns,.page-controls,.page-footer){
-    bottom: calc(var(--badge-h) + 12px) !important; /* sticky/fixed に効く */
+    padding-right: calc(var(--badge-w,56px) + 16px) !important;
+    margin-bottom: 12px !important;
+    /* C: sticky/fixed の行は“バッジ分だけ”上へずらす */
+    bottom: calc(var(--badge-h,56px) + 12px) !important;
   }
-/* 貼り付く下部アクション行を一括で“バッジ分だけ”上へ */
-  :where(.tlp-form-actions,.form-actions,.footer-actions,.actions,.btn-row,
-         .action-bar,.button-bar,.buttons,.btns,.page-controls,.page-footer,
-         [class*="action"],[class*="footer"],[class*="button-bar"],[class*="btn-row"]){
-    bottom: calc(var(--badge-h) + 12px) !important;   /* sticky/fixed に効く */
-    margin-bottom: calc(var(--badge-h) + 12px) !important; /* staticでも逃げを確保 */
-    padding-right: calc(var(--badge-w) + 16px) !important; /* 右下も逃げ */
+
+  /* D: ダイアログ内のボタン列にも同じ逃げを適用 */
+  :where([role="dialog"],[aria-modal="true"],.modal,.dialog,.confirm)
+  :where(.actions,.btn-row,.dialog-actions,.button-bar,.buttons){
+    padding-right: calc(var(--badge-w,56px) + 16px) !important;
+    margin-bottom: 12px !important;
+  }
+
+  /* E: 想定外のクラス名でも拾う“最後の網” */
+  :where([class*="action"],[class*="footer"],[class*="button-bar"],[class*="btn-row"]){
+    padding-right: calc(var(--badge-w,56px) + 16px) !important;
+    margin-bottom: calc(var(--badge-h,56px) + 12px) !important;
+    bottom: calc(var(--badge-h,56px) + 12px) !important;
   }
 }
+
 </style>
 
 <script>
