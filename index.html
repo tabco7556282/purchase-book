@@ -1502,16 +1502,39 @@ init();
 })();
 </script>
 <script>
-(()=> {
-  const SHOW=/ホーム|バックアップ設定|ライセンス/;  // ← 表示を許可するページ名
-const apply=()=> html.classList.toggle('tlp-hide-badge', !SHOW.test(title()));
-  const title=()=> (document.querySelector('h1,.page-title,.title,h2,h3')?.textContent||'').trim();
-  const apply=()=> html.classList.toggle('tlp-hide-badge', RX.test(title()));
-  apply();
-  new MutationObserver(apply).observe(document.body,{childList:true,subtree:true});
-  addEventListener('hashchange',apply); addEventListener('popstate',apply);
+(() => {
+  const html = document.documentElement;
+
+  // 表示を許可する「ページ名（見出し）」と「URLキーワード」
+  const SHOW_TITLE = /ホーム|バックアップ設定|ライセンス/;
+  const SHOW_URL   = /home|backup|license/i;
+
+  const getTitle = () =>
+    (document.querySelector('h1,.page-title,.title,h2,h3')?.textContent || '').trim();
+
+  const shouldShow = () => SHOW_TITLE.test(getTitle()) || SHOW_URL.test(location.href);
+
+  const apply = () => {
+    // 表示を許可しないページでは .tlp-hide-badge を付与（= 非表示）
+    html.classList.toggle('tlp-hide-badge', !shouldShow());
+  };
+
+  const run = (fn) => (document.readyState !== 'loading')
+    ? fn()
+    : document.addEventListener('DOMContentLoaded', fn);
+
+  run(() => {
+    apply();
+    // SPA対策：DOM変化・URL変化のたびに再判定
+    new MutationObserver(apply).observe(document.body || html, { childList:true, subtree:true });
+    addEventListener('hashchange', apply);
+    addEventListener('popstate', apply);
+    // 最後の保険（稀にタイトルが遅延で差し替わる場合）
+    setInterval(apply, 1000);
+  });
 })();
 </script>
+
 
 
 
