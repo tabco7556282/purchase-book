@@ -1503,8 +1503,8 @@ init();
 </script>
 <script>
 (()=> {
-  const RX=/仕入|履歴|集計/;               // ← 非表示にしたいページ語をここで指定
-  const html=document.documentElement;
+  const SHOW=/ホーム|バックアップ設定|ライセンス/;  // ← 表示を許可するページ名
+const apply=()=> html.classList.toggle('tlp-hide-badge', !SHOW.test(title()));
   const title=()=> (document.querySelector('h1,.page-title,.title,h2,h3')?.textContent||'').trim();
   const apply=()=> html.classList.toggle('tlp-hide-badge', RX.test(title()));
   apply();
