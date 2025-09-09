@@ -1377,6 +1377,22 @@ init();
   margin-bottom: calc(var(--badge-h) + 12px);
   padding-right: calc(var(--badge-w) + 12px);
 }
+/* ① バッジの概ねサイズ（既にあればそのまま） */
+:root{ --badge-w: 56px; --badge-h: 56px; }
+
+/* ② モバイルでは画面下に常に逃げを確保（全ページ共通） */
+@media (max-width: 600px){
+  body{ padding-bottom: calc(var(--badge-h) + 16px + env(safe-area-inset-bottom,0px)); }
+}
+
+/* ③ ダイアログ内のボタン行も右下に逃げを追加 */
+@media (max-width: 600px){
+  :where([role="dialog"],[aria-modal="true"],.modal,.dialog,.confirm)
+  :where(.actions,.btn-row,.dialog-actions){
+    margin-bottom: calc(var(--badge-h) + 12px);
+    padding-right:  calc(var(--badge-w) + 12px);
+  }
+}
 </style>
 
 <script>
