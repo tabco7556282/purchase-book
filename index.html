@@ -1405,6 +1405,13 @@ init();
   }
 }
 
+/* モバイルだけ：ページ末尾にスペーサーを置いて物理的に押し上げる */
+@media (max-width:768px), (hover:none) and (pointer:coarse){
+  body::after{
+    content:""; display:block;
+    height: calc(var(--badge-h,56px) + 24px + env(safe-area-inset-bottom,0px));
+  }
+}
 </style>
 
 <script>
