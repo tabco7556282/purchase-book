@@ -1359,7 +1359,7 @@ init();
 #tlp-brand-badge{
   position: fixed;
   right: 12px;
-  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--tlp-badge-offset, 12px) + env(safe-area-inset-bottom, 0px));
   z-index: 1000 !important;
   pointer-events: none;
 }
@@ -1499,6 +1499,53 @@ init();
   } catch (e) {
     console.error("[TLP] diag init error", e);
   }
+})();
+</script>
+<script>
+(()=> {
+  const root = document.documentElement;
+  const badge = document.getElementById('tlp-brand-badge');
+  if (!badge) return;
+
+  // 右下でバッジとぶつかりやすい要素の候補（必要なら語を足してOK）
+  const SEL = [
+    '.tlp-form-actions','.form-actions','.footer-actions','.actions','.btn-row',
+    '.action-bar','.button-bar','.buttons','.btns',
+    '.page-controls','.page-footer',
+    '[role="dialog"] .actions','[role="dialog"] .btn-row',
+    '.modal .actions','.dialog .actions'
+  ].join(',');
+
+  const mm = matchMedia('(max-width:768px),(hover:none) and (pointer:coarse)'); // 主にスマホで有効
+  const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
+
+  const update = () => {
+    // PCは固定12px、スマホ等だけ調整
+    if (!mm.matches) { root.style.setProperty('--tlp-badge-offset','12px'); return; }
+
+    const vw = innerWidth, vh = innerHeight;
+    let offset = 12; // 最低オフセット
+
+    document.querySelectorAll(SEL).forEach(el => {
+      const r = el.getBoundingClientRect();
+      // 右端160pxにかかり、かつ下端から64px以内にいる行だけを見る
+      const nearRight  = r.right > (vw - 160);
+      const nearBottom = (vh - r.bottom) < 64;
+      if (nearRight && nearBottom) {
+        // その行の高さぶんだけ持ち上げ（上限96px）
+        offset = Math.max(offset, clamp(Math.ceil(r.height) + 12, 12, 96));
+      }
+    });
+
+    root.style.setProperty('--tlp-badge-offset', offset + 'px');
+  };
+
+  // 反映トリガー（軽量）
+  ['resize','scroll','orientationchange','hashchange','popstate'].forEach(ev => addEventListener(ev, update, {passive:true}));
+  const mo = new MutationObserver(() => update());
+  mo.observe(document.body || root, {childList:true,subtree:true});
+  // 初期実行
+  (document.readyState === 'loading') ? addEventListener('DOMContentLoaded', update) : update();
 })();
 </script>
 
