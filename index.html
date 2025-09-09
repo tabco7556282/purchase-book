@@ -1068,6 +1068,19 @@ init();
   }
   /* EULAが常に最前 */
 .tlp-eula-overlay { z-index: 2000 !important; }
+:root{ --tlp-footer-h: 44px; }
+#tlp-app-footer{
+  position:fixed; left:0; right:0; bottom:0; height:var(--tlp-footer-h);
+  display:flex; gap:.5rem; align-items:center; justify-content:center;
+  padding:6px 12px; font-weight:600; background:rgba(255,255,255,.92);
+  backdrop-filter: blur(8px); z-index:1200; pointer-events:none; /* タップ奪わない */
+}
+@media (max-width:480px){
+  body{ padding-bottom: calc(var(--tlp-footer-h) + env(safe-area-inset-bottom,0px)); }
+}
+@media print{ #tlp-app-footer{ display:none !important; } }
+/* 旧バッジは非表示（重なり防止） */
+#tlp-brand-badge{ display:none !important; }
 
 /* バッジはEULAより下。右下固定＆印刷非表示 */
 #tlp-brand-badge {
