@@ -1373,6 +1373,9 @@ init();
 /* （任意）ページ単位で消したい時は <html> に .tlp-hide-badge を付与 */
 .tlp-hide-badge #tlp-brand-badge{ display: none !important; }
 
+@media (max-width:768px), (hover:none) and (pointer:coarse){
+  :root{ --tlp-badge-offset: 72px; } /* まだ被るなら 88px, 96px に調整 */
+}
 </style>
 
 <script>
