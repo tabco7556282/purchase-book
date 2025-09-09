@@ -1361,9 +1361,19 @@ init();
   right: 12px;display: inline-flex;   /* shrink-to-fit */
   width: max-content;     /* 中身ぴったり幅 */
   max-width: 42vw;        /* 左右の空き保険（必要なら 36〜48vw で調整）*/
-  bottom: calc(var(--tlp-badge-offset, 12px) + env(safe-area-inset-bottom, 0px)) !important;
+  /* 中身に合わせて縮む＆改行許可 */
+#tlp-brand-badge{
+  display: inline-block;
+  width: max-content;
+  white-space: normal;
+  text-align: left;
+}
 
-  z-index: 1000 !important;
+/* 2行レイアウト用 */
+#tlp-brand-badge .tlp-badge-name{ display:block; line-height:1.15; }
+#tlp-brand-badge .tlp-badge-ver { display:block; margin-top:2px; font-size:10px; line-height:1; opacity:.85; }
+bottom: calc(var(--tlp-badge-offset, 12px) + env(safe-area-inset-bottom, 0px)) !important;
+　z-index: 1000 !important;
   pointer-events: none;
 }
 
@@ -1586,30 +1596,33 @@ header, .app-header, .tlp-header { position: relative; }
   const badge  = document.getElementById('tlp-brand-badge');
   if (!header || !badge) return;
 
-  // 旧バージョン pill を隠す（近いラッパーごと）
-  const verNode = [...header.querySelectorAll('a,button,span,div')].find(el =>
-    /\bv\d+(\.\d+){1,2}\b/i.test((el.textContent||'').trim())
-  );
-  if (verNode){
-    (verNode.closest('a,button,div,span') || verNode)
-      .style.setProperty('display','none','important');
-  }
+  // 旧バージョン pill を確実に非表示
+  [...header.querySelectorAll('a,button,span,div')].forEach(el=>{
+    const txt=(el.textContent||'').trim();
+    if (/\bv\d+(\.\d+){1,2}\b/i.test(txt)) {
+      (el.closest('a,button,div,span')||el).style.setProperty('display','none','important');
+    }
+  });
 
-  // 「ホーム」ボタンを右上へ移動（非表示ではなく移動）
-  const homeBtn = [...header.querySelectorAll('a,button')].find(el =>
-    /ホーム|Home/.test((el.textContent||'').trim())
-  );
+  // 「ホーム」を右上へ移動（非表示ではなく移動）
+  const homeBtn = [...header.querySelectorAll('a,button')].find(el=>/ホーム|Home/.test((el.textContent||'').trim()));
   if (homeBtn){
-    homeBtn.classList.add('tlp-home-moved');  // 位置はCSSで指定
+    homeBtn.classList.add('tlp-home-moved');
     header.appendChild(homeBtn);
   }
 
-  // バッジをヘッダー内へ／末尾の vX.Y[.Z] を2行目へ
+  // バッジをヘッダー内へ（あれば移動）
   header.appendChild(badge);
-  if (!badge.querySelector('.tlp-badge-ver')){
-    badge.innerHTML = (badge.textContent||'')
-      .replace(/\s*(v\d+\.\d+(?:\.\d+)?)/i,'<span class="tlp-badge-ver">$1</span>');
-  }
+
+  // バッジ文言を“必ず”2行に再構成（安全にパース）
+  const raw = (badge.textContent||'').replace(/\s+/g,' ').trim();
+  const m   = raw.match(/^(.*?)[\s·]*\b(v\d+(?:\.\d+){1,2})\b$/i);
+  const name = (m? m[1] : raw).trim().replace(/\s+$/,'');
+  const ver  = (m? m[2] : '').trim();
+  badge.innerHTML =
+    `<span class="tlp-badge-name">${name}</span>` +
+    (ver ? `<span class="tlp-badge-ver">${ver}</span>` : '');
+
 })();
 </script>
 
