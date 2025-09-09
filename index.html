@@ -1059,6 +1059,9 @@ init();
     z-index: 2147483647;
     padding:16px;
   }
+  #tlp-app-footer{ position:fixed; left:0; right:0; bottom:0; z-index:1200; pointer-events:none; }
+@media print{ #tlp-app-footer{ display:none !important; } }
+
   .tlp-eula-overlay.is-open{ display:flex; }
   .tlp-eula-dialog{
     width:100%; max-width:720px; border-radius:16px; overflow:hidden;
@@ -1072,7 +1075,7 @@ init();
 /* バッジはEULAより下。右下固定＆印刷非表示 */
 #tlp-brand-badge {
   position: fixed; right: 12px; bottom: 12px;
-  z-index: 1000;pointer-events: none;
+  z-index: 1000;
 
 }
 @media print { #tlp-brand-badge { display: none !important; } }
@@ -1468,28 +1471,20 @@ init();
   }
 })();
 </script>
+<div id="tlp-app-footer"></div>
 <script>
-(() => {
-  const run = (fn) => (document.readyState !== 'loading') ? fn() : document.addEventListener('DOMContentLoaded', fn);
-  run(() => {
-    const badge = document.getElementById('tlp-brand-badge');
-    if (!badge) return;
-
-    // よくある“保存/クリア”行っぽい候補を順に探す（どれか1つ見つかればOK）
-    const bar = document.querySelector('.tlp-form-actions, .form-actions, .footer-actions, .actions, .btn-row');
-    if (bar) {
-      // アクションバー内の右下へ「相対配置」で吸着
-      if (getComputedStyle(bar).position === 'static') bar.style.position = 'relative';
-      Object.assign(badge.style, { position: 'absolute', right: '8px', bottom: '8px', zIndex: '1' });
-      badge.style.pointerEvents = 'none';
-      bar.appendChild(badge);
-    } else {
-      // 見つからないページは従来どおりだが、下端から持ち上げて被り回避
-      Object.assign(badge.style, { position: 'fixed', right: '12px', bottom: '72px', zIndex: '1000' });
-      badge.style.pointerEvents = 'none';
-    }
-  });
-})();
+document.addEventListener('DOMContentLoaded', () => {
+  const footer = document.getElementById('tlp-app-footer');
+  const header = document.querySelector('header, .app-header, .tlp-header');
+  const badge  = document.getElementById('tlp-brand-badge');
+  if (!footer || !header || !badge) return;
+  const hs = getComputedStyle(header);
+  footer.style.backgroundColor = hs.backgroundColor;
+  footer.style.height = header.offsetHeight + 'px';
+  document.body.style.paddingBottom = footer.style.height;
+  footer.appendChild(badge); // バッジをフッター内へ
+});
 </script>
+
 
 
