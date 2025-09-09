@@ -1067,7 +1067,20 @@ init();
   position:absolute !important; right:12px;
   bottom: calc(env(safe-area-inset-bottom,0px) + 0px);
   margin:0; pointer-events:none;
+}:root{ --z-eula:2147483647; --z-modal:3000; --z-actions:2000; --z-footer:1100; --z-badge:1000; }
+
+#tlp-app-footer{ z-index: var(--z-footer) !important; }           /* フッターは下位 */
+#tlp-brand-badge{ z-index: var(--z-badge) !important; pointer-events:none; }
+
+:where(.modal,.dialog,.popup,.confirm,.sheet,.drawer){
+  position: fixed; z-index: var(--z-modal) !important;            /* ダイアログを前へ */
 }
+
+:where(.tlp-form-actions,.form-actions,.footer-actions,.actions,.btn-row){
+  position: sticky; bottom: calc(var(--tlp-footer-h) + 4px);       /* ボタン行を持上げ */
+  z-index: var(--z-actions) !important;
+}
+
   body{ padding-bottom: calc(var(--tlp-footer-h) + env(safe-area-inset-bottom,0px)); }
 @media print{ #tlp-app-footer{ display:none !important; } }
 
