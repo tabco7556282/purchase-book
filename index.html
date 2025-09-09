@@ -1393,6 +1393,14 @@ init();
          .action-bar,.button-bar,.buttons,.btns,.page-controls,.page-footer){
     bottom: calc(var(--badge-h) + 12px) !important; /* sticky/fixed に効く */
   }
+/* 貼り付く下部アクション行を一括で“バッジ分だけ”上へ */
+  :where(.tlp-form-actions,.form-actions,.footer-actions,.actions,.btn-row,
+         .action-bar,.button-bar,.buttons,.btns,.page-controls,.page-footer,
+         [class*="action"],[class*="footer"],[class*="button-bar"],[class*="btn-row"]){
+    bottom: calc(var(--badge-h) + 12px) !important;   /* sticky/fixed に効く */
+    margin-bottom: calc(var(--badge-h) + 12px) !important; /* staticでも逃げを確保 */
+    padding-right: calc(var(--badge-w) + 16px) !important; /* 右下も逃げ */
+  }
 }
 </style>
 
