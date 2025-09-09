@@ -1337,7 +1337,8 @@ init();
       }
     `;
     document.head.appendChild(style);
-    document.body.appendChild(b);
+    (document.querySelector('header, .app-header, .tlp-header') || document.body).appendChild(b);
+
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', mountBadge);
@@ -1414,7 +1415,15 @@ header, .app-header, .tlp-header { position: relative; }
 }
 .tlp-home-moved{ position:absolute; right:12px; top:8px; }
 #tlp-brand-badge .tlp-badge-ver{ display:block; margin-top:2px; font-size:10px; line-height:1; opacity:.85; }
-
+/* ヘッダー内に入っている時は、ヘッダー基準で絶対配置 */
+:is(header,.app-header,.tlp-header){ position: relative; } /* 既存に影響ほぼなし */
+:is(header,.app-header,.tlp-header) #tlp-brand-badge{
+  position: absolute;
+  top: 4px;           /* もっと上げたければ 2px などに */
+  left: 12px;
+  right: auto;
+  bottom: auto !important;
+}
 </style>
 
 <script>
