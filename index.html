@@ -1316,12 +1316,12 @@ init();
     if (document.getElementById('tlp-brand-badge')) return;
     const b = document.createElement('div');
     b.id = 'tlp-brand-badge';
-    b.innerHTML = `
-      <span class="name">${__tlp_meta.brand}<sup class="tm">TM</sup></span>
-      <span class="ver">v${__tlp_meta.version}</span>
-    `;
+   b.innerHTML = `
+  <span class="tlp-badge-name">${__tlp_meta.brand}<sup class="tm">TM</sup></span>
+  <span class="tlp-badge-ver">v${__tlp_meta.version}</span>
+`;
     Object.assign(b.style, {
-      position:'fixed', right:'12px', bottom:'10px', zIndex:'2147483647',
+      position:'fixed', right:'12px',
       padding:'6px 10px', borderRadius:'12px',
       background:'#fff', color:'#111',
       boxShadow:'0 2px 10px rgba(0,0,0,.12)',
@@ -1329,9 +1329,9 @@ init();
     });
     const style = document.createElement('style');
     style.textContent = `
-      #tlp-brand-badge .name{font-weight:600;margin-right:8px}
-      #tlp-brand-badge .tm{font-size:9px;margin-left:2px;opacity:.7}
-      #tlp-brand-badge .ver{opacity:.75}
+      #tlp-brand-badge{ display:inline-block; width:max-content; white-space:normal; text-align:left; }
+#tlp-brand-badge .tlp-badge-name{ display:block; line-height:1.15; }
+#tlp-brand-badge .tlp-badge-ver { display:block; margin-top:2px; font-size:10px; line-height:1; opacity:.85; }
       @media (prefers-color-scheme: dark){
         #tlp-brand-badge{background:#121212;color:#f5f5f5;box-shadow:0 3px 12px rgba(0,0,0,.6)}
       }
@@ -1357,14 +1357,16 @@ init();
 
 /* バッジ本体（単一ソース・重複禁止） */
 #tlp-brand-badge{
- position: fixed;
-  right: 12px;display: inline-flex;   /* shrink-to-fit */
-  width: max-content;     /* 中身ぴったり幅 */
-  max-width: 42vw;        /* 左右の空き保険（必要なら 36〜48vw で調整）*/
-  /* 中身に合わせて縮む＆改行許可 */
-#tlp-brand-badge{
-  display: inline-block;
+  position: fixed;
+  right: 12px;
+  bottom: calc(var(--tlp-badge-offset, 12px) + env(safe-area-inset-bottom, 0px)) !important;
+  z-index: 1000 !important;
+  pointer-events: none;
+
+  /* 見た目 */
+  display: inline-block;          /* ← inline-flex は不要 */
   width: max-content;
+  max-width: 42vw;                /* 必要なら 36–48vw で微調整 */
   white-space: normal;
   text-align: left;
 }
@@ -1372,6 +1374,7 @@ init();
 /* 2行レイアウト用 */
 #tlp-brand-badge .tlp-badge-name{ display:block; line-height:1.15; }
 #tlp-brand-badge .tlp-badge-ver { display:block; margin-top:2px; font-size:10px; line-height:1; opacity:.85; }
+
 bottom: calc(var(--tlp-badge-offset, 12px) + env(safe-area-inset-bottom, 0px)) !important;
 　z-index: 1000 !important;
   pointer-events: none;
