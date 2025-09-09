@@ -1506,15 +1506,16 @@ init();
   const html = document.documentElement;
 
   // 表示を許可する「ページ名（見出し）」と「URLキーワード」
-  const SHOW_TITLE = /^(ホーム|バックアップ設定|ライセンス)$/;  // 表示を許可
-const SHOW_URL   = /\/(home|backup|license)(?:\/|$)/i;
+const SHOW_TITLE = /ホーム|Home|トップ|Top|ダッシュボード|Dashboard|バックアップ設定|ライセンス/i;
+const SHOW_URL   = /(home|top|dashboard|backup|license|index)(?:\/|$)|^https?:\/\/[^/]+\/?$/i;
 
-const HIDE_TITLE = /データ出力|出力|エクスポート/i;            // 必ず隠す
+const HIDE_TITLE = /データ出力|出力|エクスポート/i;
 const HIDE_URL   = /(export|download|csv)/i;
 
-const getT = () => (document.querySelector('h1,.page-title,.title,h2,h3')?.textContent||'').trim();
-const shouldShow = () => (SHOW_TITLE.test(getT()) || SHOW_URL.test(location.href)) && !(HIDE_TITLE.test(getT()) || HIDE_URL.test(location.href));
-const apply = () => html.classList.toggle('tlp-hide-badge', !shouldShow());
+const getT = () => (document.querySelector('h1,.page-title,.title,h2,h3')?.textContent||'').replace(/\s+/g,'').trim();
+const shouldShow = () => (SHOW_TITLE.test(getT()) || SHOW_URL.test(location.href))
+                        && !(HIDE_TITLE.test(getT()) || HIDE_URL.test(location.href));
+const apply = () => document.documentElement.classList.toggle('tlp-hide-badge', !shouldShow());
 
   const run = (fn) => (document.readyState !== 'loading')
     ? fn()
