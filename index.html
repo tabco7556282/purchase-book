@@ -1500,38 +1500,48 @@ init();
     console.error("[TLP] diag init error", e);
   }
 })();
-</script>
-<script>
-(() => {
+</script><script>
+(()=> {
   const html = document.documentElement;
+  const ORIG_TITLE = document.title;                 // 元タイトルを保持
+  const rxExport = /出力|エクスポート|CSV|Download|Export/i;
 
-  // 表示を許可する「ページ名（見出し）」と「URLキーワード」
-const SHOW_TITLE = /ホーム|Home|トップ|Top|ダッシュボード|Dashboard|バックアップ設定|ライセンス/i;
-const SHOW_URL   = /(home|top|dashboard|backup|license|index)(?:\/|$)|^https?:\/\/[^/]+\/?$/i;
+  // 出力ダイアログらしきものを検知
+  const findExportDialog = () =>
+    document.querySelector('[role="dialog"],[aria-modal="true"],.modal,.dialog,.confirm');
 
-const HIDE_TITLE = /データ出力|出力|エクスポート/i;
-const HIDE_URL   = /(export|download|csv)/i;
+  const isExportContext = () => {
+    const dlg = findExportDialog();
+    if (!dlg) return false;
+    const txt = (dlg.textContent || '') + ' ' + (dlg.className || '') + ' ' + (dlg.id || '');
+    return rxExport.test(txt);
+  };
 
-const getT = () => (document.querySelector('h1,.page-title,.title,h2,h3')?.textContent||'').replace(/\s+/g,'').trim();
-const shouldShow = () => (SHOW_TITLE.test(getT()) || SHOW_URL.test(location.href))
-                        && !(HIDE_TITLE.test(getT()) || HIDE_URL.test(location.href));
-const apply = () => document.documentElement.classList.toggle('tlp-hide-badge', !shouldShow());
+  const apply = () => {
+    const exporting = isExportContext();
+    // URLの状態を反映（同一URLでも #export を付与／除去）
+    const hasHash = location.hash === '#export';
+    if (exporting && !hasHash) history.replaceState({}, '', location.pathname + location.search + '#export');
+    if (!exporting && hasHash) history.replaceState({}, '', location.pathname + location.search);
 
-  const run = (fn) => (document.readyState !== 'loading')
-    ? fn()
-    : document.addEventListener('DOMContentLoaded', fn);
+    // タイトルも出力中は一時変更、終了で元に戻す
+    document.title = exporting ? `【出力】${ORIG_TITLE}` : ORIG_TITLE;
 
-  run(() => {
-    apply();
-    // SPA対策：DOM変化・URL変化のたびに再判定
-    new MutationObserver(apply).observe(document.body || html, { childList:true, subtree:true });
-    addEventListener('hashchange', apply);
-    addEventListener('popstate', apply);
-    // 最後の保険（稀にタイトルが遅延で差し替わる場合）
-    setInterval(apply, 1000);
-  });
+    // バッジの表示/非表示（CSS側：.tlp-hide-badge #tlp-brand-badge{display:none!important;}）
+    html.classList.toggle('tlp-hide-badge', exporting);
+  };
+
+  // 監視（ダイアログ出入り・属性変化に追随）
+  const mo = new MutationObserver(apply);
+  const start = () => mo.observe(document.body, {subtree:true, childList:true, attributes:true});
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { apply(); start(); });
+  else { apply(); start(); }
+
+  addEventListener('hashchange', apply);
+  addEventListener('popstate', apply);
 })();
 </script>
+
 
 
 
