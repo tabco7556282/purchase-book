@@ -1356,66 +1356,39 @@ init();
     #tlp-brand-badge{ font-size:11px; padding:6px 8px; opacity:.9; }
   }
  #tlp-brand-badge{ z-index: 1000 !important; }
-/* バッジは最前面ではなく、モーダルよりさらに下へ */
+/* --- TLP バッジ：単一の真実 --- */
 #tlp-brand-badge{
-  z-index: 1000 !important;                          /* ← 2147483000 を 1000 に */
+  position: fixed;
+  right: 12px;
   bottom: calc(12px + env(safe-area-inset-bottom,0px));
+  z-index: 1000 !important;
   pointer-events: none;
 }
-/* バッジの概ねの実寸（必要なら数値だけ後で微調整） */
-:root{ --badge-w: 56px; --badge-h: 56px; }
 
-/* 画面右下のバッジに “物理的に” かぶらない逃げを作る */
-:where(.tlp-form-actions,.form-actions,.footer-actions,.actions,.btn-row){
-  margin-bottom: calc(var(--badge-h) + 12px);
-  padding-right: calc(var(--badge-w) + 12px);
-}
-
-/* ダイアログ内のボタン行にも同じ逃げを適用 */
-:where([role="dialog"],[aria-modal="true"],.modal,.dialog,.popup,.confirm)
-  :where(.actions,.btn-row,.dialog-actions){
-  margin-bottom: calc(var(--badge-h) + 12px);
-  padding-right: calc(var(--badge-w) + 12px);
-}
-/* ① バッジの概ねサイズ（既にあればそのまま） */
-:root{ --badge-w: 56px; --badge-h: 56px; }
-
-/* ② モバイルでは画面下に常に逃げを確保（全ページ共通） */
-@media (max-width: 600px){
-  body{ padding-bottom: calc(var(--badge-h) + 16px + env(safe-area-inset-bottom,0px)); }
-}
-
-/* ③ ダイアログ内のボタン行も右下に逃げを追加 */
-@media (max-width: 600px){
-  :where([role="dialog"],[aria-modal="true"],.modal,.dialog,.confirm)
-  :where(.actions,.btn-row,.dialog-actions){
-    margin-bottom: calc(var(--badge-h) + 12px);
-    padding-right:  calc(var(--badge-w) + 12px);
-  }
-}
-/* A) バッジの概寸（必要なら数値だけ後で微調整） */
+/* --- バッジ実寸（必要なら数値だけ調整） --- */
 :root{ --badge-w:56px; --badge-h:56px; }
 
-/* B) モバイルはページ最下部に常時スペーサーを置く（全ページ共通） */
+/* --- モバイル時の“物理的に被らない”逃げ（クロスブラウザ） --- */
 @media (max-width:600px){
-  body::after{ content:""; display:block;
-    height: calc(var(--badge-h) + 16px); /* ←下端の逃げ */
+  /* A: よくある“スクロール親”に下余白を確保 */
+  html, body,
+  :where(#app,#root,main,.app,.main,.page,.content,.container,.view,.panel,.wrapper,
+         .scroll,.scroller,.list,.lists,.body,.screen,.layout){
+    padding-bottom: calc(var(--badge-h) + 20px) !important;
+  }
+  /* B: 下部のボタン列は右下に逃げ */
+  :where(.tlp-form-actions,.form-actions,.footer-actions,.actions,.btn-row,
+         .action-bar,.button-bar,.buttons,.btns){
+    padding-right: calc(var(--badge-w) + 16px) !important;
+    margin-bottom: 12px !important;
+  }
+  /* C: ダイアログ内のボタン列も逃がす */
+  :where([role="dialog"],[aria-modal="true"],.modal,.dialog,.confirm)
+  :where(.actions,.btn-row,.dialog-actions,.button-bar,.buttons){
+    padding-right: calc(var(--badge-w) + 16px) !important;
+    margin-bottom: 12px !important;
   }
 }
-
-/* C) 送信ボタン自体にも少し逃げ（親のクラス名に依存しない） */
-@media (max-width:600px){
-  form :where(button[type="submit"],input[type="submit"]){
-    margin-bottom: calc(var(--badge-h) + 8px);
-    padding-right: calc(var(--badge-w) + 12px);
-  }
-}
-
-/* D) ダイアログ系：ラッパごと下パディングを増やし、右下も逃がす */
-@media (max-width:600px){
-  :where([role="dialog"],[aria-modal="true"],.modal,.dialog,.confirm){
-    padding-bottom: calc(var(--badge-h) + 16px); /* 下へ余白を足す */
-  }
   :where([role="dialog"],[aria-modal="true"],.modal,.dialog,.confirm)
   :where(.actions,.btn-row,.dialog-actions){
     padding-right: calc(var(--badge-w) + 12px);  /* 右下の逃げ */
