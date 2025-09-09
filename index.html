@@ -1059,29 +1059,7 @@ init();
     z-index: 2147483647;
     padding:16px;
   }
-#tlp-app-footer{
-  position:fixed; left:0; right:0; bottom:0;
-  height: calc(var(--tlp-footer-h) + env(safe-area-inset-bottom,0px));
-  z-index:1200; pointer-events:none;
-}#tlp-app-footer #tlp-brand-badge{
-  position:absolute !important; right:12px;
-  bottom: calc(env(safe-area-inset-bottom,0px) + 0px);
-  margin:0; pointer-events:none;
-}:root{ --z-eula:2147483647; --z-modal:3000; --z-actions:2000; --z-footer:1100; --z-badge:1000; }
 
-#tlp-app-footer{ z-index: var(--z-footer) !important; }           /* フッターは下位 */
-#tlp-brand-badge{ z-index: var(--z-badge) !important; pointer-events:none; }
-
-:where(.modal,.dialog,.popup,.confirm,.sheet,.drawer){
-  position: fixed; z-index: var(--z-modal) !important;            /* ダイアログを前へ */
-}
-
-:where(.tlp-form-actions,.form-actions,.footer-actions,.actions,.btn-row){
-  position: sticky; bottom: calc(var(--tlp-footer-h) + 4px);       /* ボタン行を持上げ */
-  z-index: var(--z-actions) !important;
-}
-
-  body{ padding-bottom: calc(var(--tlp-footer-h) + env(safe-area-inset-bottom,0px)); }
 @media print{ #tlp-app-footer{ display:none !important; } }
 
   .tlp-eula-overlay.is-open{ display:flex; }
@@ -1096,9 +1074,7 @@ init();
 
 /* バッジはEULAより下。右下固定＆印刷非表示 */
 #tlp-brand-badge {
-  position: fixed; right: 12px; bottom: 12px;
-  z-index: 1000;
-
+  position: fixed; right: 12px; bottom: 12px;z-index: 1000;pointer-events: none;
 }
 @media print { #tlp-brand-badge { display: none !important; } }
 
@@ -1492,25 +1468,6 @@ init();
     console.error("[TLP] diag init error", e);
   }
 })();
-</script>
-<div id="tlp-app-footer"></div>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const footer = document.getElementById('tlp-app-footer');
-  const header = document.querySelector('header, .app-header, .tlp-header');
-  const badge  = document.getElementById('tlp-brand-badge');
-  if (!footer || !header || !badge) return;
- if (header) footer.style.backgroundColor = getComputedStyle(header).backgroundColor;
-footer.appendChild(badge); // 先にフッターへ移す（実寸が取れるように）
-
-const setH = () => {
-  const h = badge.offsetHeight || 0; // バッジの実寸
-  document.documentElement.style.setProperty('--tlp-footer-h', h + 'px'); // フッター＝バッジ高
-};
-setH();
-window.addEventListener('resize', setH);
-window.addEventListener('load', setH);
-
 </script>
 
 
