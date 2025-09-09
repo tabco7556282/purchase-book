@@ -1376,6 +1376,18 @@ init();
 @media (max-width:768px), (hover:none) and (pointer:coarse){
   :root{ --tlp-badge-offset: 72px; } /* まだ被るなら 88px, 96px に調整 */
 }
+/* ── モバイル：右上・ヘッダー直下／細身に ── */
+@media (max-width:768px), (hover:none) and (pointer:coarse){
+  #tlp-brand-badge{
+    top:  calc(56px + env(safe-area-inset-top,0px)); /* ヘッダーの下。必要なら 64px に */
+    bottom: auto !important;                         /* 右上へ移動（下固定を無効化） */
+    right: 12px;
+
+    font-size: 10px;         /* 細く */
+    padding: 4px 6px;        /* コンパクト */
+    opacity: .75;            /* 目立ちすぎ防止（任意） */
+  }
+}
 </style>
 
 <script>
