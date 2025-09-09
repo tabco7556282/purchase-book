@@ -1501,45 +1501,7 @@ init();
   }
 })();
 </script>
- <script>
-(()=> {
-  const html = document.documentElement;
 
-  // 表示を許可するページ（タイトル/URLのゆるめ一致）
-  const SHOW_TITLE = /ホーム|Home|トップ|Top|ダッシュボード|Dashboard|バックアップ設定|ライセンス/i;
-  const SHOW_URL   = /(home|top|dashboard|backup|license|index)(?:\/|$)|^https?:\/\/[^/]+\/?$/i;
-
-  // 出力系の“画面状態”を最優先で判定（URL/タイトルは変更しない）
-  const RX_OUT = /出力|エクスポート|ダウンロード|CSV|Export|Download/i;
-  const isOutputContext = () => {
-    const dlg = document.querySelector('[role="dialog"],[aria-modal="true"],.modal,.dialog,.confirm');
-    if (dlg && RX_OUT.test((dlg.textContent||'') + ' ' + (dlg.className||'') + ' ' + (dlg.id||''))) return true;
-    for (const el of document.querySelectorAll('button,[role="button"],a,.btn,.button')){
-      const t = (el.textContent||'').trim();
-      if (t && RX_OUT.test(t)) return true;
-    }
-    return false;
-  };
-
-  const getTitle = () =>
-    (document.querySelector('h1,.page-title,.title,h2,h3')?.textContent || '').replace(/\s+/g,'').trim();
-
-  // 「許可ページ」かつ「出力コンテキストではない」= 表示、それ以外は非表示
-  const shouldShow = () => (SHOW_TITLE.test(getTitle()) || SHOW_URL.test(location.href)) && !isOutputContext();
-  const apply = () => html.classList.toggle('tlp-hide-badge', !shouldShow());
-
-  const init = () => {
-    apply();
-    new MutationObserver(apply).observe(document.body || html, { childList:true, subtree:true, attributes:true });
-    addEventListener('hashchange', apply);
-    addEventListener('popstate', apply);
-    setInterval(apply, 1000); // SPAの遅延更新への保険
-  };
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
-})();
-</script>
 
 
 
