@@ -1068,19 +1068,6 @@ init();
   }
   /* EULAが常に最前 */
 .tlp-eula-overlay { z-index: 2000 !important; }
-:root{ --tlp-footer-h: 44px; }
-#tlp-app-footer{
-  position:fixed; left:0; right:0; bottom:0; height:var(--tlp-footer-h);
-  display:flex; gap:.5rem; align-items:center; justify-content:center;
-  padding:6px 12px; font-weight:600; background:rgba(255,255,255,.92);
-  backdrop-filter: blur(8px); z-index:1200; pointer-events:none; /* タップ奪わない */
-}
-@media (max-width:480px){
-  body{ padding-bottom: calc(var(--tlp-footer-h) + env(safe-area-inset-bottom,0px)); }
-}
-@media print{ #tlp-app-footer{ display:none !important; } }
-/* 旧バッジは非表示（重なり防止） */
-#tlp-brand-badge{ display:none !important; }
 
 /* バッジはEULAより下。右下固定＆印刷非表示 */
 #tlp-brand-badge {
@@ -1341,7 +1328,8 @@ init();
   #tlp-brand-badge{
     z-index: 2147483000 !important;           /* EULAの 2147483647 より下 */
     bottom: calc(10px + env(safe-area-inset-bottom)); /* iPhoneの安全領域対応 */
-  }
+  pointer-events: none;
+}
   /* モーダルやEULA表示中は隠す（クリック邪魔防止） */
   .tlp-modal-open #tlp-brand-badge{ display:none !important; }
   /* 印刷時は非表示 */
@@ -1480,5 +1468,28 @@ init();
   }
 })();
 </script>
-<div id="tlp-app-footer"><span>Tabco Ledger Plus ™</span><span class="ver">v0.8.0</span></div>
+<script>
+(() => {
+  const run = (fn) => (document.readyState !== 'loading') ? fn() : document.addEventListener('DOMContentLoaded', fn);
+  run(() => {
+    const badge = document.getElementById('tlp-brand-badge');
+    if (!badge) return;
+
+    // よくある“保存/クリア”行っぽい候補を順に探す（どれか1つ見つかればOK）
+    const bar = document.querySelector('.tlp-form-actions, .form-actions, .footer-actions, .actions, .btn-row');
+    if (bar) {
+      // アクションバー内の右下へ「相対配置」で吸着
+      if (getComputedStyle(bar).position === 'static') bar.style.position = 'relative';
+      Object.assign(badge.style, { position: 'absolute', right: '8px', bottom: '8px', zIndex: '1' });
+      badge.style.pointerEvents = 'none';
+      bar.appendChild(badge);
+    } else {
+      // 見つからないページは従来どおりだが、下端から持ち上げて被り回避
+      Object.assign(badge.style, { position: 'fixed', right: '12px', bottom: '72px', zIndex: '1000' });
+      badge.style.pointerEvents = 'none';
+    }
+  });
+})();
+</script>
+
 
