@@ -1357,8 +1357,10 @@ init();
 
 /* バッジ本体（単一ソース・重複禁止） */
 #tlp-brand-badge{
-  position: fixed;
-  right: 12px;
+ position: fixed;
+  right: 12px;display: inline-flex;   /* shrink-to-fit */
+  width: max-content;     /* 中身ぴったり幅 */
+  max-width: 42vw;        /* 左右の空き保険（必要なら 36〜48vw で調整）*/
   bottom: calc(var(--tlp-badge-offset, 12px) + env(safe-area-inset-bottom, 0px)) !important;
 
   z-index: 1000 !important;
@@ -1396,6 +1398,8 @@ header, .app-header, .tlp-header { position: relative; }
   font-size: 10px; line-height: 1;
   opacity: .85;
 }
+.tlp-home-moved{ position:absolute; right:12px; top:8px; }
+#tlp-brand-badge .tlp-badge-ver{ display:block; margin-top:2px; font-size:10px; line-height:1; opacity:.85; }
 
 </style>
 
@@ -1582,24 +1586,33 @@ header, .app-header, .tlp-header { position: relative; }
   const badge  = document.getElementById('tlp-brand-badge');
   if (!header || !badge) return;
 
-  // 旧バージョン表示を隠す（「vX.Y( .Z)」だけのピルを検出）
-  const verPill = [...header.querySelectorAll('*')]
-    .find(el => /^\s*v\d+(\.\d+){1,2}\s*$/i.test(el.textContent.trim()));
-  if (verPill) verPill.style.display = 'none';
+  // 旧バージョン pill を隠す（近いラッパーごと）
+  const verNode = [...header.querySelectorAll('a,button,span,div')].find(el =>
+    /\bv\d+(\.\d+){1,2}\b/i.test((el.textContent||'').trim())
+  );
+  if (verNode){
+    (verNode.closest('a,button,div,span') || verNode)
+      .style.setProperty('display','none','important');
+  }
 
-  // 「← ホーム」ボタンを隠す（テキスト一致でゆるく）
-  const homeBtn = [...header.querySelectorAll('a,button')]
-    .find(el => /ホーム|Home/.test(el.textContent));
-  if (homeBtn) homeBtn.style.display = 'none';
+  // 「ホーム」ボタンを右上へ移動（非表示ではなく移動）
+  const homeBtn = [...header.querySelectorAll('a,button')].find(el =>
+    /ホーム|Home/.test((el.textContent||'').trim())
+  );
+  if (homeBtn){
+    homeBtn.classList.add('tlp-home-moved');  // 位置はCSSで指定
+    header.appendChild(homeBtn);
+  }
 
-  // バッジをヘッダー内へ移動
+  // バッジをヘッダー内へ／末尾の vX.Y[.Z] を2行目へ
   header.appendChild(badge);
-
-  // バッジ文言を縦積み化（末尾の vX.Y[.Z] を 2行目に）
-  const t = badge.textContent;
-  badge.innerHTML = t.replace(/\s*(v\d+\.\d+(?:\.\d+)?)/i,'<span class="tlp-badge-ver">$1</span>');
+  if (!badge.querySelector('.tlp-badge-ver')){
+    badge.innerHTML = (badge.textContent||'')
+      .replace(/\s*(v\d+\.\d+(?:\.\d+)?)/i,'<span class="tlp-badge-ver">$1</span>');
+  }
 })();
 </script>
+
 
 
 
