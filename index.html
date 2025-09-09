@@ -1362,21 +1362,22 @@ init();
   bottom: calc(12px + env(safe-area-inset-bottom,0px));
   pointer-events: none;
 }
-/* バッジは一番下の層に落とす（見た目だけ後ろへ） */
-#tlp-brand-badge{ z-index: 10 !important; pointer-events: none; }
+/* バッジの概ねの実寸（必要なら数値だけ後で微調整） */
+:root{ --badge-w: 56px; --badge-h: 56px; }
 
-/* ダイアログは前へ（位置は変えない） */
-:where([role="dialog"],[aria-modal="true"],.modal,.dialog,.popup,.confirm){
-  z-index: 3000 !important;
+/* 画面右下のバッジに “物理的に” かぶらない逃げを作る */
+:where(.tlp-form-actions,.form-actions,.footer-actions,.actions,.btn-row){
+  margin-bottom: calc(var(--badge-h) + 12px);
+  padding-right: calc(var(--badge-w) + 12px);
 }
 
-/* 保存/クリアの行はダイアログに次ぐ前面へ（位置は変えない） */
-:where(.tlp-form-actions,.form-actions,.footer-actions,.actions,.btn-row){
-  position: relative; /* stacking context 作成 */
-  z-index: 2000 !important;
+/* ダイアログ内のボタン行にも同じ逃げを適用 */
+:where([role="dialog"],[aria-modal="true"],.modal,.dialog,.popup,.confirm)
+  :where(.actions,.btn-row,.dialog-actions){
+  margin-bottom: calc(var(--badge-h) + 12px);
+  padding-right: calc(var(--badge-w) + 12px);
 }
 </style>
-
 
 <script>
 (function(){
