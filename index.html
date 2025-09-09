@@ -1501,6 +1501,17 @@ init();
   }
 })();
 </script>
+<script>
+(()=> {
+  const RX=/仕入|履歴|集計/;               // ← 非表示にしたいページ語をここで指定
+  const html=document.documentElement;
+  const title=()=> (document.querySelector('h1,.page-title,.title,h2,h3')?.textContent||'').trim();
+  const apply=()=> html.classList.toggle('tlp-hide-badge', RX.test(title()));
+  apply();
+  new MutationObserver(apply).observe(document.body,{childList:true,subtree:true});
+  addEventListener('hashchange',apply); addEventListener('popstate',apply);
+})();
+</script>
 
 
 
