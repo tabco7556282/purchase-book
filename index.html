@@ -1072,7 +1072,8 @@ init();
 /* バッジはEULAより下。右下固定＆印刷非表示 */
 #tlp-brand-badge {
   position: fixed; right: 12px; bottom: 12px;
-  z-index: 1000;
+  z-index: 1000;pointer-events: none;
+
 }
 @media print { #tlp-brand-badge { display: none !important; } }
 
@@ -1328,7 +1329,6 @@ init();
   #tlp-brand-badge{
     z-index: 2147483000 !important;           /* EULAの 2147483647 より下 */
     bottom: calc(10px + env(safe-area-inset-bottom)); /* iPhoneの安全領域対応 */
-  pointer-events: none;
 }
   /* モーダルやEULA表示中は隠す（クリック邪魔防止） */
   .tlp-modal-open #tlp-brand-badge{ display:none !important; }
