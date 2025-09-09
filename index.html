@@ -1052,15 +1052,23 @@ init();
 </div>
 
 <style>
-  :root{ color-scheme: light dark; }
+  :root{ color-scheme: light dark; --tlp-footer-h: 0px; }
   .tlp-eula-overlay{
     position:fixed; inset:0; display:none; align-items:center; justify-content:center;
     background: rgba(15,23,42,.60); /* slate系の暗幕 */
     z-index: 2147483647;
     padding:16px;
   }
-  #tlp-app-footer{ position:fixed; left:0; right:0; bottom:0; z-index:1200; pointer-events:none; }
-  body{ padding-bottom: calc(var(--tlp-footer-h, 56px) + 24px + env(safe-area-inset-bottom,0px)); }
+#tlp-app-footer{
+  position:fixed; left:0; right:0; bottom:0;
+  height: calc(var(--tlp-footer-h) + env(safe-area-inset-bottom,0px));
+  z-index:1200; pointer-events:none;
+}#tlp-app-footer #tlp-brand-badge{
+  position:absolute !important; right:12px;
+  bottom: calc(env(safe-area-inset-bottom,0px) + 0px);
+  margin:0; pointer-events:none;
+}
+  body{ padding-bottom: calc(var(--tlp-footer-h) + env(safe-area-inset-bottom,0px)); }
 @media print{ #tlp-app-footer{ display:none !important; } }
 
   .tlp-eula-overlay.is-open{ display:flex; }
@@ -1479,12 +1487,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const header = document.querySelector('header, .app-header, .tlp-header');
   const badge  = document.getElementById('tlp-brand-badge');
   if (!footer || !header || !badge) return;
-  const hs = getComputedStyle(header);
-  footer.style.backgroundColor = hs.backgroundColor;
-  footer.style.height = header.offsetHeight + 'px';
-  document.documentElement.style.setProperty('--tlp-footer-h', header.offsetHeight + 'px');
-  footer.appendChild(badge); // バッジをフッター内へ
-});
+ if (header) footer.style.backgroundColor = getComputedStyle(header).backgroundColor;
+footer.appendChild(badge); // 先にフッターへ移す（実寸が取れるように）
+
+const setH = () => {
+  const h = badge.offsetHeight || 0; // バッジの実寸
+  document.documentElement.style.setProperty('--tlp-footer-h', h + 'px'); // フッター＝バッジ高
+};
+setH();
+window.addEventListener('resize', setH);
+window.addEventListener('load', setH);
+
 </script>
 
 
