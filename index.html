@@ -1358,8 +1358,9 @@ init();
 /* バッジ本体（単一ソース・重複禁止） */
 #tlp-brand-badge{
   position: fixed;
-  right: 12px;
-  bottom: calc(var(--tlp-badge-offset, 12px) + env(safe-area-inset-bottom, 0px)) !important;
+  left: 12px;
+top: 4px;                 /* ← もっと上げたければ 2px などに */
+right: auto; bottom: auto !important;
   z-index: 1000 !important;
   pointer-events: none;
 
