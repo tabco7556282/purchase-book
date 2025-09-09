@@ -1388,6 +1388,11 @@ init();
     padding-right: calc(var(--badge-w) + 16px) !important;
     margin-bottom: 12px !important;
   }
+/* D: 貼り付いた下部アクション行を“バッジ分だけ”上にずらす */
+  :where(.tlp-form-actions,.form-actions,.footer-actions,.actions,.btn-row,
+         .action-bar,.button-bar,.buttons,.btns,.page-controls,.page-footer){
+    bottom: calc(var(--badge-h) + 12px) !important; /* sticky/fixed に効く */
+  }
 }
 </style>
 
