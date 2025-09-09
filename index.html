@@ -1066,6 +1066,21 @@ init();
     box-shadow:0 16px 64px rgba(0,0,0,.35);
     box-sizing:border-box;
   }
+  /* EULAが常に最前 */
+.tlp-eula-overlay { z-index: 2000 !important; }
+
+/* バッジはEULAより下。右下固定＆印刷非表示 */
+#tlp-brand-badge {
+  position: fixed; right: 12px; bottom: 12px;
+  z-index: 1000;
+}
+@media print { #tlp-brand-badge { display: none !important; } }
+
+/* 実験: ミニ化（v0.8.1候補・JSから data-mini=1 を付与） */
+#tlp-brand-badge[data-mini="1"]{
+  width: 10px; height: 10px; padding: 0; border-radius: 9999px;
+  overflow: hidden; text-indent: -9999px;
+}
   .tlp-eula-header, .tlp-eula-footer{
     display:flex; align-items:center; gap:8px; padding:12px 16px;
     background:#f9fafb; border-bottom:1px solid #e5e7eb;
@@ -1390,3 +1405,66 @@ init();
 })();
 </script>
 <!-- === END: TLP CSV MINIMAL BLOCK === -->
+  <script>
+(() => {
+  try {
+    const meta = (window.__tlp_meta = window.__tlp_meta || {});
+    console.log("[TLP] v0.8.0 diag boot");
+
+    const hasDownload = typeof window.downloadCsv === "function";
+    const hasOpenEula = typeof window.tlpOpenEula === "function";
+    const eulaVer = meta.eulaVersion || "2025-09-08";
+
+    // 目視代わりのワンキー: Alt+E で EULA オープン
+    window.addEventListener("keydown", (e) => {
+      if (e.altKey && e.key.toLowerCase() === "e") {
+        e.preventDefault();
+        if (hasOpenEula) window.tlpOpenEula();
+        else console.warn("tlpOpenEula が見つかりません");
+      }
+    });
+
+    // EULA 受諾/拒否イベントのフック（ログ＆簡易記録）
+    window.addEventListener("tlp:eula-accepted", () => {
+      localStorage.setItem("tlpEulaAcceptedVersion", eulaVer);
+      console.log("[TLP] EULA accepted:", eulaVer);
+    });
+    window.addEventListener("tlp:eula-declined", () => {
+      console.warn("[TLP] EULA declined");
+    });
+
+    // 30秒チェック用のダイアグ
+    window.tlpDiag = {
+      check() {
+        console.table({
+          downloadCsv: hasDownload ? "OK" : "MISSING",
+          tlpOpenEula: hasOpenEula ? "OK" : "MISSING",
+          eulaVersion: eulaVer,
+        });
+      },
+      testCsv() {
+        if (!hasDownload) return console.warn("downloadCsv が未定義");
+        const csv = "A,B\r\n1,テスト\r\n2,OK";
+        window.downloadCsv("test.csv", csv);
+        console.log("[TLP] CSV test fired");
+      },
+      openEula() {
+        if (hasOpenEula) window.tlpOpenEula();
+        else console.warn("tlpOpenEula が未定義");
+      },
+      // 実験: バッジ最小化（既定OFF / v0.8.1候補）
+      toggleBadgeMini() {
+        const b = document.querySelector("#tlp-brand-badge");
+        if (!b) return console.warn("#tlp-brand-badge が見つからない");
+        b.dataset.mini = b.dataset.mini === "1" ? "0" : "1";
+      },
+    };
+
+    console.log("[TLP] CSV minimal block", hasDownload ? "OK" : "MISSING");
+    console.log("[TLP] Ready. Try: tlpDiag.check(), tlpDiag.openEula(), tlpDiag.testCsv()");
+  } catch (e) {
+    console.error("[TLP] diag init error", e);
+  }
+})();
+</script>
+
