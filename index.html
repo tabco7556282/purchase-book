@@ -1596,13 +1596,7 @@ header, .app-header, .tlp-header { position: relative; }
   const badge  = document.getElementById('tlp-brand-badge');
   if (!header || !badge) return;
 
-  // 旧バージョン pill を確実に非表示
-  [...header.querySelectorAll('a,button,span,div')].forEach(el=>{
-    const txt=(el.textContent||'').trim();
-    if (/\bv\d+(\.\d+){1,2}\b/i.test(txt)) {
-      (el.closest('a,button,div,span')||el).style.setProperty('display','none','important');
-    }
-  });
+ 
 
   // 「ホーム」を右上へ移動（非表示ではなく移動）
   const homeBtn = [...header.querySelectorAll('a,button')].find(el=>/ホーム|Home/.test((el.textContent||'').trim()));
