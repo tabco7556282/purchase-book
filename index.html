@@ -1500,47 +1500,47 @@ init();
     console.error("[TLP] diag init error", e);
   }
 })();
-</script><script>
+</script>
+ <script>
 (()=> {
   const html = document.documentElement;
-  const ORIG_TITLE = document.title;                 // 元タイトルを保持
-  const rxExport = /出力|エクスポート|CSV|Download|Export/i;
 
-  // 出力ダイアログらしきものを検知
-  const findExportDialog = () =>
-    document.querySelector('[role="dialog"],[aria-modal="true"],.modal,.dialog,.confirm');
+  // 表示を許可するページ（タイトル/URLのゆるめ一致）
+  const SHOW_TITLE = /ホーム|Home|トップ|Top|ダッシュボード|Dashboard|バックアップ設定|ライセンス/i;
+  const SHOW_URL   = /(home|top|dashboard|backup|license|index)(?:\/|$)|^https?:\/\/[^/]+\/?$/i;
 
-  const isExportContext = () => {
-    const dlg = findExportDialog();
-    if (!dlg) return false;
-    const txt = (dlg.textContent || '') + ' ' + (dlg.className || '') + ' ' + (dlg.id || '');
-    return rxExport.test(txt);
+  // 出力系の“画面状態”を最優先で判定（URL/タイトルは変更しない）
+  const RX_OUT = /出力|エクスポート|ダウンロード|CSV|Export|Download/i;
+  const isOutputContext = () => {
+    const dlg = document.querySelector('[role="dialog"],[aria-modal="true"],.modal,.dialog,.confirm');
+    if (dlg && RX_OUT.test((dlg.textContent||'') + ' ' + (dlg.className||'') + ' ' + (dlg.id||''))) return true;
+    for (const el of document.querySelectorAll('button,[role="button"],a,.btn,.button')){
+      const t = (el.textContent||'').trim();
+      if (t && RX_OUT.test(t)) return true;
+    }
+    return false;
   };
 
-  const apply = () => {
-    const exporting = isExportContext();
-    // URLの状態を反映（同一URLでも #export を付与／除去）
-    const hasHash = location.hash === '#export';
-    if (exporting && !hasHash) history.replaceState({}, '', location.pathname + location.search + '#export');
-    if (!exporting && hasHash) history.replaceState({}, '', location.pathname + location.search);
+  const getTitle = () =>
+    (document.querySelector('h1,.page-title,.title,h2,h3')?.textContent || '').replace(/\s+/g,'').trim();
 
-    // タイトルも出力中は一時変更、終了で元に戻す
-    document.title = exporting ? `【出力】${ORIG_TITLE}` : ORIG_TITLE;
+  // 「許可ページ」かつ「出力コンテキストではない」= 表示、それ以外は非表示
+  const shouldShow = () => (SHOW_TITLE.test(getTitle()) || SHOW_URL.test(location.href)) && !isOutputContext();
+  const apply = () => html.classList.toggle('tlp-hide-badge', !shouldShow());
 
-    // バッジの表示/非表示（CSS側：.tlp-hide-badge #tlp-brand-badge{display:none!important;}）
-    html.classList.toggle('tlp-hide-badge', exporting);
+  const init = () => {
+    apply();
+    new MutationObserver(apply).observe(document.body || html, { childList:true, subtree:true, attributes:true });
+    addEventListener('hashchange', apply);
+    addEventListener('popstate', apply);
+    setInterval(apply, 1000); // SPAの遅延更新への保険
   };
 
-  // 監視（ダイアログ出入り・属性変化に追随）
-  const mo = new MutationObserver(apply);
-  const start = () => mo.observe(document.body, {subtree:true, childList:true, attributes:true});
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { apply(); start(); });
-  else { apply(); start(); }
-
-  addEventListener('hashchange', apply);
-  addEventListener('popstate', apply);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
 })();
 </script>
+
 
 
 
