@@ -1071,6 +1071,30 @@ init();
   }
   /* EULAが常に最前 */
 .tlp-eula-overlay { z-index: 2000 !important; }
+/* === Z層の基準 === */
+:root{
+  --z-eula: 2147483647;   /* 既存EULA最前 */
+  --z-modal: 3000;        /* 確認/選択ダイアログ等 */
+  --z-actions: 2000;      /* 保存/クリア 等の行 */
+  --z-floating: 1000;     /* バッジや将来のフッター */
+}
+
+/* 既存EULAが最上位のまま */
+.tlp-eula-overlay{ z-index: var(--z-eula) !important; }
+
+/* モーダル/ダイアログ/ポップアップ系（広く拾う） */
+:where(.modal,.dialog,.popup,.confirm,.sheet,.drawer,.datepicker,.select-menu){
+  position: fixed; z-index: var(--z-modal) !important;
+}
+
+/* 保存/クリアなどのボタン行（広く拾う） */
+:where(.tlp-form-actions,.form-actions,.footer-actions,.actions,.btn-row){
+  position: sticky; bottom: 0; z-index: var(--z-actions) !important;
+  background: inherit;  /* 透け防止（必要なら） */
+}
+
+/* フローティング系（バッジなど）は下位 */
+#tlp-brand-badge{ z-index: var(--z-floating) !important; pointer-events: none; }
 
 /* バッジはEULAより下。右下固定＆印刷非表示 */
 #tlp-brand-badge {
