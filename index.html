@@ -1376,23 +1376,27 @@ init();
 @media (max-width:768px), (hover:none) and (pointer:coarse){
   :root{ --tlp-badge-offset: 72px; } /* まだ被るなら 88px, 96px に調整 */
 }
-/* ── モバイル：右上・ヘッダー直下／細身に ── */
-@media (max-width:768px), (hover:none) and (pointer:coarse){
-  #tlp-brand-badge{
-    /* 位置：ヘッダー直下。必要なら 60〜72px に微調整 */
-    top: 60px;
-    bottom: auto !important;
-    right: 10px;
+/* ヘッダー内に置く前提のスタイル（左寄せ＆縦積み） */
+header, .app-header, .tlp-header { position: relative; }
 
-    /* ここから“細身化” */
-    font-size: 9px;          /* 12→9px */
-    line-height: 1;          /* 行高を詰める */
-    padding: 2px 6px;        /* 上下を2pxに */
-    border-radius: 9999px;   /* 細いピル形状 */
-    opacity: .7;             /* 目立ち過ぎ防止（任意） */
-    box-shadow: 0 0 0 1px rgba(0,0,0,.06); /* 影を極小に（任意） */
-  }
+#tlp-brand-badge{
+  position: absolute;       /* ← fixed から absolute に上書き */
+  left: 12px; top: 8px;     /* ヘッダー左の空きへ */
+  right: auto;
+  bottom: auto !important;  /* 下固定を無効化 */
+  max-width: 42vw;          /* ヘッダー左の空きを超えない程度に */
+  white-space: normal;      /* 改行を許可 */
+  text-align: left;
+  opacity: .85;             /* 目立ちすぎ防止（任意） */
 }
+
+/* 2行目（バージョン）を小さく・行間詰め */
+#tlp-brand-badge .tlp-badge-ver{
+  display: block; margin-top: 2px;
+  font-size: 10px; line-height: 1;
+  opacity: .85;
+}
+
 </style>
 
 <script>
@@ -1571,6 +1575,30 @@ init();
 </script>
 <script>
   document.addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('tlp-brand-badge'); if(b){b.style.removeProperty('bottom'); b.style.removeProperty('z-index');}});
+</script>
+<script>
+(()=> {
+  const header = document.querySelector('header, .app-header, .tlp-header');
+  const badge  = document.getElementById('tlp-brand-badge');
+  if (!header || !badge) return;
+
+  // 旧バージョン表示を隠す（「vX.Y( .Z)」だけのピルを検出）
+  const verPill = [...header.querySelectorAll('*')]
+    .find(el => /^\s*v\d+(\.\d+){1,2}\s*$/i.test(el.textContent.trim()));
+  if (verPill) verPill.style.display = 'none';
+
+  // 「← ホーム」ボタンを隠す（テキスト一致でゆるく）
+  const homeBtn = [...header.querySelectorAll('a,button')]
+    .find(el => /ホーム|Home/.test(el.textContent));
+  if (homeBtn) homeBtn.style.display = 'none';
+
+  // バッジをヘッダー内へ移動
+  header.appendChild(badge);
+
+  // バッジ文言を縦積み化（末尾の vX.Y[.Z] を 2行目に）
+  const t = badge.textContent;
+  badge.innerHTML = t.replace(/\s*(v\d+\.\d+(?:\.\d+)?)/i,'<span class="tlp-badge-ver">$1</span>');
+})();
 </script>
 
 
