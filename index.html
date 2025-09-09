@@ -1393,6 +1393,34 @@ init();
     padding-right:  calc(var(--badge-w) + 12px);
   }
 }
+/* A) バッジの概寸（必要なら数値だけ後で微調整） */
+:root{ --badge-w:56px; --badge-h:56px; }
+
+/* B) モバイルはページ最下部に常時スペーサーを置く（全ページ共通） */
+@media (max-width:600px){
+  body::after{ content:""; display:block;
+    height: calc(var(--badge-h) + 16px); /* ←下端の逃げ */
+  }
+}
+
+/* C) 送信ボタン自体にも少し逃げ（親のクラス名に依存しない） */
+@media (max-width:600px){
+  form :where(button[type="submit"],input[type="submit"]){
+    margin-bottom: calc(var(--badge-h) + 8px);
+    padding-right: calc(var(--badge-w) + 12px);
+  }
+}
+
+/* D) ダイアログ系：ラッパごと下パディングを増やし、右下も逃がす */
+@media (max-width:600px){
+  :where([role="dialog"],[aria-modal="true"],.modal,.dialog,.confirm){
+    padding-bottom: calc(var(--badge-h) + 16px); /* 下へ余白を足す */
+  }
+  :where([role="dialog"],[aria-modal="true"],.modal,.dialog,.confirm)
+  :where(.actions,.btn-row,.dialog-actions){
+    padding-right: calc(var(--badge-w) + 12px);  /* 右下の逃げ */
+  }
+}
 </style>
 
 <script>
