@@ -150,8 +150,8 @@ textarea{min-height:84px;resize:vertical}
       <button class="btn ghost" data-goto="products" type="button">商品マスタ</button>
       <button class="btn ghost" id="btnExport" type="button">データ出力</button>
       <button class="btn ghost" data-goto="backup" type="button">バックアップ設定</button>
-      <button class="btn ghost" data-goto="license" type="button">ライセンス</button>
-      <button class="btn ghost" data-goto="rights" type="button">権利情報</button>
+      <button class="btn ghost" data-goto="license" type="button">Plans</button>
+      <button class="btn ghost" data-goto="rights" type="button">Licenses＆Notices</button>
 　    <button class="btn danger" id="btnFactoryReset" type="button">データ初期化</button>
       <div class="label">※初期化の前にバックアップを取ってください。</div>
     </div>
@@ -399,7 +399,7 @@ function setHeaderTitleByPage(id){
     history:"履歴・集計",
     backup:"バックアップ設定",
     export:"データ出力",
-    license:"ライセンス",
+    license:"Plans",
   rights:"Licenses & Notices",
 };
   const el=$("#pageTitle"); if(el) el.textContent = map[id] || "";
