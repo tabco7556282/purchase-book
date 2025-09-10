@@ -985,12 +985,10 @@ function exportData(){
   });
 
   // CSV（ダブルクオートでエスケープ）、改行は downloadCsv 側で CRLF に正規化
-  const csv = rows
-    .map(r => r.map(x => '"' + String(x).replace(/"/g,'""') + '"').join(","))
-    .join("\n");
+  const tsv = rows.map(r => r.map(x => String(x).replace(/\t/g, ' ').replace(/\r?\n/g,' ')).join("\t")).join("\n");
 
   // 共通の UTF-16LE + BOM 保存関数で出力（Excel 文字化けなし）
-  downloadCsv("仕入れ記録_" + ym + ".csv", csv);
+  downloadCsv("仕入れ記録_" + ym + ".tsv", tsv);
 
   alert("出力しました（Excelで開けます）");
 }
