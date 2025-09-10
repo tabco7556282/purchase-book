@@ -1846,14 +1846,14 @@ header, .app-header, .tlp-header { position: relative; }
 </script>
 <style id="print-hotfix">
 @media print {
-  /* 画面下のボタン列・ヘッダー・バッジ・EULAを非表示 */
-  .fixed-bar,
+  /* ヘッダーを強制的に非表示 */
   header.app-header,
-  .app-header,
-  #tlp-brand-badge,
-  #tlp-brand-badge-rights,
-  .tlp-eula-overlay,
-  #tlpEula { display: none !important; }
+  .app-header {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
 }
 </style>
 
