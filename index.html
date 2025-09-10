@@ -1632,6 +1632,29 @@ header, .app-header, .tlp-header { position: relative; }
 
 })();
 </script>
+<script>
+(() => {
+  // 既存なら何もしない
+  if (document.getElementById('tlp-rights')) return;
+
+  const main = document.createElement('main');
+  main.id = 'tlp-rights';
+  main.setAttribute('role', 'main');
+
+  const host = document.createElement('div');
+  host.id = 'tlp-rights-badge-host';
+
+  // 必要なら見出しなど最低限の枠（編集可）
+  const h1 = document.createElement('h1');
+  h1.textContent = '権利情報 / Rights & Licenses';
+
+  main.appendChild(h1);
+  main.appendChild(host);
+
+  // body 末尾に追加（他レイアウトに干渉しない）
+  document.body.appendChild(main);
+})();
+</script>
 
 
 
