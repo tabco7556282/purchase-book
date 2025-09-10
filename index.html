@@ -966,39 +966,35 @@ function ModalExport(){
   $("#modalOK").onclick=()=>{ exportData(); closeModal(); };
 }
 function exportData(){
-  const dt=new Date();
-  const ym=dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0");
-  const rows=[["日付","仕入れ先","商品","数量","単価","税率","区分","税込額","メモ"]];
-  store.entries.filter(e=>!e.deleted).forEach(e=>{
-    if(e.date.slice(0,7)===ym){
-      const s=supplierName(e.supplier_id)||e.supplier_name_fallback||"";
-      const p=prodName(e.product_id,e.product_name_fallback);
-      const g=(e.taxmode==="incl"?e.price:e.price*(1+e.taxrate/100))*e.qty;
-      rows.push([e.date,s,p,e.qty,e.price,e.taxrate,(e.taxmode==="incl"?"税込":"税別"),Math.round(g),e.memo||""]);
+  const dt = new Date();
+  const ym = dt.getFullYear() + "-" + String(dt.getMonth()+1).padStart(2,"0");
+
+  const rows = [["日付","仕入れ先","商品","数量","単価","税率","区分","税込額","メモ"]];
+  store.entries.filter(e => !e.deleted).forEach(e => {
+    if (e.date.slice(0,7) === ym) {
+      const s = supplierName(e.supplier_id) || e.supplier_name_fallback || "";
+      const p = prodName(e.product_id, e.product_name_fallback);
+      const g = (e.taxmode==="incl" ? e.price : e.price*(1+e.taxrate/100)) * e.qty;
+      rows.push([
+        e.date, s, p, e.qty, e.price, e.taxrate,
+        (e.taxmode==="incl" ? "税込" : "税別"),
+        Math.round(g),
+        e.memo || ""
+      ]);
     }
   });
- const csv = rows
-  .map(r => r.map(x => '"' + String(x).replace(/"/g,'""') + '"').join(","))
-  .join("\n");
-// 追加：UTF-8+BOM でテキストを保存する最小関数（このスコープ内だけでOK）
-function saveUTF8BOM(name, text){
-  const u8 = new TextEncoder().encode("\uFEFF" + String(text||"")); // BOM + 本文
-  const blob = new Blob([u8], { type: "text/csv;charset=utf-8;" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = name || "export.csv";
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+
+  // CSV（ダブルクオートでエスケープ）、改行は downloadCsv 側で CRLF に正規化
+  const csv = rows
+    .map(r => r.map(x => '"' + String(x).replace(/"/g,'""') + '"').join(","))
+    .join("\n");
+
+  // 共通の UTF-16LE + BOM 保存関数で出力（Excel 文字化けなし）
+  downloadCsv("仕入れ記録_" + ym + ".csv", csv);
+
+  alert("出力しました（Excelで開けます）");
 }
 
-const excelHint = 'sep=,\r\n';
-saveUTF8BOM("仕入れ記録_"+ym+".csv", excelHint + csv);
-
-
-alert("出力しました（Excelで開けます）");
-
-}
 document.addEventListener("click",(e)=>{ if(e.target.closest("#btnExport, #btnExport2")){ e.preventDefault(); ModalExport(); }}, true);
 
 /* ===== Backup / Restore / Fiscal Archive ===== */
