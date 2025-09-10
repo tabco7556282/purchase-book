@@ -151,7 +151,8 @@ textarea{min-height:84px;resize:vertical}
       <button class="btn ghost" id="btnExport" type="button">データ出力</button>
       <button class="btn ghost" data-goto="backup" type="button">バックアップ設定</button>
       <button class="btn ghost" data-goto="license" type="button">ライセンス</button>
-      <button class="btn danger" id="btnFactoryReset" type="button">データ初期化</button>
+      <button class="btn ghost" data-goto="rights" type="button">権利情報</button>
+　    <button class="btn danger" id="btnFactoryReset" type="button">データ初期化</button>
       <div class="label">※初期化の前にバックアップを取ってください。</div>
     </div>
   </section>
@@ -270,6 +271,64 @@ textarea{min-height:84px;resize:vertical}
       <div class="card"><h3>プロ（¥1,500）</h3><ul><li>広告なし</li><li>上限なし</li><li>出力は無制限</li></ul><button class="btn primary small" id="mockBuyPro" type="button">フル機能で使う</button></div>
     </div>
   </section>
+<!-- RIGHTS / 権利情報ページ（新規追加） -->
+<section id="page-rights" class="hidden" data-title="Licenses & Notices">
+  <div class="card">
+    <h3>Licenses & Notices</h3>
+
+    <!-- 1) App & Version (EN) -->
+    <section>
+      <h4>App & Version</h4>
+      <p>Tabco Ledger Plus v0.8.0</p>
+    </section>
+
+    <!-- 2) Copyright (EN) -->
+    <section>
+      <h4>Copyright</h4>
+      <p>© 2025 Tabco. All rights reserved.</p>
+    </section>
+
+    <!-- 3) Trademark Notice (EN) -->
+    <section>
+      <h4>Trademark Notice</h4>
+      <p>“Tabco Ledger Plus” and related logos are trademarks of Tabco.</p>
+    </section>
+
+    <!-- 4) EULA（JP） -->
+    <section>
+      <h4>EULA（使用許諾）</h4>
+      <p>本アプリのご利用によりEULA（使用許諾契約）に同意したものとみなされます。
+        <a href="#" id="open-eula">EULAを開く</a></p>
+    </section>
+
+    <!-- 5) データとプライバシー（JP） -->
+    <section>
+      <h4>データとプライバシー</h4>
+      <p>データは基本的にお使いの端末に保存されます。クラウドバックアップを選んだ場合は、お客様自身のアカウントへ保存されます。</p>
+    </section>
+
+    <!-- 6) エクスポート（JP） -->
+    <section>
+      <h4>エクスポート（CSV）</h4>
+      <p>CSVはExcel互換のUTF-16LE＋BOM、CRLFで出力します。</p>
+    </section>
+
+    <!-- 7) サードパーティ表記（JP） -->
+    <section>
+      <h4>サードパーティ表記</h4>
+      <p>本アプリにはオープンソースコンポーネントが含まれる場合があり、そのライセンスを記載します。</p>
+    </section>
+
+    <!-- 8) お問い合わせ（JP） -->
+    <section>
+      <h4>お問い合わせ</h4>
+      <p>ご不明点は info@example.com までご連絡ください。</p>
+    </section>
+
+    <!-- バッジ描画ホスト（このページだけで使う） -->
+    <div id="tlp-rights-badge-host" aria-hidden="true"></div>
+  </div>
+</section>
 </main>
 
 <!-- モーダル（共通） -->
@@ -341,7 +400,8 @@ function setHeaderTitleByPage(id){
     backup:"バックアップ設定",
     export:"データ出力",
     license:"ライセンス"
-  };
+  rights:"Licenses & Notices",
+};
   const el=$("#pageTitle"); if(el) el.textContent = map[id] || "";
 }
 
@@ -918,9 +978,9 @@ function exportData(){
     }
   });
   const csv=rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(",")).join("\n");
-  const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="仕入れ記録_"+ym+".csv"; a.click(); URL.revokeObjectURL(a.href);
-  alert("出力しました（Excelで開けます）");
+  downloadCsv("仕入れ記録_"+ym+".csv", csv);
+alert("出力しました（Excelで開けます）");
+
 }
 document.addEventListener("click",(e)=>{ if(e.target.closest("#btnExport, #btnExport2")){ e.preventDefault(); ModalExport(); }}, true);
 
@@ -1632,29 +1692,83 @@ header, .app-header, .tlp-header { position: relative; }
 
 })();
 </script>
-<script>
+<style id="rights-css">
+/* === Rights page（ページ内限定の軽い体裁） === */
+#page-rights h3 { margin: 0 0 8px; }
+#page-rights h4 { margin: 14px 0 6px; font-size: 0.98rem; }
+#page-rights p  { margin: 0 0 8px; }
+
+/* 既存ヘッダーの全ページ共通バッジは“見えなくするだけ”（削除しない） */
+.app-header #tlp-brand-badge { display: none !important; }
+
+/* 権利ページ専用：右下固定・横一列のバッジ（別IDで衝突回避） */
+#tlp-brand-badge-rights{
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 7000;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  background: #fff;
+  font-size: 12px;
+  white-space: nowrap; /* 横一列固定 */
+}
+
+/* 印刷時は操作UI/モーダル/バッジを非表示（追加） */
+@media print {
+  nav, header, footer, .actions, .btn-row, .toolbar { display: none !important; }
+  .modal, .dialog, .backdrop, #modalHost, #eula-modal, .modal-backdrop { display: none !important; }
+  #tlp-brand-badge-rights { display: none !important; }
+  body { margin: 0 !important; }
+}
+</style>
+<script id="rights-js">
 (() => {
-  // 既存なら何もしない
-  if (document.getElementById('tlp-rights')) return;
+  // EULA版：未定義なら補完（既に値があれば上書きしない）
+  try {
+    window.__tlp_meta = window.__tlp_meta || {};
+    if (!window.__tlp_meta.eulaVersion) window.__tlp_meta.eulaVersion = '2025-09-08';
+  } catch(e){}
 
-  const main = document.createElement('main');
-  main.id = 'tlp-rights';
-  main.setAttribute('role', 'main');
+  // 権利ページだけに新IDのバッジを出す
+  function buildRightsBadge(){
+    const el = document.createElement('div');
+    el.id = 'tlp-brand-badge-rights';
+    el.setAttribute('role','note');
+    el.textContent = 'Tabco Ledger Plus v0.8.0'; // 横一列
+    return el;
+  }
+  function mountRightsBadge(){
+    const host = document.getElementById('tlp-rights-badge-host');
+    if (!host) return; // 他ページは何もしない
+    if (document.getElementById('tlp-brand-badge-rights')) return; // 二重生成防止
+    host.appendChild(buildRightsBadge());
+  }
 
-  const host = document.createElement('div');
-  host.id = 'tlp-rights-badge-host';
+  // EULAリンク（既存実装に委譲）
+  function wireEulaOpen(){
+    const a = document.getElementById('open-eula');
+    if (!a) return;
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (typeof window.tlpOpenEula === 'function') window.tlpOpenEula();
+      else if (window.TLP && typeof TLP.showEula === 'function') TLP.showEula();
+      else console.warn('EULA open handler not found.');
+    });
+  }
 
-  // 必要なら見出しなど最低限の枠（編集可）
-  const h1 = document.createElement('h1');
-  h1.textContent = '権利情報 / Rights & Licenses';
-
-  main.appendChild(h1);
-  main.appendChild(host);
-
-  // body 末尾に追加（他レイアウトに干渉しない）
-  document.body.appendChild(main);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => { mountRightsBadge(); wireEulaOpen(); });
+  } else {
+    mountRightsBadge(); wireEulaOpen();
+  }
 })();
 </script>
+
 
 
 
