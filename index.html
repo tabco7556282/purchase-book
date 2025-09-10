@@ -124,7 +124,7 @@ textarea{min-height:84px;resize:vertical}
 </head>
 <body>
 <header class="app-header">
-  <div class="hdr-left"><button id="btnHome" class="btn ghost small hidden" type="button">← ホーム</button></div>
+  <div class="hdr-left"><button id="btnHome" class="btn ghost small hidden" type="button">←⌂</button></div>
   <h1 id="pageTitle">仕入れ管理</h1>
   <div class="hdr-right">
     <small class="ver">v0.7.1</small>
@@ -1672,7 +1672,7 @@ header, .app-header, .tlp-header { position: relative; }
  
 
   // 「ホーム」を右上へ移動（非表示ではなく移動）
-  const homeBtn = [...header.querySelectorAll('a,button')].find(el=>/ホーム|Home/.test((el.textContent||'').trim()));
+  const homeBtn = header.querySelector('#btnHome');
   if (homeBtn){
     homeBtn.classList.add('tlp-home-moved');
     header.appendChild(homeBtn);
@@ -1739,7 +1739,7 @@ header, .app-header, .tlp-header { position: relative; }
     const el = document.createElement('div');
     el.id = 'tlp-brand-badge-rights';
     el.setAttribute('role','note');
-    el.textContent = 'Tabco Ledger Plus v0.8.0'; // 横一列
+    el.textContent = 'Tabco Ledger Plus\u2122 v0.8.0'; // 横一列
     return el;
   }
   function mountRightsBadge(){
