@@ -977,8 +977,10 @@ function exportData(){
       rows.push([e.date,s,p,e.qty,e.price,e.taxrate,(e.taxmode==="incl"?"税込":"税別"),Math.round(g),e.memo||""]);
     }
   });
-  const csv=rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(",")).join("\n");
-  downloadCsv("仕入れ記録_"+ym+".csv", csv);
+  const csv = rows.map(...).join("\n");
+const excelHint = 'sep=,\r\n';                  // ★ これを先頭に
+downloadCsv("仕入れ記録_"+ym+".csv", excelHint + csv);
+
 alert("出力しました（Excelで開けます）");
 
 }
