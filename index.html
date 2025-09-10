@@ -971,20 +971,26 @@ function exportData(){
 
   const rows = [["日付","仕入れ先","商品","数量","単価","税率","区分","税込額","メモ"]];
   store.entries.filter(e => !e.deleted).forEach(e => {
-    if (e.date.slice(0,7) === ym) {
+    if ((e.date || "").slice(0,7) === ym) {
       const s = supplierName(e.supplier_id) || e.supplier_name_fallback || "";
       const p = prodName(e.product_id, e.product_name_fallback);
-      const g = (e.taxmode==="incl" ? e.price : e.price*(1+e.taxrate/100)) * e.qty;
+      const g = (e.taxmode === "incl" ? e.price : e.price * (1 + e.taxrate/100)) * e.qty;
       rows.push([
         e.date, s, p, e.qty, e.price, e.taxrate,
-        (e.taxmode==="incl" ? "税込" : "税別"),
+        (e.taxmode === "incl" ? "税込" : "税別"),
         Math.round(g),
         e.memo || ""
       ]);
     }
   });
- const excelHint = 'sep=,\r\n';           // 先頭に区切り指定（Excelヒント）
-downloadCsv("仕入れ記録_" + ym + ".csv", excelHint + csv);  // UTF-16LE+BOMで保存
+
+  // CSV（ダブルクオートでエスケープ）を作成
+  const csv = rows
+    .map(r => r.map(x => '"' + String(x).replace(/"/g,'""') + '"').join(","))
+    .join("\n");
+
+  // 既存の共通保存関数（UTF-16LE + BOM + CRLF）で出力 → Excelで文字化けしない
+  downloadCsv("仕入れ記録_" + ym + ".csv", csv);
 
   alert("出力しました（Excelで開けます）");
 }
