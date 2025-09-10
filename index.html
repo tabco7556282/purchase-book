@@ -1768,6 +1768,82 @@ header, .app-header, .tlp-header { position: relative; }
   }
 })();
 </script>
+<style id="rights-css">
+/* === Rights page: 軽い体裁 ===================== */
+#page-rights h3 { margin: 0 0 8px; }
+#page-rights h4 { margin: 14px 0 6px; font-size: 0.98rem; }
+#page-rights p  { margin: 0 0 8px; }
+
+/* 全ページヘッダーの既存バッジは“見えなくするだけ”（削除しない） */
+.app-header #tlp-brand-badge { display: none !important; }
+
+/* 権利ページ専用バッジ（後でJSで生成）：右下固定・横一列 */
+#tlp-brand-badge-rights{
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 7000;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  background: #fff;
+  font-size: 12px;
+  white-space: nowrap; /* 横一列固定 */
+}
+
+/* 印刷時は余計なUIとバッジを非表示（追加分） */
+@media print {
+  nav, header, footer, .actions, .btn-row, .toolbar { display: none !important; }
+  .modal, .dialog, .backdrop, #modalHost, #eula-modal, .modal-backdrop { display: none !important; }
+  #tlp-brand-badge-rights { display: none !important; }
+  body { margin: 0 !important; }
+}
+</style>
+<script id="rights-js">
+(() => {
+  // EULA版：未定義なら補完（既に値があれば上書きしない）
+  try {
+    window.__tlp_meta = window.__tlp_meta || {};
+    if (!window.__tlp_meta.eulaVersion) window.__tlp_meta.eulaVersion = '2025-09-08';
+  } catch(e){}
+
+  // 権利ページだけに新IDのバッジを出す（横一列＆TM表記）
+  function buildRightsBadge(){
+    const el = document.createElement('div');
+    el.id = 'tlp-brand-badge-rights';
+    el.setAttribute('role','note');
+    el.textContent = 'Tabco Ledger Plus\u2122 v0.8.0'; // ™ を横一列で
+    return el;
+  }
+  function mountRightsBadge(){
+    const host = document.getElementById('tlp-rights-badge-host');
+    if (!host) return; // 他ページは何もしない
+    if (document.getElementById('tlp-brand-badge-rights')) return; // 二重生成防止
+    host.appendChild(buildRightsBadge());
+  }
+
+  // EULAリンク（既存実装に委譲）
+  function wireEulaOpen(){
+    const a = document.getElementById('open-eula');
+    if (!a) return;
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (typeof window.tlpOpenEula === 'function')       window.tlpOpenEula();
+      else if (window.TLP && typeof TLP.showEula==='function') TLP.showEula();
+      else console.warn('EULA open handler not found.');
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => { mountRightsBadge(); wireEulaOpen(); });
+  } else {
+    mountRightsBadge(); wireEulaOpen();
+  }
+})();
+</script>
 
 
 
