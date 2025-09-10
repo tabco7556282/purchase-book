@@ -980,8 +980,21 @@ function exportData(){
  const csv = rows
   .map(r => r.map(x => '"' + String(x).replace(/"/g,'""') + '"').join(","))
   .join("\n");
-const excelHint = 'sep=,\r\n';                  // ★ これを先頭に
-downloadCsv("仕入れ記録_"+ym+".csv", excelHint + csv);
+// 追加：UTF-8+BOM でテキストを保存する最小関数（このスコープ内だけでOK）
+function saveUTF8BOM(name, text){
+  const u8 = new TextEncoder().encode("\uFEFF" + String(text||"")); // BOM + 本文
+  const blob = new Blob([u8], { type: "text/csv;charset=utf-8;" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name || "export.csv";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+}
+
+const excelHint = 'sep=,\r\n';
+saveUTF8BOM("仕入れ記録_"+ym+".csv", excelHint + csv);
+
 
 alert("出力しました（Excelで開けます）");
 
