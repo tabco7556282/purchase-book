@@ -1847,6 +1847,21 @@ header, .app-header, .tlp-header { position: relative; }
   <script>
 if (typeof saveUTF16 === 'function') { window.downloadCsv = window.exportCsv = window.saveUTF16 = saveUTF16; }
 </script>
+<script>
+// btnExport / btnExport2 のクリックでエクスポート（ModalExport が無ければ exportData を直呼び）
+(function(){
+  function hook(id){
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener("click", function(e){
+      e.preventDefault();
+      (typeof ModalExport === "function" ? ModalExport : exportData)();
+    });
+  }
+  hook("btnExport");
+  hook("btnExport2");
+})();
+</script>
 
 
 
