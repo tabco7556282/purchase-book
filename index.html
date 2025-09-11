@@ -987,15 +987,13 @@ function exportData(){
   // CSV（ダブルクオートでエスケープ）を作成
   const csv = rows
     .map(r => r.map(x => '"' + String(x).replace(/"/g,'""') + '"').join(","))
-    .join("\n");
+    .join("\r\n");   // ← 改行を \r\n に統一
 
-  // 既存の共通保存関数（UTF-16LE + BOM + CRLF）で出力 → Excelで文字化けしない
+  // UTF-16LE + BOM + CRLF で出力 → Excelで1列化を防ぐ
   downloadCsv("仕入れ記録_" + ym + ".csv", csv);
 
   alert("出力しました（Excelで開けます）");
 }
-
-document.addEventListener("click",(e)=>{ if(e.target.closest("#btnExport, #btnExport2")){ e.preventDefault(); ModalExport(); }}, true);
 
 /* ===== Backup / Restore / Fiscal Archive ===== */
 function backupNow(){
@@ -1500,29 +1498,6 @@ header, .app-header, .tlp-header { position: relative; }
 </style>
 
 <script>
-(function(){
-  // UTF-16LE + BOM でCSVを保存（Excel文字化け対策のみ）
-  function encodeUTF16LE(str){
-    const s = String(str||'');
-    const buf = new Uint8Array((s.length+1)*2);
-    buf[0]=0xFF; buf[1]=0xFE;  // BOM
-    for (let i=0;i<s.length;i++){
-      const c=s.charCodeAt(i);
-      buf[2+i*2]=c & 0xFF; buf[3+i*2]=c >>> 8;
-    }
-    return new Blob([buf], {type:'text/csv;charset=utf-16le;'});
-  }
-
-  function saveUTF16(name, text){
-    const norm = String(text||'').replace(/\r?\n/g, '\r\n'); // 改行をCRLFに統一
-    const blob = encodeUTF16LE(norm);
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = name || `tlp_export_${Date.now()}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
-  }
 
   // 既存呼び出し名をすべてこの最小実装に割り当て（互換）
   window.downloadCsv = window.exportCsv = window.saveUTF16 = saveUTF16;
@@ -1546,10 +1521,10 @@ header, .app-header, .tlp-header { position: relative; }
     return new Blob([buf], { type: "text/csv;charset=utf-16le;" });
   }
 
-  function saveUTF16(name, text){
-    const norm = String(text || "").replace(/\r?\n/g, "\r\n"); // CRLF 統一
+ function saveUTF16(name, text){
+    const norm = String(text||'').replace(/\r?\n/g, '\r\n'); // 改行をCRLFに統一
     const blob = encodeUTF16LE(norm);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = name || `tlp_export_${Date.now()}.csv`;
     document.body.appendChild(a);
@@ -1869,6 +1844,7 @@ header, .app-header, .tlp-header { position: relative; }
   }
 }
 </style>
+
 
 
 
