@@ -1927,6 +1927,110 @@ function saveXLS(name, rows2d){
   setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
 }
 </script>
+/* ===== Export (lean) v2025-09-11 =====
+   目的: 出力系を1本化し、確実に列が分かれるExcelファイル(.xml)を生成
+   使い方: このブロックをファイルの一番下(</body>直前など)に1回だけ配置。
+   依存: store.entries / supplierName / prodName が既存通りに存在している前提。
+*/
+
+// 1) Excel 2003 XML(SpreadsheetML) で保存 — 警告なし＆枠線あり＆数値扱い
+function saveExcelXML(name, rows2d){
+  const esc = s => String(s ?? "")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+  // 値と型を判定して <Cell> を生成（数値は Number、その他は String）
+  const toCell = (c) => {
+    let v = c, type = typeof c === 'number' ? 'Number' : 'String';
+    if (c && typeof c === 'object' && 'v' in c) {
+      v = c.v; type = c.t || (typeof v === 'number' ? 'Number' : 'String');
+    }
+    return `<Cell ss:StyleID="s1"><Data ss:Type="${type}">${esc(v)}</Data></Cell>`;
+  };
+
+  const rowsXml = rows2d.map(r => `<Row>${r.map(toCell).join("")}</Row>`).join("");
+
+  const xml = `<?xml version="1.0"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+  <Styles>
+    <Style ss:ID="s1">
+      <Borders>
+        <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+      </Borders>
+    </Style>
+  </Styles>
+  <Worksheet ss:Name="Sheet1"><Table>${rowsXml}</Table></Worksheet>
+</Workbook>`;
+
+  const blob = new Blob([xml], { type: "application/vnd.ms-excel" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = (name || `tlp_export_${Date.now()}.xml`).replace(/\.[A-Za-z0-9]+$/, '') + '.xml';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+}
+
+// 2) データ収集 → 保存（今月分）
+function exportData(){
+  const dt = new Date();
+  const ym = dt.getFullYear() + "-" + String(dt.getMonth()+1).padStart(2,"0");
+
+  const rows = [["日付","仕入れ先","商品","数量","単価","税率","区分","税込額","メモ"]];
+
+  (store.entries || []).filter(e => !e.deleted).forEach(e => {
+    const date = String(e.date || "");
+    if (date.slice(0,7) !== ym) return;
+
+    const s = (typeof supplierName === 'function' ? (supplierName(e.supplier_id) || '') : '') || e.supplier_name_fallback || "";
+    const p = (typeof prodName === 'function' ? prodName(e.product_id, e.product_name_fallback) : (e.product_name_fallback || ''));
+
+    const qty = Number(e.qty || 0);
+    const unit = Number(e.price || 0);
+    const taxrate = Number(e.taxrate || 0);
+    const mode = (e.taxmode === 'incl' ? '税込' : '税別');
+    const gross = (e.taxmode === 'incl' ? unit : unit * (1 + taxrate/100)) * qty;
+
+    rows.push([
+      date,
+      s,
+      p,
+      { v: qty, t: 'Number' },
+      { v: unit, t: 'Number' },
+      { v: taxrate, t: 'Number' },
+      mode,
+      { v: Math.round(gross), t: 'Number' },
+      (e.memo || "")
+    ]);
+  });
+
+  saveExcelXML("仕入れ記録_" + ym + ".xml", rows);
+  try { alert("出力しました（Excelで開けます）"); } catch(_) {}
+}
+
+// 3) ボタン直結（常に exportData を実行）
+document.addEventListener('click', function(e){
+  const t = e.target.closest('#btnExport, #btnExport2');
+  if (!t) return;
+  e.preventDefault();
+  try { exportData(); } catch(err){ console.error(err); alert('出力でエラーが発生しました'); }
+}, true);
+
+
+// 4) バッジ掃除（任意・有効なら true）
+const REMOVE_BADGES = true;
+if (REMOVE_BADGES) {
+  try {
+    const style = document.createElement('style');
+    style.textContent = `#tlpBrandBadge, .brand-badge, [data-brand-badge], .tlp-brand-overlay { display:none !important; }`;
+    document.head.appendChild(style);
+    ['#tlpBrandBadge', '.brand-badge', '[data-brand-badge]', '.tlp-brand-overlay']
+      .forEach(sel => document.querySelectorAll(sel).forEach(n => n.remove()));
+  } catch (_) {}
+}
 
 
 
