@@ -984,13 +984,9 @@ function exportData(){
     }
   });
 
-  // CSV（ダブルクオートでエスケープ）を作成
-  const csv = rows
-    .map(r => r.map(x => '"' + String(x).replace(/"/g,'""') + '"').join(","))
-    .join("\r\n");   // ← 改行を \r\n に統一
+const tsv = rows.map(r => r.map(x => String(x).replace(/\t/g,' ')).join("\t")).join("\r\n");
+saveUTF16("仕入れ記録_" + ym + ".tsv", tsv);
 
-  // UTF-16LE + BOM + CRLF で出力 → Excelで1列化を防ぐ
-  downloadCsv("仕入れ記録_" + ym + ".csv", csv);
 
   alert("出力しました（Excelで開けます）");
 }
