@@ -1903,7 +1903,7 @@ if (typeof saveUTF16 === 'function') { window.downloadCsv = window.exportCsv = w
     if(!el) return;
     el.addEventListener("click", function(e){
       e.preventDefault();
-      (typeof ModalExport === "function" ? ModalExport : exportData)();
+      exportData();
     });
   }
   hook("btnExport");
