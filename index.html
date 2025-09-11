@@ -1126,50 +1126,6 @@ init();
   z-index: var(--z-actions) !important;
 }
 
-/* フローティング系（バッジなど）は下位 */
-#tlp-brand-badge{ z-index: var(--z-floating) !important; pointer-events: none; }
-
-/* バッジはEULAより下。右下固定＆印刷非表示 */
-#tlp-brand-badge {
-  position: fixed; right: 12px; bottom: 12px;z-index: 1000;pointer-events: none;
-}
-@media print { #tlp-brand-badge { display: none !important; } }
-
-/* 実験: ミニ化（v0.8.1候補・JSから data-mini=1 を付与） */
-#tlp-brand-badge[data-mini="1"]{
-  width: 10px; height: 10px; padding: 0; border-radius: 9999px;
-  overflow: hidden; text-indent: -9999px;
-}
-  .tlp-eula-header, .tlp-eula-footer{
-    display:flex; align-items:center; gap:8px; padding:12px 16px;
-    background:#f9fafb; border-bottom:1px solid #e5e7eb;
-  }
-  .tlp-eula-footer{ justify-content:flex-end; border-top:1px solid #e5e7eb; border-bottom:none; }
-  .tlp-eula-header h2{ margin:0; font-size:1.05rem; }
-  .tlp-eula-close{
-    margin-left:auto; border:1px solid #e5e7eb; border-radius:10px; background:#fff;
-    padding:6px 10px; cursor:pointer;
-  }
-  .tlp-eula-body{ max-height:60vh; overflow:auto; padding:16px 18px; }
-  .tlp-muted{ opacity:.7; }
-
-  .btn{ padding:10px 14px; border-radius:10px; border:1px solid #e5e7eb; cursor:pointer; }
-  .btn-outline{ background:#fff; color:#111; }
-  .btn-primary{ background:#111; color:#fff; }
-
-  @media (prefers-color-scheme: dark){
-    .tlp-eula-overlay{ background: rgba(0,0,0,.5); }
-    .tlp-eula-dialog{ background:#121212; color:#f5f5f5; border-color:#2a2a2a;
-      box-shadow:0 20px 70px rgba(0,0,0,.6);
-    }
-    .tlp-eula-header, .tlp-eula-footer{
-      background:#171717; border-color:#2a2a2a;
-    }
-    .tlp-eula-close{ background:#1f1f1f; color:#f5f5f5; border-color:#2a2a2a; }
-    .btn-outline{ background:#1f1f1f; color:#f5f5f5; border-color:#2a2a2a; }
-    .btn-primary{ background:#f5f5f5; color:#121212; border-color:#d4d4d4; }
-    a{ color:#4da3ff; }
-  }
 
   /* モーダル時のスクロール抑止（付与クラスでON） */
   body.tlp-modal-open{ overflow:hidden; }
@@ -1356,110 +1312,47 @@ init();
   }
 })();
 </script>
-<style>
-/* モーダル／EULA中は隠す（クリック干渉防止） */
-.tlp-modal-open #tlp-brand-badge{ display: none !important; }
-
-/* 印刷時は非表示 */
-@media print{
-  #tlp-brand-badge{ display: none !important; }
-}
-
-/* バッジ本体（単一ソース・重複禁止） */
-#tlp-brand-badge{
-  position: fixed;
-  left: 12px;
-top: 2px;                 /* ← もっと上げたければ 2px などに */
-right: auto; bottom: auto !important;
-  z-index: 1000 !important;
-  pointer-events: none;
-
-  /* 見た目 */
-  display: inline-block;          /* ← inline-flex は不要 */
-  width: max-content;
-  max-width: 38vw;                /* 必要なら 36–48vw で微調整 */
-  white-space: normal;
-  text-align: left;
-}
 
 
-/* 狭い画面だけ少しコンパクトに */
-@media (max-width: 480px){
-  #tlp-brand-badge{ font-size: 11px; padding: 6px 8px; opacity: .9; }
-}
+<script>
+(()=>{try{
+  const meta = window.__tlp_meta || {};
+  const eulaVer = meta.eulaVersion || "2025-09-08";
+  console.log("[TLP] diag boot v0.8.0 (minimal)");
 
-/* （任意）ページ単位で消したい時は <html> に .tlp-hide-badge を付与 */
-.tlp-hide-badge #tlp-brand-badge{ display: none !important; }
+  // Alt+E で EULA を開く（存在すれば）
+  window.addEventListener("keydown", (e)=>{
+    if(e.altKey && e.key.toLowerCase()==="e"){
+      e.preventDefault();
+      if (typeof window.tlpOpenEula === "function") window.tlpOpenEula();
+      else if (window.TLP && typeof TLP.showEula === "function") TLP.showEula();
+      else console.warn("EULA open handler not found");
+    }
+  });
 
-@media (max-width:768px), (hover:none) and (pointer:coarse){
-  :root{ --tlp-badge-offset: 72px; } /* まだ被るなら 88px, 96px に調整 */
-}
+  // 受諾ログ（任意）
+  window.addEventListener("tlp:eula-accepted", ()=>{
+    try{ localStorage.setItem("tlpEulaAcceptedVersion", eulaVer); }catch(_){}
+    console.log("[TLP] EULA accepted:", eulaVer);
+  });
+  window.addEventListener("tlp:eula-declined", ()=>{ console.warn("[TLP] EULA declined"); });
 
-</style>
+  // 簡易ダイアグAPI（CSV/バッジ参照なし）
+  window.tlpDiag = {
+    check(){
+      console.table({ eulaVersion: eulaVer, eulaOpenFn: typeof window.tlpOpenEula === "function" ? "OK" : "fallback" });
+    },
+    openEula(){
+      if (typeof window.tlpOpenEula === "function") window.tlpOpenEula();
+      else if (window.TLP && typeof TLP.showEula === "function") TLP.showEula();
+      else console.warn("EULA open handler not found");
+    }
+  };
 
-
-  <script>
-(() => {
-  try {
-    const meta = (window.__tlp_meta = window.__tlp_meta || {});
-    console.log("[TLP] v0.8.0 diag boot");
-
-    const hasDownload = typeof window.downloadCsv === "function";
-    const hasOpenEula = typeof window.tlpOpenEula === "function";
-    const eulaVer = meta.eulaVersion || "2025-09-08";
-
-    // 目視代わりのワンキー: Alt+E で EULA オープン
-    window.addEventListener("keydown", (e) => {
-      if (e.altKey && e.key.toLowerCase() === "e") {
-        e.preventDefault();
-        if (hasOpenEula) window.tlpOpenEula();
-        else console.warn("tlpOpenEula が見つかりません");
-      }
-    });
-
-    // EULA 受諾/拒否イベントのフック（ログ＆簡易記録）
-    window.addEventListener("tlp:eula-accepted", () => {
-      localStorage.setItem("tlpEulaAcceptedVersion", eulaVer);
-      console.log("[TLP] EULA accepted:", eulaVer);
-    });
-    window.addEventListener("tlp:eula-declined", () => {
-      console.warn("[TLP] EULA declined");
-    });
-
-    // 30秒チェック用のダイアグ
-    window.tlpDiag = {
-      check() {
-        console.table({
-          downloadCsv: hasDownload ? "OK" : "MISSING",
-          tlpOpenEula: hasOpenEula ? "OK" : "MISSING",
-          eulaVersion: eulaVer,
-        });
-      },
-      testCsv() {
-        if (!hasDownload) return console.warn("downloadCsv が未定義");
-        const csv = "A,B\r\n1,テスト\r\n2,OK";
-        window.downloadCsv("test.csv", csv);
-        console.log("[TLP] CSV test fired");
-      },
-      openEula() {
-        if (hasOpenEula) window.tlpOpenEula();
-        else console.warn("tlpOpenEula が未定義");
-      },
-      // 実験: バッジ最小化（既定OFF / v0.8.1候補）
-      toggleBadgeMini() {
-        const b = document.querySelector("#tlp-brand-badge");
-        if (!b) return console.warn("#tlp-brand-badge が見つからない");
-        b.dataset.mini = b.dataset.mini === "1" ? "0" : "1";
-      },
-    };
-
-    console.log("[TLP] CSV minimal block", hasDownload ? "OK" : "MISSING");
-    console.log("[TLP] Ready. Try: tlpDiag.check(), tlpDiag.openEula(), tlpDiag.testCsv()");
-  } catch (e) {
-    console.error("[TLP] diag init error", e);
-  }
-})();
+  console.log("[TLP] Ready. Try: tlpDiag.check(), tlpDiag.openEula()");
+}catch(e){console.error("[TLP] diag init error", e);}})();
 </script>
+
 <script>
 (()=> {
   const root = document.documentElement;
