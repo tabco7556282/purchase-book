@@ -1531,9 +1531,21 @@ header, .app-header, .tlp-header { position: relative; }
     a.click();
     setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
   }
+function saveUTF8(name, text){
+  const norm = String(text||'').replace(/\r?\n/g, '\r\n'); // CRLFに統一
+  const blob = new Blob(["\uFEFF" + norm], { type: "text/csv;charset=utf-8" }); // UTF-8 + BOM
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name || `tlp_export_${Date.now()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+}
 
   // 互換エイリアス（どの名前で呼ばれてもこの最小実装が動く）
-  window.downloadCsv = window.exportCsv = window.saveUTF16 = saveUTF16;
+  window.downloadCsv = saveUTF8;   // ← CSVはUTF-8で出す
+window.exportCsv  = saveUTF8;
+window.saveUTF16  = saveUTF16;   // ← これは残してOK（TSV等の保険用）
 
   console.log("[TLP] CSV minimal block loaded");
 })();
