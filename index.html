@@ -959,35 +959,6 @@ document.addEventListener("click",(e)=>{
   if(ent) openEntryModal(ent);
 });
 
-/* ===== Export ===== */
-function ModalExport(){
-  openModalBase("データ出力","<div>Excelで開けるファイルを作成します（当月分）。よろしいですか？</div>");
-  $("#modalOK").textContent="出力する";
-  $("#modalOK").onclick=()=>{ exportData(); closeModal(); };
-}
-function exportData(){
-  const dt = new Date();
-  const ym = dt.getFullYear() + "-" + String(dt.getMonth()+1).padStart(2,"0");
-
-  const rows = [["日付","仕入れ先","商品","数量","単価","税率","区分","税込額","メモ"]];
-  store.entries.filter(e => !e.deleted).forEach(e => {
-    if ((e.date || "").slice(0,7) === ym) {
-      const s = supplierName(e.supplier_id) || e.supplier_name_fallback || "";
-      const p = prodName(e.product_id, e.product_name_fallback);
-      const g = (e.taxmode === "incl" ? e.price : e.price * (1 + e.taxrate/100)) * e.qty;
-      rows.push([
-        e.date, s, p, e.qty, e.price, e.taxrate,
-        (e.taxmode === "incl" ? "税込" : "税別"),
-        Math.round(g),
-        e.memo || ""
-      ]);
-    }
-  });
-
-saveExcelXML("仕入れ記録_" + ym + ".xml", rows);
-
-  alert("出力しました（Excelで開けます）");
-}
 
 /* ===== Backup / Restore / Fiscal Archive ===== */
 function backupNow(){
@@ -1377,34 +1348,7 @@ init();
     site: "cafetabco.com"
   }, window.__tlp_meta || {});
 
-  function mountBadge(){
-    if (document.getElementById('tlp-brand-badge')) return;
-    const b = document.createElement('div');
-    b.id = 'tlp-brand-badge';
-   b.innerHTML = `
-  <span class="tlp-badge-name">${__tlp_meta.brand}<sup class="tm">TM</sup></span>
-  <span class="tlp-badge-ver">v${__tlp_meta.version}</span>
-`;
-    Object.assign(b.style, {
-      position:'fixed', right:'12px',
-      padding:'4px 8px', borderRadius:'12px',
-      background:'#fff', color:'#111',
-      boxShadow:'0 2px 10px rgba(0,0,0,.12)',
-      fontFamily:'system-ui, sans-serif', fontSize:'10px', lineHeight:'1', opacity:'0.9'
-    });
-    const style = document.createElement('style');
-    style.textContent = `
-      #tlp-brand-badge{ display:inline-block; width:max-content; white-space:normal; text-align:left; }
-#tlp-brand-badge .tlp-badge-name{ display:block; line-height:1.15; }
-#tlp-brand-badge .tlp-badge-ver { display:block; margin-top:2px; font-size:10px; line-height:1; opacity:.85; }
-      @media (prefers-color-scheme: dark){
-        #tlp-brand-badge{background:#121212;color:#f5f5f5;box-shadow:0 3px 12px rgba(0,0,0,.6)}
-      }
-    `;
-    document.head.appendChild(style);
-    (document.querySelector('header, .app-header, .tlp-header') || document.body).appendChild(b);
-
-  }
+ 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', mountBadge);
   } else {
@@ -1438,14 +1382,6 @@ right: auto; bottom: auto !important;
   text-align: left;
 }
 
-/* 2行レイアウト用 */
-#tlp-brand-badge .tlp-badge-name{ display:block; line-height:1.15; }
-#tlp-brand-badge .tlp-badge-ver { display:block; margin-top:2px; font-size:10px; line-height:1; opacity:.85; }
-
-bottom: calc(var(--tlp-badge-offset, 12px) + env(safe-area-inset-bottom, 0px)) !important;
-　z-index: 1000 !important;
-  pointer-events: none;
-}
 
 /* 狭い画面だけ少しコンパクトに */
 @media (max-width: 480px){
@@ -1458,95 +1394,10 @@ bottom: calc(var(--tlp-badge-offset, 12px) + env(safe-area-inset-bottom, 0px)) !
 @media (max-width:768px), (hover:none) and (pointer:coarse){
   :root{ --tlp-badge-offset: 72px; } /* まだ被るなら 88px, 96px に調整 */
 }
-/* ヘッダー内に置く前提のスタイル（左寄せ＆縦積み） */
-header, .app-header, .tlp-header { position: relative; }
 
-#tlp-brand-badge{
-  position: absolute;       /* ← fixed から absolute に上書き */
-  left: 12px; top: 8px;     /* ヘッダー左の空きへ */
-  right: auto;
-  bottom: auto !important;  /* 下固定を無効化 */
-  max-width: 42vw;          /* ヘッダー左の空きを超えない程度に */
-  white-space: normal;      /* 改行を許可 */
-  text-align: left;
-  opacity: .85;             /* 目立ちすぎ防止（任意） */
-}
-
-/* 2行目（バージョン）を小さく・行間詰め */
-#tlp-brand-badge .tlp-badge-ver{
-  display: block; margin-top: 2px;
-  font-size: 10px; line-height: 1;
-  opacity: .85;
-}
-.tlp-home-moved{ position:absolute; right:12px; top:8px; }
-#tlp-brand-badge .tlp-badge-ver{ display:block; margin-top:2px; font-size:10px; line-height:1; opacity:.85; }
-/* ヘッダー内に入っている時は、ヘッダー基準で絶対配置 */
-:is(header,.app-header,.tlp-header){ position: relative; } /* 既存に影響ほぼなし */
-:is(header,.app-header,.tlp-header) #tlp-brand-badge{
-  position: absolute;
-  top: 4px;           /* もっと上げたければ 2px などに */
-  left: 12px;
-  right: auto;
-  bottom: auto !important;
-}
 </style>
 
-<script>
 
-  // 既存呼び出し名をすべてこの最小実装に割り当て（互換）
-  window.downloadCsv = window.exportCsv = window.saveUTF16 = saveUTF16;
-})();
-</script>
-<!-- === BEGIN: TLP CSV MINIMAL BLOCK (v0.8.0) === -->
-<script>
-(function(){
-  "use strict";
-
-  // UTF-16LE + BOM でCSVを保存（Excel文字化け対策のみ）
-  function encodeUTF16LE(str){
-    const s = String(str || "");
-    const buf = new Uint8Array((s.length + 1) * 2);
-    buf[0] = 0xFF; buf[1] = 0xFE; // BOM
-    for (let i = 0; i < s.length; i++){
-      const c = s.charCodeAt(i);
-      buf[2 + i*2] = c & 0xFF;
-      buf[3 + i*2] = c >>> 8;
-    }
-    return new Blob([buf], { type: "text/csv;charset=utf-16le;" });
-  }
-
- function saveUTF16(name, text){
-    const norm = String(text||'').replace(/\r?\n/g, '\r\n'); // 改行をCRLFに統一
-    const blob = encodeUTF16LE(norm);
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = name || `tlp_export_${Date.now()}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
-  }
-function saveUTF8(name, text){
-  const norm = String(text||'').replace(/\r?\n/g, '\r\n'); // CRLFに統一
-  const head = "sep=,\r\n"; // ★これでExcelに「カンマ区切り」と宣言
-  const blob = new Blob(["\uFEFF" + head + norm], { type: "text/csv;charset=utf-8" });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = name || `tlp_export_${Date.now()}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
-}
-
-
-  // 互換エイリアス（どの名前で呼ばれてもこの最小実装が動く）
-  window.downloadCsv = saveUTF8;   // ← CSVはUTF-8で出す
-window.exportCsv  = saveUTF8;
-window.saveUTF16  = saveUTF16;   // ← これは残してOK（TSV等の保険用）
-
-  console.log("[TLP] CSV minimal block loaded");
-})();
-</script>
-<!-- === END: TLP CSV MINIMAL BLOCK === -->
   <script>
 (() => {
   try {
@@ -1657,9 +1508,6 @@ window.saveUTF16  = saveUTF16;   // ← これは残してOK（TSV等の保険�
 })();
 </script>
 <script>
-  document.addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('tlp-brand-badge'); if(b){b.style.removeProperty('bottom'); b.style.removeProperty('z-index');}});
-</script>
-<script>
 (()=> {
   const header = document.querySelector('header, .app-header, .tlp-header');
   const badge  = document.getElementById('tlp-brand-badge');
@@ -1688,82 +1536,7 @@ window.saveUTF16  = saveUTF16;   // ← これは残してOK（TSV等の保険�
 
 })();
 </script>
-<style id="rights-css">
-/* === Rights page（ページ内限定の軽い体裁） === */
-#page-rights h3 { margin: 0 0 8px; }
-#page-rights h4 { margin: 14px 0 6px; font-size: 0.98rem; }
-#page-rights p  { margin: 0 0 8px; }
 
-/* 既存ヘッダーの全ページ共通バッジは“見えなくするだけ”（削除しない） */
-.app-header #tlp-brand-badge { display: none !important; }
-
-/* 権利ページ専用：右下固定・横一列のバッジ（別IDで衝突回避） */
-#tlp-brand-badge-rights{
-  position: fixed;
-  right: 12px;
-  bottom: 12px;
-  z-index: 7000;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,.12);
-  background: #fff;
-  font-size: 12px;
-  white-space: nowrap; /* 横一列固定 */
-}
-
-/* 印刷時は操作UI/モーダル/バッジを非表示（追加） */
-@media print {
-  nav, header, footer, .actions, .btn-row, .toolbar { display: none !important; }
-  .modal, .dialog, .backdrop, #modalHost, #eula-modal, .modal-backdrop { display: none !important; }
-  #tlp-brand-badge-rights { display: none !important; }
-  body { margin: 0 !important; }
-}
-</style>
-<script id="rights-js">
-(() => {
-  // EULA版：未定義なら補完（既に値があれば上書きしない）
-  try {
-    window.__tlp_meta = window.__tlp_meta || {};
-    if (!window.__tlp_meta.eulaVersion) window.__tlp_meta.eulaVersion = '2025-09-08';
-  } catch(e){}
-
-  // 権利ページだけに新IDのバッジを出す
-  function buildRightsBadge(){
-    const el = document.createElement('div');
-    el.id = 'tlp-brand-badge-rights';
-    el.setAttribute('role','note');
-    el.textContent = 'Tabco Ledger Plus\u2122 v0.8.0'; // 横一列
-    return el;
-  }
-  function mountRightsBadge(){
-    const host = document.getElementById('tlp-rights-badge-host');
-    if (!host) return; // 他ページは何もしない
-    if (document.getElementById('tlp-brand-badge-rights')) return; // 二重生成防止
-    host.appendChild(buildRightsBadge());
-  }
-
-  // EULAリンク（既存実装に委譲）
-  function wireEulaOpen(){
-    const a = document.getElementById('open-eula');
-    if (!a) return;
-    a.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (typeof window.tlpOpenEula === 'function') window.tlpOpenEula();
-      else if (window.TLP && typeof TLP.showEula === 'function') TLP.showEula();
-      else console.warn('EULA open handler not found.');
-    });
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { mountRightsBadge(); wireEulaOpen(); });
-  } else {
-    mountRightsBadge(); wireEulaOpen();
-  }
-})();
-</script>
 <style id="rights-css">
 /* === Rights page: 軽い体裁 ===================== */
 #page-rights h3 { margin: 0 0 8px; }
@@ -1853,7 +1626,6 @@ window.saveUTF16  = saveUTF16;   // ← これは残してOK（TSV等の保険�
 }
 </style>
   <script>
-<script>
 function saveExcelXML(name, rows2d){
   const esc = s => String(s ?? "")
     .replace(/&/g,"&amp;").replace(/</g,"&lt;")
@@ -1893,9 +1665,7 @@ function saveExcelXML(name, rows2d){
   setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
 }
 </script>
-if (typeof saveUTF16 === 'function') { window.downloadCsv = window.exportCsv = window.saveUTF16 = saveUTF16; }
-</script>
-<script>
+  <script>
 // btnExport / btnExport2 のクリックでエクスポート（ModalExport が無ければ exportData を直呼び）
 (function(){
   function hook(id){
@@ -1909,136 +1679,7 @@ if (typeof saveUTF16 === 'function') { window.downloadCsv = window.exportCsv = w
   hook("btnExport");
   hook("btnExport2");
 })();
-function saveXLS(name, rows2d){
-  const esc = s => String(s ?? "")
-    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-  const html =
-    '<html><head><meta charset="utf-8"></head><body>' +
-    '<table border="1" cellspacing="0" cellpadding="3">' +
-    rows2d.map(r => "<tr>" + r.map(c => `<td>${esc(c)}</td>`).join("") + "</tr>").join("") +
-    "</table></body></html>";
-  const blob = new Blob(["\uFEFF"+html], { type: "application/vnd.ms-excel" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = (name || `tlp_export_${Date.now()}.xls`).replace(/\.csv$/i, ".xls");
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
-}
 </script>
-/* ===== Export (lean) v2025-09-11 =====
-   目的: 出力系を1本化し、確実に列が分かれるExcelファイル(.xml)を生成
-   使い方: このブロックをファイルの一番下(</body>直前など)に1回だけ配置。
-   依存: store.entries / supplierName / prodName が既存通りに存在している前提。
-*/
-
-// 1) Excel 2003 XML(SpreadsheetML) で保存 — 警告なし＆枠線あり＆数値扱い
-function saveExcelXML(name, rows2d){
-  const esc = s => String(s ?? "")
-    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-
-  // 値と型を判定して <Cell> を生成（数値は Number、その他は String）
-  const toCell = (c) => {
-    let v = c, type = typeof c === 'number' ? 'Number' : 'String';
-    if (c && typeof c === 'object' && 'v' in c) {
-      v = c.v; type = c.t || (typeof v === 'number' ? 'Number' : 'String');
-    }
-    return `<Cell ss:StyleID="s1"><Data ss:Type="${type}">${esc(v)}</Data></Cell>`;
-  };
-
-  const rowsXml = rows2d.map(r => `<Row>${r.map(toCell).join("")}</Row>`).join("");
-
-  const xml = `<?xml version="1.0"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-  <Styles>
-    <Style ss:ID="s1">
-      <Borders>
-        <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
-        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
-        <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
-        <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
-      </Borders>
-    </Style>
-  </Styles>
-  <Worksheet ss:Name="Sheet1"><Table>${rowsXml}</Table></Worksheet>
-</Workbook>`;
-
-  const blob = new Blob([xml], { type: "application/vnd.ms-excel" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = (name || `tlp_export_${Date.now()}.xml`).replace(/\.[A-Za-z0-9]+$/, '') + '.xml';
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
-}
-
-// 2) データ収集 → 保存（今月分）
-function exportData(){
-  const dt = new Date();
-  const ym = dt.getFullYear() + "-" + String(dt.getMonth()+1).padStart(2,"0");
-
-  const rows = [["日付","仕入れ先","商品","数量","単価","税率","区分","税込額","メモ"]];
-
-  (store.entries || []).filter(e => !e.deleted).forEach(e => {
-    const date = String(e.date || "");
-    if (date.slice(0,7) !== ym) return;
-
-    const s = (typeof supplierName === 'function' ? (supplierName(e.supplier_id) || '') : '') || e.supplier_name_fallback || "";
-    const p = (typeof prodName === 'function' ? prodName(e.product_id, e.product_name_fallback) : (e.product_name_fallback || ''));
-
-    const qty = Number(e.qty || 0);
-    const unit = Number(e.price || 0);
-    const taxrate = Number(e.taxrate || 0);
-    const mode = (e.taxmode === 'incl' ? '税込' : '税別');
-    const gross = (e.taxmode === 'incl' ? unit : unit * (1 + taxrate/100)) * qty;
-
-    rows.push([
-      date,
-      s,
-      p,
-      { v: qty, t: 'Number' },
-      { v: unit, t: 'Number' },
-      { v: taxrate, t: 'Number' },
-      mode,
-      { v: Math.round(gross), t: 'Number' },
-      (e.memo || "")
-    ]);
-  });
-
-  saveExcelXML("仕入れ記録_" + ym + ".xml", rows);
-  try { alert("出力しました（Excelで開けます）"); } catch(_) {}
-}
-
-// 3) ボタン直結（常に exportData を実行）
-document.addEventListener('click', function(e){
-  const t = e.target.closest('#btnExport, #btnExport2');
-  if (!t) return;
-  e.preventDefault();
-  try { exportData(); } catch(err){ console.error(err); alert('出力でエラーが発生しました'); }
-}, true);
-
-
-// 4) バッジ掃除（任意・有効なら true）
-const REMOVE_BADGES = true;
-if (REMOVE_BADGES) {
-  try {
-    const style = document.createElement('style');
-    style.textContent = `#tlpBrandBadge, .brand-badge, [data-brand-badge], .tlp-brand-overlay { display:none !important; }`;
-    document.head.appendChild(style);
-    ['#tlpBrandBadge', '.brand-badge', '[data-brand-badge]', '.tlp-brand-overlay']
-      .forEach(sel => document.querySelectorAll(sel).forEach(n => n.remove()));
-  } catch (_) {}
-}
-
-
-
-
-
-
-
-
 
 
 
