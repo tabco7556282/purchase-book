@@ -984,9 +984,7 @@ function exportData(){
     }
   });
 
-saveXLS("仕入れ記録_" + ym + ".xls", rows);
-
-
+saveExcelXML("仕入れ記録_" + ym + ".xml", rows);
 
   alert("出力しました（Excelで開けます）");
 }
@@ -1855,6 +1853,46 @@ window.saveUTF16  = saveUTF16;   // ← これは残してOK（TSV等の保険�
 }
 </style>
   <script>
+<script>
+function saveExcelXML(name, rows2d){
+  const esc = s => String(s ?? "")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+  const rowsXml = rows2d.map(r =>
+    "<Row>" + r.map(c =>
+      `<Cell ss:StyleID="s1"><Data ss:Type="String">${esc(c)}</Data></Cell>`
+    ).join("") + "</Row>"
+  ).join("");
+
+  const xml =
+`<?xml version="1.0"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+          xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+  <Styles>
+    <Style ss:ID="s1">
+      <Borders>
+        <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+      </Borders>
+    </Style>
+  </Styles>
+  <Worksheet ss:Name="Sheet1">
+    <Table>${rowsXml}</Table>
+  </Worksheet>
+</Workbook>`;
+
+  const blob = new Blob([xml], { type: "application/vnd.ms-excel" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = (name || `tlp_export_${Date.now()}.xml`).replace(/\.\w+$/,'') + ".xml";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+}
+</script>
 if (typeof saveUTF16 === 'function') { window.downloadCsv = window.exportCsv = window.saveUTF16 = saveUTF16; }
 </script>
 <script>
