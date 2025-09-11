@@ -858,7 +858,7 @@ function saveExcelXML(name, rows2d){
   const esc = s => String(s ?? "")
     .replace(/&/g,"&amp;").replace(/</g,"&lt;")
     .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-// 押すと確認ダイアログを出す（XML一本化の明示）
+// 2) 確認モーダル
 function ModalExport(){
   openModalBase(
     "データ出力",
@@ -868,23 +868,19 @@ function ModalExport(){
   ok.textContent = "出力する";
   ok.onclick = ()=>{ exportData(); closeModal(); };
 }
-// 出力ボタン -> かならず ModalExport() を挟む
-(() => {
-  function bindToModal(id){
-    const el = document.getElementById(id);
-    if(!el) return;
-    // 念のため既存clickハンドラを一掃して付け直し
-    const clone = el.cloneNode(true);
-    el.replaceWith(clone);
-    clone.addEventListener("click", (e)=>{
-      e.preventDefault();
-      if (typeof ModalExport === "function") {
-        ModalExport();
-      } else {
-        // フォールバック（万一Modal未読込でも安全に）
-        if (confirm("当月分を Excel XML（.xml）で出力します。よろしいですか？")) exportData();
-      }
-    });
+
+// 3) 出力ボタン → かならずモーダル経由（委任で安定化）
+document.addEventListener("click", (e)=>{
+  const btn = e.target.closest("#btnExport, #btnExport2");
+  if(!btn) return;
+  e.preventDefault();
+  if (typeof ModalExport === "function") {
+    ModalExport();
+  } else {
+    // フォールバック（万一Modalが読めない場合でも安全に）
+    if (confirm("当月分を Excel XML（.xml）で出力します。よろしいですか？")) exportData();
+  }
+});
   }
   bindToModal("btnExport");
   bindToModal("btnExport2");
