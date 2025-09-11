@@ -984,8 +984,8 @@ function exportData(){
     }
   });
 
-const tsv = rows.map(r => r.map(x => String(x).replace(/\t/g,' ')).join("\t")).join("\r\n");
-saveUTF16("仕入れ記録_" + ym + ".tsv", tsv);
+saveXLS("仕入れ記録_" + ym + ".xls", rows);
+
 
 
   alert("出力しました（Excelで開けます）");
@@ -1871,6 +1871,23 @@ if (typeof saveUTF16 === 'function') { window.downloadCsv = window.exportCsv = w
   hook("btnExport");
   hook("btnExport2");
 })();
+function saveXLS(name, rows2d){
+  const esc = s => String(s ?? "")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  const html =
+    '<html><head><meta charset="utf-8"></head><body>' +
+    '<table border="1" cellspacing="0" cellpadding="3">' +
+    rows2d.map(r => "<tr>" + r.map(c => `<td>${esc(c)}</td>`).join("") + "</tr>").join("") +
+    "</table></body></html>";
+  const blob = new Blob(["\uFEFF"+html], { type: "application/vnd.ms-excel" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = (name || `tlp_export_${Date.now()}.xls`).replace(/\.csv$/i, ".xls");
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+}
 </script>
 
 
