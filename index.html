@@ -858,6 +858,37 @@ function saveExcelXML(name, rows2d){
   const esc = s => String(s ?? "")
     .replace(/&/g,"&amp;").replace(/</g,"&lt;")
     .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+// 押すと確認ダイアログを出す（XML一本化の明示）
+function ModalExport(){
+  openModalBase(
+    "データ出力",
+    '<div>当月分を <b>Excel XML（.xml）</b> で出力します。よろしいですか？</div>'
+  );
+  const ok = document.getElementById("modalOK");
+  ok.textContent = "出力する";
+  ok.onclick = ()=>{ exportData(); closeModal(); };
+}
+// 出力ボタン -> かならず ModalExport() を挟む
+(() => {
+  function bindToModal(id){
+    const el = document.getElementById(id);
+    if(!el) return;
+    // 念のため既存clickハンドラを一掃して付け直し
+    const clone = el.cloneNode(true);
+    el.replaceWith(clone);
+    clone.addEventListener("click", (e)=>{
+      e.preventDefault();
+      if (typeof ModalExport === "function") {
+        ModalExport();
+      } else {
+        // フォールバック（万一Modal未読込でも安全に）
+        if (confirm("当月分を Excel XML（.xml）で出力します。よろしいですか？")) exportData();
+      }
+    });
+  }
+  bindToModal("btnExport");
+  bindToModal("btnExport2");
+})();
 
   // ヘッダ判定して型付け（見出しは文字列、以降は数値はNumberで）
   const toCell = (val, isHeader) => {
@@ -922,19 +953,6 @@ function exportData(){
 alert("Excel XML（.xml）で出力しました。Excelから開けます（必要ならドラッグ＆ドロップ）。");
 }
 
-/* 出力ボタン配線（直呼び固定） */
-(function(){
-  function hook(id){
-    const el = document.getElementById(id);
-    if(!el) return;
-    el.addEventListener("click", function(e){
-      e.preventDefault();
-      exportData();
-    });
-  }
-  hook("btnExport");
-  hook("btnExport2");
-})();
 
 /* ===== Backup / Restore / Fiscal Archive ===== */
 function backupNow(){
