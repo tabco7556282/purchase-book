@@ -858,13 +858,22 @@ function saveExcelXML(name, rows2d){
   const esc = s => String(s ?? "")
     .replace(/&/g,"&amp;").replace(/</g,"&lt;")
     .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-  const rowsXml = rows2d.map(r =>
-    "<Row>" + r.map(c =>
-      `<Cell ss:StyleID="s1"><Data ss:Type="String">${esc(c)}</Data></Cell>`
-    ).join("") + "</Row>"
+
+  // ヘッダ判定して型付け（見出しは文字列、以降は数値はNumberで）
+  const toCell = (val, isHeader) => {
+    if (!isHeader && typeof val === "number" && Number.isFinite(val)) {
+      return `<Cell ss:StyleID="s1"><Data ss:Type="Number">${val}</Data></Cell>`;
+    }
+    return `<Cell ss:StyleID="s1"><Data ss:Type="String">${esc(val)}</Data></Cell>`;
+  };
+
+  const rowsXml = rows2d.map((row, i) =>
+    "<Row>" + row.map(v => toCell(v, i===0)).join("") + "</Row>"
   ).join("");
+
   const xml =
 `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
 <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
           xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
   <Styles>
@@ -881,6 +890,7 @@ function saveExcelXML(name, rows2d){
     <Table>${rowsXml}</Table>
   </Worksheet>
 </Workbook>`;
+
   const blob = new Blob([xml], { type: "application/vnd.ms-excel" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -908,7 +918,8 @@ function exportData(){
     }
   });
   saveExcelXML("仕入れ記録_" + ym + ".xml", rows);
-  alert("出力しました（Excelで開けます）");
+  // exportData() の最後をこれに
+alert("Excel XML（.xml）で出力しました。Excelから開けます（必要ならドラッグ＆ドロップ）。");
 }
 
 /* 出力ボタン配線（直呼び固定） */
