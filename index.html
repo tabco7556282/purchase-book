@@ -307,19 +307,28 @@ textarea{min-height:84px;resize:vertical}
 /* ===== Storage ===== */
 const DB = {
   load(){
-    const d = JSON.parse(localStorage.getItem("tabco-store")||"{}");
-    return Object.assign({
+    const raw = JSON.parse(localStorage.getItem("tabco-store")||"{}");
+
+    const defaults = {
       suppliers:[], products:[], entries:[], priceHistory:{},
       settings:{
         theme:"light", lastBackupAt:null, plan:"free",
         autoClear:true, historyShowBoth:true, showTaxFlags:false,
-        recentProducts:[], hisRange:"30",hisRangeDays:30
+        recentProducts:[],
+        hisRange:"30",      // ← 新キー（文字列）
+        hisRangeDays:30     // ← 旧キー（互換のため残置）
       }
-    }, d);
+    };
+
+    // ★ 深いマージ：settings は個別にマージして欠損を補う
+    const out = Object.assign({}, defaults, raw, {
+      settings: Object.assign({}, defaults.settings, raw.settings||{})
+    });
+    return out;
   },
   save(d){ localStorage.setItem("tabco-store", JSON.stringify(d)); }
 };
-let store = DB.load();
+
 
 /* ===== Utils ===== */
 const $  = (s,el)=>(el||document).querySelector(s);
