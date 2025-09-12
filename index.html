@@ -869,59 +869,113 @@ function openEntryModal(e){
 /* ===== HISTORY（描画） ===== */
 function renderHistory(){
   const list = $("#historyList"); if(!list) return;
-  let days = Number(store.settings.hisRangeDays ?? ($("#hisRange")?.value || 30));
-  if(!Number.isFinite(days) || days<=0) days=30;
-  const showBoth = !!store.settings.historyShowBoth;
-  const now = new Date(); now.setHours(23,59,59,999);
-  const from = new Date(now.getTime() - (days-1)*86400000); from.setHours(0,0,0,0);
-  list.innerHTML = "";
-  const entries = (store.entries||[]).filter(e=>!e?.deleted);
-  if(!entries.length){ list.innerHTML = `<div class="muted">対象期間の履歴はありません。</div>`; return; }
-  const byDate={};
-  for(const e of entries){
-    if(!e.date) continue;
-    const d=new Date(e.date+"T12:00:00");
-    if(d>=from && d<=now){ (byDate[e.date]=byDate[e.date]||[]).push(e); }
-  }
-  const dates=Object.keys(byDate).sort().reverse();
-  if(!dates.length){ list.innerHTML = `<div class="muted">対象期間の履歴はありません。</div>`; return; }
 
-  for(const dkey of dates){
+  const rangeKey = String(store.settings.hisRange || "30"); // "7"|"30"|"fiscal"
+  const showBoth = !!store.settings.historyShowBoth;
+  const showDetail = !!store.settings.showTaxFlags;
+
+  const now = new Date(); now.setHours(23,59,59,999);
+  let from;
+  if (rangeKey === "fiscal") {
+    from = new Date(now.getFullYear(), 0, 1); // 1/1～
+  } else {
+    let days = Number(rangeKey); if(!Number.isFinite(days)||days<=0) days = 30;
+    from = new Date(now.getTime() - (days-1)*86400000); from.setHours(0,0,0,0);
+  }
+
+  list.innerHTML = "";
+
+  const entries = (store.entries||[]).filter(e=>{
+    if(!e || e.deleted || !e.date) return false;
+    const d = new Date(e.date+"T12:00:00");
+    return d >= from && d <= now;
+  });
+  if(!entries.length){ list.innerHTML = `<div class="muted">対象期間の履歴はありません。</div>`; return; }
+
+  // === 年度：月ごと表示 ===
+  if (rangeKey === "fiscal"){
+    const byMonth = {};
+    for (const e of entries){
+      const d = new Date(e.date+"T12:00:00");
+      const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+      (byMonth[ym] = byMonth[ym] || []).push(e);
+    }
+    const months = Object.keys(byMonth).sort().reverse();
+
+    for (const ym of months){
+      const sec = document.createElement("div"); sec.className = "card";
+      let html = `<b>${ym}</b>`;
+
+      // 月内を仕入先グループ
+      const group = {};
+      for (const e of byMonth[ym]){
+        const sk = e.supplier_id || e.supplier_name_fallback || "未指定";
+        (group[sk] = group[sk] || []).push(e);
+      }
+      for (const sk of Object.keys(group)){
+        const name = supplierName(sk) || sk;
+        let net=0,gross=0;
+        for(const e of group[sk]){ const t=calcLineTotal(e); net+=t.excl; gross+=t.incl; }
+        const head = showBoth ? `税別 ${yen(net)}｜税込 ${yen(gross)}` : `税込 ${yen(gross)}`;
+        html += `<div style="margin-top:6px"><u>${name}</u>　<span class="muted">${head}</span>`;
+
+        html += group[sk].map(e=>{
+          const t=calcLineTotal(e);
+          const show=(e.taxmode==="incl")?t.incl:t.excl;
+          const txLabel=(e.taxmode==="incl")?"税込":(e.taxrate===0?"非課税":"税別");
+          const meta = showDetail ? `<br><span class="mini-meta">単価 ${yen(e.price)} / ${e.taxrate||0}% / ${txLabel}</span>` : "";
+          return `<div class="row entry" data-id="${e.id}" style="justify-content:space-between;cursor:pointer">
+            <span>・${e.date} ${prodName(e.product_id,e.product_name_fallback)} ×${e.qty}${meta}</span>
+            <span>${yen(show)}</span>
+          </div>`;
+        }).join("");
+
+        html += `</div>`;
+      }
+
+      sec.innerHTML = html; list.appendChild(sec);
+    }
+    return;
+  }
+
+  // === 従来：日ごと表示（1週間/1ヶ月） ===
+  const byDate = {};
+  for (const e of entries){ (byDate[e.date] = byDate[e.date] || []).push(e); }
+  const dates = Object.keys(byDate).sort().reverse();
+
+  for (const dkey of dates){
     const sec=document.createElement("div"); sec.className="card";
     let html = `<b>${new Date(dkey+"T12:00:00").toLocaleDateString("ja-JP",{year:"numeric",month:"long",day:"numeric",weekday:"short"})}</b>`;
+
     const group={};
-    for(const e of byDate[dkey]){
-      const skey=e.supplier_id||e.supplier_name_fallback||"未指定";
-      (group[skey]=group[skey]||[]).push(e);
+    for (const e of byDate[dkey]){
+      const sk=e.supplier_id||e.supplier_name_fallback||"未指定";
+      (group[sk]=group[sk]||[]).push(e);
     }
-    for(const skey of Object.keys(group)){
-      const name=supplierName(skey)||skey;
+    for (const sk of Object.keys(group)){
+      const name=supplierName(sk)||sk;
       let net=0,gross=0;
-      for(const e of group[skey]){ const t=calcLineTotal(e); net+=t.excl; gross+=t.incl; }
-      const headerTotals = showBoth ? `税別 ${yen(net)}｜税込 ${yen(gross)}` : `税込 ${yen(gross)}`;
-      html += `<div style="margin-top:6px"><u>${name}</u>　<span class="muted">${headerTotals}</span>`;
-      html += group[skey].map(e=>{
+      for(const e of group[sk]){ const t=calcLineTotal(e); net+=t.excl; gross+=t.incl; }
+      const head = showBoth ? `税別 ${yen(net)}｜税込 ${yen(gross)}` : `税込 ${yen(gross)}`;
+      html += `<div style="margin-top:6px"><u>${name}</u>　<span class="muted">${head}</span>`;
+
+      html += group[sk].map(e=>{
         const t=calcLineTotal(e);
         const show=(e.taxmode==="incl")?t.incl:t.excl;
         const txLabel=(e.taxmode==="incl")?"税込":(e.taxrate===0?"非課税":"税別");
-        const meta = store.settings.showTaxFlags ? `<br><span class="mini-meta">単価 ${yen(e.price)} / ${e.taxrate||0}% / ${txLabel}</span>` : "";
+        const meta = showDetail ? `<br><span class="mini-meta">単価 ${yen(e.price)} / ${e.taxrate||0}% / ${txLabel}</span>` : "";
         return `<div class="row entry" data-id="${e.id}" style="justify-content:space-between;cursor:pointer">
           <span>・${prodName(e.product_id,e.product_name_fallback)} ×${e.qty}${meta}</span>
           <span>${yen(show)}</span>
         </div>`;
       }).join("");
+
       html += `</div>`;
     }
+
     sec.innerHTML=html; list.appendChild(sec);
   }
 }
-document.addEventListener("click",(e)=>{
-  const el=e.target.closest("#historyList .entry");
-  if(!el) return;
-  const id=el.getAttribute("data-id");
-  const ent=store.entries.find(x=>x.id===id);
-  if(ent) openEntryModal(ent);
-});
 
 /* ===== Export（Excel XML一本化） ===== */
 
