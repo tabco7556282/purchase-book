@@ -904,35 +904,93 @@ function saveExcelXML(name, rows2d){
   a.click();
   setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
 }
+// === 期間ユーティリティ ===
+function _ym(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
+function _startOfMonth(d){ return new Date(d.getFullYear(), d.getMonth(), 1); }
+function _endOfDay(d){ const x=new Date(d); x.setHours(23,59,59,999); return x; }
+function _addMonths(d,n){ return new Date(d.getFullYear(), d.getMonth()+n, 1); }
+function getExportRange(key){
+  const now=new Date();
+  if(key==="6m"){
+    const from=_startOfMonth(_addMonths(now,-5));  // 今月含む6か月
+    const to=_endOfDay(new Date());
+    return {from,to,label:`${_ym(from)}〜${_ym(now)}`,key};
+  }
+  if(key==="all"){ return {from:null,to:null,label:"全期間",key}; }
+  // default: 当月
+  const from=_startOfMonth(now), to=_endOfDay(new Date());
+  return {from,to,label:_ym(now),key:"month"};
+}
+function _inRange(ymd, range){
+  if(!ymd) return false;
+  const d=new Date(ymd+"T12:00:00");
+  if(range.from && d<range.from) return false;
+  if(range.to && d>range.to) return false;
+  return true;
+}
 
-// 当月分を行配列にして保存
-function exportData(){
-  const dt = new Date();
-  const ym = dt.getFullYear() + "-" + String(dt.getMonth()+1).padStart(2,"0");
+// === 出力本体（プラン制限＋期間選択） ===
+function exportData(rangeKey){
+  const plan = store.settings.plan || "free";        // 'free' | 'middle' | 'pro'
+  const maxKey = (plan==="pro") ? "all" : (plan==="middle" ? "6m" : "month");
+  const key = (["month","6m","all"].includes(rangeKey) ? rangeKey : "month");
+  const effectiveKey =
+    (maxKey==="month" && key!=="month") ? "month" :
+    (maxKey==="6m"   && key==="all")    ? "6m"   : key;
+
+  const range = getExportRange(effectiveKey);
+
   const rows = [["日付","仕入れ先","商品","数量","単価","税率","区分","税込額","メモ"]];
-  store.entries.filter(e => !e.deleted).forEach(e => {
-    if ((e.date || "").slice(0,7) === ym) {
+  const hasAny = (store.entries||[]).some(e=>!e.deleted && (!range.from || _inRange(e.date, range)));
+  if(!hasAny){ alert("選択した期間にデータがありません。"); return; }
+
+  store.entries.filter(e=>!e.deleted).forEach(e=>{
+    if(!range.from || _inRange(e.date, range)){
       const s = supplierName(e.supplier_id) || e.supplier_name_fallback || "";
       const p = prodName(e.product_id, e.product_name_fallback);
-      const g = (e.taxmode === "incl" ? e.price : e.price * (1 + e.taxrate/100)) * e.qty;
+      const g = (e.taxmode==="incl" ? e.price : e.price*(1+e.taxrate/100)) * e.qty;
       rows.push([ e.date, s, p, e.qty, e.price, e.taxrate,
-        (e.taxmode === "incl" ? "税込" : "税別"), Math.round(g), e.memo || "" ]);
+        (e.taxmode==="incl"?"税込":"税別"), Math.round(g), e.memo||"" ]);
     }
   });
-  saveExcelXML("仕入れ記録_" + ym + ".xml", rows);
-  alert("Excel XML（.xml）で出力しました。Excelから開けます（必要ならドラッグ＆ドロップ）。");
+
+  const base = effectiveKey==="month" ? range.label :
+               effectiveKey==="6m"   ? `過去6か月_${range.label}` : "全期間";
+  saveExcelXML(`仕入れ記録_${base}.xml`, rows);
+  alert("Excel XML（.xml）で出力しました。");
 }
 
-// ワンクッションの確認モーダル
+// === 確認モーダル（期間選択＋プラン制限） ===
 function ModalExport(){
-  openModalBase(
-    "データ出力",
-    '<div>当月分を <b>Excel XML（.xml）</b> で出力します。よろしいですか？</div>'
-  );
-  const ok = document.getElementById("modalOK");
-  ok.textContent = "出力する";
-  ok.onclick = ()=>{ exportData(); closeModal(); };
+  const plan = store.settings.plan || "free"; // 'free'|'middle'|'pro'
+  const allowed = (plan==="pro") ? "all" : (plan==="middle" ? "6m" : "month");
+
+  openModalBase("データ出力", `
+    <div class="grid">
+      <div class="label">出力範囲</div>
+      <label><input type="radio" name="exRange" value="month"> 当月</label>
+      <label><input type="radio" name="exRange" value="6m"> 過去6か月</label>
+      <label><input type="radio" name="exRange" value="all"> 全期間</label>
+      <div class="mini-meta">プラン：${plan}</div>
+    </div>
+  `);
+
+  const disallow = v => (allowed==="month" && v!=="month") || (allowed==="6m" && v==="all");
+  $$('input[name="exRange"]').forEach(r=>{
+    if(disallow(r.value)){ r.disabled=true; r.parentElement.style.opacity=".5"; }
+  });
+  const def = allowed==="all" ? "all" : (allowed==="6m" ? "6m" : "month");
+  const defEl = $$('input[name="exRange"]').find(r=>r.value===def); if(defEl) defEl.checked=true;
+
+  const ok=$("#modalOK");
+  ok.textContent="出力する";
+  ok.onclick=()=>{
+    const chosen=document.querySelector('input[name="exRange"]:checked')?.value || def;
+    closeModal();
+    exportData(chosen);
+  };
 }
+
 
 // 出力ボタンは必ずモーダル経由（委任）
 document.addEventListener("click", (e)=>{
