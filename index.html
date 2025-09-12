@@ -307,28 +307,46 @@ textarea{min-height:84px;resize:vertical}
 /* ===== Storage ===== */
 const DB = {
   load(){
-    const raw = JSON.parse(localStorage.getItem("tabco-store")||"{}");
-
     const defaults = {
-      suppliers:[], products:[], entries:[], priceHistory:{},
-      settings:{
-        theme:"light", lastBackupAt:null, plan:"free",
-        autoClear:true, historyShowBoth:true, showTaxFlags:false,
-        recentProducts:[],
-        hisRange:"30",      // ← 新キー（文字列）
-        hisRangeDays:30     // ← 旧キー（互換のため残置）
+      suppliers: [], products: [], entries: [], priceHistory: {},
+      settings: {
+        theme: "light", lastBackupAt: null, plan: "free",
+        autoClear: true, historyShowBoth: true, showTaxFlags: false,
+        recentProducts: [],
+        hisRange: "30",      // 新キー
+        hisRangeDays: 30     // 互換用（読みはしない）
       }
     };
 
-    // ★ 深いマージ：settings は個別にマージして欠損を補う
-    const out = Object.assign({}, defaults, raw, {
-      settings: Object.assign({}, defaults.settings, raw.settings||{})
-    });
+    // 破損対策付きパース
+    let raw = {};
+    try{
+      const s = localStorage.getItem("tabco-store");
+      raw = s ? JSON.parse(s) : {};
+    }catch(e){
+      console.warn("[DB] parse error, fallback to defaults", e);
+      try{
+        localStorage.setItem("tabco-store_corrupt", localStorage.getItem("tabco-store") || "");
+      }catch(_){}
+      raw = {};
+    }
+
+    // 深いマージ（settingsだけ個別にマージ）
+    const out = {
+      suppliers: Array.isArray(raw.suppliers) ? raw.suppliers : defaults.suppliers,
+      products:  Array.isArray(raw.products)  ? raw.products  : defaults.products,
+      entries:   Array.isArray(raw.entries)   ? raw.entries   : defaults.entries,
+      priceHistory: (raw.priceHistory && typeof raw.priceHistory === "object") ? raw.priceHistory : {},
+      settings: Object.assign({}, defaults.settings, (raw.settings || {}))
+    };
     return out;
   },
-  save(d){ localStorage.setItem("tabco-store", JSON.stringify(d)); }
+  save(d){
+    try{ localStorage.setItem("tabco-store", JSON.stringify(d)); }
+    catch(e){ console.error("[DB] save error", e); }
+  }
 };
-
+let store = DB.load();
 
 /* ===== Utils ===== */
 const $  = (s,el)=>(el||document).querySelector(s);
