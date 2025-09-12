@@ -613,13 +613,68 @@ function addLine(){
     arr.push({price,ts:Date.now(),taxrate,taxmode});
     store.priceHistory[product_id]=arr.slice(-5);
   }
-  bumpRecentProduct(product_id);
+  // 入力欄に「未追加の内容」があるかを判定
+function hasPendingInput(){
+  const free = $("#chkFree").checked;
+  const price = Number($("#inPrice").value||0);
+  const qty = Number($("#inQty").value||1);
+  if (price>0) return true;
+  if (qty!==1) return true;
+  if (($("#inMemo").value||"").trim()) return true;
+  if (free){
+    return ( ($("#freeSupplier").value||"").trim() ||
+             ($("#freeProduct").value||"").trim() );
+  } else {
+    return !!($("#inProduct").value||"");
+  }
+}
+
+// 「完了（ホームへ）」時の確認モーダル
+function confirmLeaveFromInput(){
+  openModalBase("ホームへ移動", `
+    <div>未追加の入力があります。どうしますか？</div>
+    <ul style="margin:8px 0 0 16px">
+      <li><b>追加して戻る</b>：明細に追加してホームへ</li>
+      <li><b>破棄して戻る</b>：入力中の内容は捨ててホームへ</li>
+    </ul>
+  `);
+  const ok   = $("#modalOK");
+  const cancel = $("#modalCancel");
+  const del  = $("#modalDelete");
+
+  ok.textContent = "追加して戻る";
+  del.textContent = "破棄して戻る";
+  del.classList.remove("hidden");
+
+  ok.onclick = ()=>{
+    const before = store.entries.length;
+    addLine(); // price/qty未入力なら内部でアラートして追加しない
+    const success = store.entries.length > before;
+    closeModal();
+    if (success){ navigate("home"); refreshHome(); }
+  };
+  del.onclick = ()=>{ closeModal(); navigate("home"); refreshHome(); };
+  // cancel は既定で closeModal()
+}
+bumpRecentProduct(product_id);
   DB.save(store); renderTodayList(); refreshHome();
   if(store.settings.autoClear){
     $("#inProduct").value=""; $("#inPrice").value=""; $("#inQty").value=1; $("#inMemo").value=""; $("#priceHistory").innerHTML="";
   }
 }
-document.addEventListener("click",(e)=>{ if(e.target.id==="btnSave"){ alert("保存しました"); navigate("home"); refreshHome(); }});
+document.addEventListener("click",(e)=>{
+  if(e.target.id!=="btnSave") return;
+
+  // 入力中の未追加があればモーダルで選択
+  if (hasPendingInput()){
+    confirmLeaveFromInput();
+    return;
+  }
+
+  // 何も未追加が無ければ静かにホームへ
+  navigate("home");
+  refreshHome();
+});
 document.addEventListener("click",(e)=>{ if(e.target.id==="btnClear"){ $("#inQty").value=1;$("#inPrice").value="";$("#inMemo").value="";$("#inProduct").value="";$("#priceHistory").innerHTML=""; }});
 
 /* 商品編集委譲 */
