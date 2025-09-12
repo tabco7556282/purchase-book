@@ -217,7 +217,7 @@ textarea{min-height:84px;resize:vertical}
   <!-- HISTORY -->
   <section id="page-history" class="hidden" data-title="履歴・集計">
     <div class="row" style="gap:10px;align-items:flex-end;flex-wrap:wrap">
-      <div><div class="label">期間</div><select id="hisRange"><option value="7">1週間</option><option value="30" selected>1ヶ月</option></select></div>
+      <div><div class="label">期間</div><select id="hisRange"><option value="7">1週間</option><option value="30" selected>1ヶ月</option><option value="fiscal">年度（1月〜今月）</option></select></div>
       <div class="row" style="gap:16px;align-items:center">
         <label class="row" style="gap:6px"><input type="checkbox" id="toggleGross" checked> 税別小計＋税込表示</label>
         <label class="row" style="gap:6px"><input type="checkbox" id="showDetail"> 明細の詳細（単価・税情報）</label>
@@ -313,7 +313,7 @@ const DB = {
       settings:{
         theme:"light", lastBackupAt:null, plan:"free",
         autoClear:true, historyShowBoth:true, showTaxFlags:false,
-        recentProducts:[], hisRangeDays:30
+        recentProducts:[], hisRange:"30",hisRangeDays:30
       }
     }, d);
   },
@@ -361,28 +361,63 @@ function setHeaderTitleByPage(id){
   const el=$("#pageTitle"); if(el) el.textContent = map[id] || "";
 }
 
-/* ===== History Controls ===== */
+/* ===== History Controls（一本化） ===== */
 window.HistoryUI = (function(){
   let bound = false;
+
   function sync(){
-    const cbGross = $("#toggleGross"); if (cbGross) cbGross.checked = !!store.settings.historyShowBoth;
-    const cbDet = $("#showDetail");   if (cbDet) cbDet.checked = !!store.settings.showTaxFlags;
+    // --- 旧 → 新 への自動移行（初回のみ）
+    if (store.settings.hisRange == null) {
+      const d = store.settings.hisRangeDays;
+      store.settings.hisRange = (d === 7 || d === 30) ? String(d) : "30";
+      DB.save(store);
+    }
+
+    // 税別小計＋税込表示
+    const cbGross = $("#toggleGross");
+    if (cbGross) cbGross.checked = !!store.settings.historyShowBoth;
+
+    // 明細の詳細
+    const cbDet = $("#showDetail");
+    if (cbDet) cbDet.checked = !!store.settings.showTaxFlags;
+
+    // 期間セレクト（"7" | "30" | "fiscal"）
     const sel = $("#hisRange");
     if (sel) {
-      const v = String(store.settings.hisRangeDays ?? sel.value ?? 30);
+      const v = String(store.settings.hisRange ?? "30");
       if (sel.value !== v) sel.value = v;
     }
   }
+
   function bindOnce(){
     if (bound) return;
+
     document.addEventListener("change", (e) => {
-      const t = e.target; if (!t) return;
-      if (t.id === "toggleGross") { store.settings.historyShowBoth = !!t.checked; DB.save(store); renderHistory(); }
-      if (t.id === "showDetail")  { store.settings.showTaxFlags  = !!t.checked; DB.save(store); renderHistory(); }
-      if (t.id === "hisRange")    { store.settings.hisRangeDays  = Number(t.value || 30); DB.save(store); renderHistory(); }
+      const t = e.target;
+      if (!t) return;
+
+      if (t.id === "toggleGross") {
+        store.settings.historyShowBoth = !!t.checked;
+        DB.save(store);
+        renderHistory();
+      }
+
+      if (t.id === "showDetail") {
+        store.settings.showTaxFlags = !!t.checked;
+        DB.save(store);
+        renderHistory();
+      }
+
+      if (t.id === "hisRange") {
+        store.settings.hisRange = String(t.value || "30"); // ← 新キーに保存
+        DB.save(store);
+        renderHistory();
+      }
     });
+
     bound = true;
   }
+
   return { sync, bindOnce };
 })();
 
