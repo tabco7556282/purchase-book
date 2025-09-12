@@ -1251,6 +1251,20 @@ init();
   #tlp-brand-badge-rights { display: none !important; }
   body { margin: 0 !important; }
 }
+/* 既定（ライト）— 白背景に濃い文字を固定 */
+#tlp-brand-badge-rights{
+  background:#fff;
+  color:#111;            /* ←これで継承を上書き */
+  border:1px solid #e5e7eb;
+}
+
+/* ダーク時は背景も暗色にして読みやすく */
+[data-theme="dark"] #tlp-brand-badge-rights{
+  background:#121212;
+  color:#f5f5f5;
+  border-color:#2a2a2a;
+  box-shadow:0 3px 12px rgba(0,0,0,.6);
+}
 </style>
 <script id="rights-js">
 (() => {
