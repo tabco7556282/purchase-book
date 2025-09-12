@@ -854,49 +854,21 @@ document.addEventListener("click",(e)=>{
 });
 
 /* ===== Export（Excel XML一本化） ===== */
+
+// Excel XML を保存（型付き＆Excelヒント）
 function saveExcelXML(name, rows2d){
   const esc = s => String(s ?? "")
     .replace(/&/g,"&amp;").replace(/</g,"&lt;")
     .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-// 2) 確認モーダル
-function ModalExport(){
-  openModalBase(
-    "データ出力",
-    '<div>当月分を <b>Excel XML（.xml）</b> で出力します。よろしいですか？</div>'
-  );
-  const ok = document.getElementById("modalOK");
-  ok.textContent = "出力する";
-  ok.onclick = ()=>{ exportData(); closeModal(); };
-}
-
-// 3) 出力ボタン → かならずモーダル経由（委任で安定化）
-document.addEventListener("click", (e)=>{
-  const btn = e.target.closest("#btnExport, #btnExport2");
-  if(!btn) return;
-  e.preventDefault();
-  if (typeof ModalExport === "function") {
-    ModalExport();
-  } else {
-    // フォールバック（万一Modalが読めない場合でも安全に）
-    if (confirm("当月分を Excel XML（.xml）で出力します。よろしいですか？")) exportData();
-  }
-});
-  bindToModal("btnExport");
-  bindToModal("btnExport2");
-})();
-
-  // ヘッダ判定して型付け（見出しは文字列、以降は数値はNumberで）
   const toCell = (val, isHeader) => {
     if (!isHeader && typeof val === "number" && Number.isFinite(val)) {
       return `<Cell ss:StyleID="s1"><Data ss:Type="Number">${val}</Data></Cell>`;
     }
     return `<Cell ss:StyleID="s1"><Data ss:Type="String">${esc(val)}</Data></Cell>`;
   };
-
-  const rowsXml = rows2d.map((row, i) =>
+  const rowsXml = rows2d.map((row, i)=>
     "<Row>" + row.map(v => toCell(v, i===0)).join("") + "</Row>"
   ).join("");
-
   const xml =
 `<?xml version="1.0"?>
 <?mso-application progid="Excel.Sheet"?>
@@ -916,7 +888,6 @@ document.addEventListener("click", (e)=>{
     <Table>${rowsXml}</Table>
   </Worksheet>
 </Workbook>`;
-
   const blob = new Blob([xml], { type: "application/vnd.ms-excel" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -926,6 +897,7 @@ document.addEventListener("click", (e)=>{
   setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
 }
 
+// 当月分を行配列にして保存
 function exportData(){
   const dt = new Date();
   const ym = dt.getFullYear() + "-" + String(dt.getMonth()+1).padStart(2,"0");
@@ -935,19 +907,32 @@ function exportData(){
       const s = supplierName(e.supplier_id) || e.supplier_name_fallback || "";
       const p = prodName(e.product_id, e.product_name_fallback);
       const g = (e.taxmode === "incl" ? e.price : e.price * (1 + e.taxrate/100)) * e.qty;
-      rows.push([
-        e.date, s, p, e.qty, e.price, e.taxrate,
-        (e.taxmode === "incl" ? "税込" : "税別"),
-        Math.round(g),
-        e.memo || ""
-      ]);
+      rows.push([ e.date, s, p, e.qty, e.price, e.taxrate,
+        (e.taxmode === "incl" ? "税込" : "税別"), Math.round(g), e.memo || "" ]);
     }
   });
   saveExcelXML("仕入れ記録_" + ym + ".xml", rows);
-  // exportData() の最後をこれに
-alert("Excel XML（.xml）で出力しました。Excelから開けます（必要ならドラッグ＆ドロップ）。");
+  alert("Excel XML（.xml）で出力しました。Excelから開けます（必要ならドラッグ＆ドロップ）。");
 }
 
+// ワンクッションの確認モーダル
+function ModalExport(){
+  openModalBase(
+    "データ出力",
+    '<div>当月分を <b>Excel XML（.xml）</b> で出力します。よろしいですか？</div>'
+  );
+  const ok = document.getElementById("modalOK");
+  ok.textContent = "出力する";
+  ok.onclick = ()=>{ exportData(); closeModal(); };
+}
+
+// 出力ボタンは必ずモーダル経由（委任）
+document.addEventListener("click", (e)=>{
+  const btn = e.target.closest("#btnExport, #btnExport2");
+  if(!btn) return;
+  e.preventDefault();
+  ModalExport();
+});
 
 /* ===== Backup / Restore / Fiscal Archive ===== */
 function backupNow(){
