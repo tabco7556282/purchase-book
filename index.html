@@ -662,18 +662,21 @@ bumpRecentProduct(product_id);
     $("#inProduct").value=""; $("#inPrice").value=""; $("#inQty").value=1; $("#inMemo").value=""; $("#priceHistory").innerHTML="";
   }
 }
-document.addEventListener("click",(e)=>{
-  if(e.target.id!=="btnSave") return;
+// 「完了（ホームへ）」ボタン：安定委任
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest("#btnSave");
+  if (!btn) return;
 
-  // 入力中の未追加があればモーダルで選択
-  if (hasPendingInput()){
-    confirmLeaveFromInput();
-    return;
+  // ヘルパーが万一未定義でもホームへ戻れるようフォールバック
+  if (typeof hasPendingInput !== "function" || typeof confirmLeaveFromInput !== "function") {
+    navigate("home"); refreshHome(); return;
   }
 
-  // 何も未追加が無ければ静かにホームへ
-  navigate("home");
-  refreshHome();
+  if (hasPendingInput()) {
+    confirmLeaveFromInput(); // 追加して戻る／破棄して戻る／キャンセル
+  } else {
+    navigate("home"); refreshHome();
+  }
 });
 document.addEventListener("click",(e)=>{ if(e.target.id==="btnClear"){ $("#inQty").value=1;$("#inPrice").value="";$("#inMemo").value="";$("#inProduct").value="";$("#priceHistory").innerHTML=""; }});
 
