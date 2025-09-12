@@ -1596,5 +1596,79 @@ init();
 }catch(e){console.error("[TLP] diag init error", e);}})();
 </script>
 
+<script>
+(function(){
+  if (window.__btnSaveRescue) return; // 二重バインド防止
+
+  function _val(sel){ const el=document.querySelector(sel); return el && 'value' in el ? el.value : ''; }
+  function _checked(sel){ const el=document.querySelector(sel); return !!(el && el.checked); }
+
+  // 入力に未追加があるか（グローバル）
+  window.hasPendingInput = function(){
+    const free  = _checked('#chkFree');
+    const price = Number(_val('#inPrice') || 0);
+    const qty   = Number(_val('#inQty')   || 1);
+    if (price > 0) return true;
+    if (qty !== 1) return true;
+    if ((_val('#inMemo') || '').trim()) return true;
+    return free
+      ? ((_val('#freeSupplier').trim() || _val('#freeProduct').trim()).length > 0)
+      : !!_val('#inProduct');
+  };
+
+  // 確認モーダル（グローバル・フォールバック付き）
+  window.confirmLeaveFromInput = function(){
+    if (typeof openModalBase !== 'function'){
+      if (confirm('未追加があります。追加して戻りますか？\nキャンセルで編集を続けます。')) {
+        const before=(store.entries||[]).length;
+        addLine();
+        if ((store.entries||[]).length > before){ navigate('home'); refreshHome(); }
+      }
+      return;
+    }
+    openModalBase('ホームへ移動',
+      '<div>未追加の入力があります。どうしますか？</div>' +
+      '<ul style="margin:8px 0 0 16px">' +
+        '<li><b>追加して戻る</b>：明細に追加してホームへ</li>' +
+        '<li><b>破棄して戻る</b>：入力中の内容は捨ててホームへ</li>' +
+      '</ul>');
+    const ok=document.getElementById('modalOK');
+    const del=document.getElementById('modalDelete');
+    const cancel=document.getElementById('modalCancel');
+    ok.textContent='追加して戻る';
+    del.textContent='破棄して戻る';
+    del.classList.remove('hidden');
+    ok.onclick=function(){
+      const before=(store.entries||[]).length;
+      addLine();
+      const success=(store.entries||[]).length > before;
+      closeModal();
+      if (success){ navigate('home'); refreshHome(); }
+    };
+    del.onclick=function(){ closeModal(); navigate('home'); refreshHome(); };
+    cancel.onclick=closeModal;
+  };
+
+  // 「完了（ホームへ）」クリックを安定委任
+  document.addEventListener('click', function(e){
+    const btn = e.target.closest('#btnSave');
+    if (!btn) return;
+    e.preventDefault();
+    try{
+      if (window.hasPendingInput && window.hasPendingInput()){
+        window.confirmLeaveFromInput();
+      } else {
+        navigate('home'); refreshHome();
+      }
+    }catch(err){
+      console.error('[rescue] btnSave error', err);
+      navigate('home'); refreshHome();
+    }
+  });
+
+  window.__btnSaveRescue = true;
+  console.log('[rescue] btnSave wired');
+})();
+</script>
 </body>
 </html>
