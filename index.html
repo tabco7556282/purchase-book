@@ -1582,13 +1582,7 @@ init();
   console.log("[TLP] Ready. Try: tlpDiag.check(), tlpDiag.openEula()");
 }catch(e){console.error("[TLP] diag init error", e);}})();
 </script>
-<script>
-  // 出力モーダル内のラジオの親行に option クラスを付ける
-  document.querySelectorAll('.modal-export input[type="radio"]').forEach(r=>{
-    const row = r.closest('li,div,p') || r.parentElement;
-    if(row) row.classList.add('option');
-  });
-</script>
+
 <style id="hotfix-mobile">
 /* 出力モーダル：文字は左、ラジオは右端で一直線 */
 .modal-export .option{
@@ -1612,6 +1606,48 @@ init();
 }
 </style>
 
+<script>
+/* 出力モーダルのラジオ行を、文字=左／ラジオ=右端の縦ラインで常に揃える */
+(function(){
+  function align(scope){
+    const radios = scope.querySelectorAll('input[type="radio"]');
+    radios.forEach(r=>{
+      // ラジオの1行分の親（li/div/p/label）を捕まえる
+      const row = r.closest('li,div,p,label') || r.parentElement;
+      if(!row) return;
+
+      // 行を2カラムのグリッドに（左=テキスト / 右=ラジオ）
+      row.style.display = 'grid';
+      row.style.gridTemplateColumns = '1fr 2.25em'; // 右カラムを固定→縦ラインがブレない
+      row.style.alignItems = 'center';
+      row.style.columnGap = '12px';
+      row.style.minHeight = '36px';
+
+      // ラジオは右端に寄せ、縦ラインを固定
+      r.style.margin = '0';
+      r.style.justifySelf = 'end';
+    });
+  }
+
+  // いま表示中に対して一度実行
+  align(document);
+
+  // モーダルが開く／中身が差し替わるたびに再適用
+  const mo = new MutationObserver(muts=>{
+    muts.forEach(m=>{
+      m.addedNodes && m.addedNodes.forEach(node=>{
+        if(node.nodeType!==1) return;
+        // 出力モーダルっぽい領域 or ラジオを含む差し替えに反応
+        if (node.matches?.('#ModalExport, .modal-export, [data-modal="export"], .modal') ||
+            node.querySelector?.('input[type="radio"]')) {
+          align(node);
+        }
+      });
+    });
+  });
+  mo.observe(document.body, {childList:true, subtree:true});
+})();
+</script>
 
 
 </body>
