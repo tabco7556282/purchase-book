@@ -664,7 +664,7 @@ const del = document.getElementById('modalDelete'); // 破棄
 const cancel = document.getElementById('modalCancel');
 
 ok.textContent = "追加して戻る";
-del.textContent = "破棄して戻る";
+del.textContent = "破棄";
 del.classList.remove("hidden");
 del.classList.add("danger","small"); // 目立たせる
   ok.onclick = ()=>{ const b=(store.entries||[]).length; addLine(); const s=(store.entries||[]).length>b;
