@@ -613,6 +613,15 @@ function addLine(){
     arr.push({price,ts:Date.now(),taxrate,taxmode});
     store.priceHistory[product_id]=arr.slice(-5);
   }
+
+
+
+bumpRecentProduct(product_id);
+  DB.save(store); renderTodayList(); refreshHome();
+  if(store.settings.autoClear){
+    $("#inProduct").value=""; $("#inPrice").value=""; $("#inQty").value=1; $("#inMemo").value=""; $("#priceHistory").innerHTML="";
+  }
+}
 /* ==== 完了（ホームへ）制御：本体 ==== */
 function _val(sel){ const el=document.querySelector(sel); return (el && 'value' in el) ? el.value : ''; }
 function _checked(sel){ const el=document.querySelector(sel); return !!(el && el.checked); }
@@ -677,14 +686,6 @@ window.confirmLeaveFromInput = function confirmLeaveFromInput(){
   window.__boundBtnSave = true;
   console.log("[main] btnSave wired");
 })();
-
-
-bumpRecentProduct(product_id);
-  DB.save(store); renderTodayList(); refreshHome();
-  if(store.settings.autoClear){
-    $("#inProduct").value=""; $("#inPrice").value=""; $("#inQty").value=1; $("#inMemo").value=""; $("#priceHistory").innerHTML="";
-  }
-}
 // 「完了（ホームへ）」ボタン：安定委任
 document.addEventListener("click", (e) => {
   const btn = e.target.closest("#btnSave");
