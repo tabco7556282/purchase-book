@@ -40,6 +40,8 @@
   color: var(--card-fg-soft) !important;
   border: 2px solid rgba(0,0,0,.18);
 }
+<button class="btn ghost" id="btnAddLine" type="button">＋ 明細を追加</button>
+<div class="label">※「明細を追加」は本日のリストに行を追加、「完了」はホームへ戻ります。</div>
 [data-theme="dark"] #btnAddLine{ border-color: rgba(0,0,0,.26); }
 
 html,body{height:100%}
@@ -193,7 +195,11 @@ textarea{min-height:84px;resize:vertical}
       <div class="section-title">本日の明細（仕入れ先で自動グループ）</div>
       <div id="todayList" class="list"></div>
     </div>
-    <div class="fixed-bar"><button class="btn ghost small neg" id="btnClear" type="button">クリア</button><button class="btn primary pos" id="btnSave" type="button">完了（ホームへ）</button></div>
+   <div class="fixed-bar">
+  <button class="btn ghost small neg" id="btnClear" type="button">クリア</button>
+  <button class="btn primary pos" id="btnSave" type="button" title="入力が残っていると確認が出ます">完了（ホームへ）</button>
+</div>
+
   </section>
 
   <!-- SUPPLIERS -->
