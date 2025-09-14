@@ -651,23 +651,27 @@ window.confirmLeaveFromInput = function confirmLeaveFromInput(){
     }
     return;
   }
-  openModalBase("ホームへ移動", `
-    <div>未追加の入力があります。どうしますか？</div>
-    <ul style="margin:8px 0 0 16px">
-      <li><b>追加して戻る</b>：明細に追加してホームへ</li>
-      <li><b>破棄して戻る</b>：入力中の内容は捨ててホームへ</li>
-    </ul>
-  `);
-  const ok = document.getElementById('modalOK');
-  const del = document.getElementById('modalDelete');
-  const cancel = document.getElementById('modalCancel');
-  ok.textContent = "追加して戻る";
-  del.textContent = "破棄して戻る";
-  del.classList.remove("hidden");
+  // window.confirmLeaveFromInput 内の openModalBase(...) ～ ボタン配線部
+openModalBase("未追加の入力があります", `
+  <div style="margin-top:4px">どうしますか？</div>
+  <ul style="margin:8px 0 0 16px">
+    <li><b>追加して戻る</b>：明細に追加してホームへ</li>
+    <li><b>破棄して戻る</b>：入力中の内容は捨ててホームへ</li>
+  </ul>
+`);
+const ok = document.getElementById('modalOK');      // 追加して戻る
+const del = document.getElementById('modalDelete'); // 破棄して戻る
+const cancel = document.getElementById('modalCancel');
+
+ok.textContent = "追加して戻る";
+del.textContent = "破棄して戻る";
+del.classList.remove("hidden");
+del.classList.add("danger","small"); // 目立たせる
   ok.onclick = ()=>{ const b=(store.entries||[]).length; addLine(); const s=(store.entries||[]).length>b;
     closeModal(); if (s){ navigate("home"); refreshHome(); } };
   del.onclick = ()=>{ closeModal(); navigate("home"); refreshHome(); };
   cancel.onclick = closeModal;
+setTimeout(()=> ok && ok.focus(), 0);
 };
 
 // 一度だけ配線（document委任）
