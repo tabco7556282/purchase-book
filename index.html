@@ -613,31 +613,29 @@ function addLine(){
     arr.push({price,ts:Date.now(),taxrate,taxmode});
     store.priceHistory[product_id]=arr.slice(-5);
   }
-/* ==== PATCH: 完了（ホームへ）制御をグローバル化 ==== */
-// 安全にIDの値/チェックを取る小ヘルパ
+/* ==== 完了（ホームへ）制御：本体 ==== */
 function _val(sel){ const el=document.querySelector(sel); return (el && 'value' in el) ? el.value : ''; }
 function _checked(sel){ const el=document.querySelector(sel); return !!(el && el.checked); }
 
-// 1) 入力に「未追加の内容」があるか判定（グローバル）
 window.hasPendingInput = function hasPendingInput(){
   const free  = _checked('#chkFree');
   const price = Number(_val('#inPrice') || 0);
   const qty   = Number(_val('#inQty')   || 1);
-
   if (price > 0) return true;
   if (qty !== 1) return true;
   if ((_val('#inMemo') || '').trim()) return true;
-
-  if (free){
-    return ( (_val('#freeSupplier').trim().length > 0) ||
-             (_val('#freeProduct').trim().length  > 0) );
-  } else {
-    return !!_val('#inProduct');
-  }
+  return free ? ((_val('#freeSupplier').trim() || _val('#freeProduct').trim()).length > 0)
+              : !!_val('#inProduct');
 };
 
-// 2) 確認モーダル（グローバル）
 window.confirmLeaveFromInput = function confirmLeaveFromInput(){
+  if (typeof openModalBase !== "function"){
+    if (confirm("未追加があります。追加して戻りますか？\nキャンセルで編集を続けます。")) {
+      const before=(store.entries||[]).length; addLine();
+      if ((store.entries||[]).length > before){ navigate("home"); refreshHome(); }
+    }
+    return;
+  }
   openModalBase("ホームへ移動", `
     <div>未追加の入力があります。どうしますか？</div>
     <ul style="margin:8px 0 0 16px">
@@ -648,25 +646,18 @@ window.confirmLeaveFromInput = function confirmLeaveFromInput(){
   const ok = document.getElementById('modalOK');
   const del = document.getElementById('modalDelete');
   const cancel = document.getElementById('modalCancel');
-
   ok.textContent = "追加して戻る";
   del.textContent = "破棄して戻る";
   del.classList.remove("hidden");
-
-  ok.onclick = ()=>{
-    const before = (store.entries||[]).length;
-    addLine(); // 単価/数量不足なら addLine 内で警告→追加しない
-    const success = (store.entries||[]).length > before;
-    closeModal();
-    if (success){ navigate("home"); refreshHome(); }
-  };
+  ok.onclick = ()=>{ const b=(store.entries||[]).length; addLine(); const s=(store.entries||[]).length>b;
+    closeModal(); if (s){ navigate("home"); refreshHome(); } };
   del.onclick = ()=>{ closeModal(); navigate("home"); refreshHome(); };
   cancel.onclick = closeModal;
 };
 
-// 3) 「完了（ホームへ）」クリックを安定委任（closest）で一度だけバインド
+// 一度だけ配線（document委任）
 (function(){
-  if (window.__boundBtnSave) return; // 二重バインド防止
+  if (window.__boundBtnSave) return;
   document.addEventListener("click", (e) => {
     const btn = e.target.closest("#btnSave");
     if (!btn) return;
@@ -684,7 +675,7 @@ window.confirmLeaveFromInput = function confirmLeaveFromInput(){
     }
   });
   window.__boundBtnSave = true;
-  console.log("[patch] btnSave wired");
+  console.log("[main] btnSave wired");
 })();
 
 
