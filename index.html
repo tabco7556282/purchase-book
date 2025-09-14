@@ -656,11 +656,11 @@ openModalBase("未追加の入力があります", `
   <div style="margin-top:4px">どうしますか？</div>
   <ul style="margin:8px 0 0 16px">
     <li><b>追加して戻る</b>：明細に追加してホームへ</li>
-    <li><b>破棄して戻る</b>：入力中の内容は捨ててホームへ</li>
+    <li><b>破棄</b>：入力中の内容は捨ててホームへ</li>
   </ul>
 `);
 const ok = document.getElementById('modalOK');      // 追加して戻る
-const del = document.getElementById('modalDelete'); // 破棄して戻る
+const del = document.getElementById('modalDelete'); // 破棄
 const cancel = document.getElementById('modalCancel');
 
 ok.textContent = "追加して戻る";
@@ -1583,6 +1583,13 @@ init();
 }catch(e){console.error("[TLP] diag init error", e);}})();
 </script>
 
+<style id="hotfix-mobile">
+@media (max-width:480px){
+  /* 出力モーダル内：ラジオとラベルを1行・中央揃え */
+  .modal-export .option { display:flex; align-items:center; justify-content:space-between; }
+  .modal-export .option input[type="radio"]{ margin-left:12px; vertical-align:middle; }
+}
+</style>
 
 </body>
 </html>
