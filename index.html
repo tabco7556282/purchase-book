@@ -962,7 +962,18 @@ function renderHistory(){
   }
 
   list.innerHTML = "";
-
+ // ▼ 履歴カードの「行タップ」委譲（1回だけバインド）
+  if (!list.dataset.bindEdit) {
+    list.dataset.bindEdit = '1';
+    list.addEventListener('click', (ev) => {
+      const row = ev.target.closest('.entry');
+      if (!row || !list.contains(row)) return;
+      const id = row.dataset.id;
+      if (!id) return;
+      console.log('[history tap] id =', id);   // ← まずは取れているか確認
+      // 次の手で、ここに「編集を開く」処理を繋ぐ
+    });
+  }
   const entries = (store.entries||[]).filter(e=>{
     if(!e || e.deleted || !e.date) return false;
     const d = new Date(e.date+"T12:00:00");
