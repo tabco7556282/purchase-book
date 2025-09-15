@@ -1695,6 +1695,72 @@ init();
   }).observe(document.body, {childList:true, subtree:true});
 })();
 </script>
+<script id="tlp-edit-pickup">
+(function(){
+  function prefillFromEditId(){
+    const id = sessionStorage.getItem('editEntryId');
+    if (!id) return;
+
+    // データ読み出し
+    const s = (typeof store!=='undefined' && store) || (window.DB && typeof DB.load==='function' && DB.load());
+    if (!s || !Array.isArray(s.entries)) return;
+    const e = s.entries.find(x => x && x.id === id);
+    if (!e) { sessionStorage.removeItem('editEntryId'); return; }
+
+    // 編集モード印
+    window.editingId = id;
+
+    // 汎用セッター（要素があれば入れるだけ。無ければ無視）
+    const set = (sel, val) => {
+      const el = document.querySelector(sel);
+      if (!el || val == null) return;
+      if (el.tagName === 'SELECT') {
+        const opt = [...el.options].find(o => o.value == val || o.text == val);
+        if (opt) el.value = opt.value;
+      } else {
+        el.value = val;
+      }
+    };
+    const setRadio = (name, val) => {
+      const r = document.querySelector(`input[name="${name}"][value="${val}"]`);
+      if (r) r.checked = true;
+    };
+
+    // 代表的な項目だけ安全に流し込み（存在しないIDは無視）
+    set('#inDate', e.date);
+    set('#inPrice', e.price);
+    set('#inQty',   e.qty);
+    set('#inMemo',  e.memo || '');
+
+    // 仕入先・商品（どれか当たるセレクタにしてある）
+    const sup = document.querySelector('#selSupplier, select[name="supplier"], #supplier');
+    if (sup) sup.value = (e.supplier_id ?? e.supplier_name_fallback ?? sup.value);
+    const prod = document.querySelector('#selProduct, select[name="product"], #product');
+    if (prod) prod.value = (e.product_id ?? e.product_name_fallback ?? prod.value);
+
+    // 税
+    setRadio('taxmode', e.taxmode === 'incl' ? 'incl' : 'excl');
+    setRadio('taxrate', String(e.taxrate ?? 0));
+
+    // ボタン表記を編集モードに
+    const btn = document.getElementById('btnAddLine');
+    if (btn) { btn.textContent = '明細を更新'; btn.dataset.mode = 'edit'; }
+
+    // 入力欄へスクロール（任意）
+    (document.querySelector('#inPrice') || btn)?.scrollIntoView({behavior:'smooth', block:'center'});
+  }
+
+  // showPage をラップ：入力タブが表示された時だけ流し込む
+  const origShow = window.showPage;
+  window.showPage = function(name){
+    const ret = origShow ? origShow(name) : undefined;
+    if (name === 'input') {
+      try { prefillFromEditId(); } catch(err){ console.warn('prefill error:', err); }
+    }
+    return ret;
+  };
+})();
+</script>
 
 </body>
 </html>
