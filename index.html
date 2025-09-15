@@ -1590,25 +1590,28 @@ init();
   });
 </script>
 <style id="hotfix-mobile">
-@media (max-width:480px){
-  /* ラジオ行を2カラム（左=テキスト / 右=ラジオ）で中央揃え */
-  .modal-export .option{
-    display:grid;
-    grid-template-columns:1fr auto;
-    align-items:center;
-    column-gap:12px;
-    margin:8px 0;           /* 好みで微調整 */
-  }
-  .modal-export .option input[type="radio"]{
-    margin:0;               /* 既存の余白をリセット */
-    justify-self:end;       /* 右端に寄せる */
-    vertical-align:middle;  /* 念のため */
-  }
-  .modal-export .option label,
-  .modal-export .option b,
-  .modal-export .option span{ margin:0; line-height:1.4; }
+/* 出力モーダル：文字は左、ラジオは右端で一直線 */
+.modal-export .option{
+  display: grid;
+  grid-template-columns: 1fr 2.25em; /* 右カラム幅を固定→縦ラインがブレない */
+  align-items: center;
+  column-gap: 12px;
+  margin: 8px 0;          /* 好みで調整可 */
+  min-height: 36px;       /* 行の高さを揃えて見栄え安定 */
+}
+.modal-export .option input[type="radio"]{
+  grid-column: 2;
+  justify-self: end;      /* 右端に寄せて縦ラインを揃える */
+  margin: 0;
+}
+.modal-export .option *:not(input){
+  grid-column: 1;
+  justify-self: start;    /* 文字は左寄せ */
+  text-align: left;
+  margin: 0;
 }
 </style>
+
 
 
 </body>
