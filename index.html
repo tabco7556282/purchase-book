@@ -1582,14 +1582,34 @@ init();
   console.log("[TLP] Ready. Try: tlpDiag.check(), tlpDiag.openEula()");
 }catch(e){console.error("[TLP] diag init error", e);}})();
 </script>
-
+<script>
+  // 出力モーダル内のラジオの親行に option クラスを付ける
+  document.querySelectorAll('.modal-export input[type="radio"]').forEach(r=>{
+    const row = r.closest('li,div,p') || r.parentElement;
+    if(row) row.classList.add('option');
+  });
+</script>
 <style id="hotfix-mobile">
 @media (max-width:480px){
-  /* 出力モーダル内：ラジオとラベルを1行・中央揃え */
-  .modal-export .option { display:flex; align-items:center; justify-content:space-between; }
-  .modal-export .option input[type="radio"]{ margin-left:12px; vertical-align:middle; }
+  /* ラジオ行を2カラム（左=テキスト / 右=ラジオ）で中央揃え */
+  .modal-export .option{
+    display:grid;
+    grid-template-columns:1fr auto;
+    align-items:center;
+    column-gap:12px;
+    margin:8px 0;           /* 好みで微調整 */
+  }
+  .modal-export .option input[type="radio"]{
+    margin:0;               /* 既存の余白をリセット */
+    justify-self:end;       /* 右端に寄せる */
+    vertical-align:middle;  /* 念のため */
+  }
+  .modal-export .option label,
+  .modal-export .option b,
+  .modal-export .option span{ margin:0; line-height:1.4; }
 }
 </style>
+
 
 </body>
 </html>
