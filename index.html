@@ -962,18 +962,27 @@ function renderHistory(){
   }
 
   list.innerHTML = "";
- // ▼ 履歴カードの「行タップ」委譲（1回だけバインド）
+   // ▼ 履歴カードの「行タップ」委譲（1回だけバインド）
   if (!list.dataset.bindEdit) {
     list.dataset.bindEdit = '1';
-    list.addEventListener('click', (ev) => {
+    list.addEventListener('click', function(ev){
       const row = ev.target.closest('.entry');
       if (!row || !list.contains(row)) return;
-      const id = row.dataset.id;
-      if (!id) return;
-      console.log('[history tap] id =', id);   // ← まずは取れているか確認
-      // 次の手で、ここに「編集を開く」処理を繋ぐ
-    });
+
+      // ← ここでローカル変数名を entryId に固定（外へ漏れない）
+      const entryId = row.getAttribute('data-id');
+      if (!entryId) return;
+
+      // 次画面へ渡す
+      sessionStorage.setItem('editEntryId', entryId);
+
+      // 仕入入力へ遷移（ラベル一致でボタン探し）
+      const goInput = Array.from(document.querySelectorAll('a,button'))
+        .find(el => /仕入入力/.test(el.textContent || ''));
+      if (goInput) goInput.click();
+    }, false);
   }
+
        // 編集用にIDを一時保存して、仕入入力へ遷移（次の手でフォームへ流し込み）
       sessionStorage.setItem('editEntryId', id);
       const goInput = [...document.querySelectorAll('a,button')].find(el => /仕入入力/.test(el.textContent || ''));
