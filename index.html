@@ -945,7 +945,7 @@ function openEntryModal(e){
 
 /* ===== HISTORY（描画） ===== */
 function renderHistory(){
-  const list = $("#todayList"); if(!list) return;
+  const list = $("#todayList, #historyList"); if(!list) return;
 
   const rangeKey = String(store.settings.hisRange || "30"); // "7"|"30"|"fiscal"
   const showBoth = !!store.settings.historyShowBoth;
