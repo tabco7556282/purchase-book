@@ -1609,39 +1609,49 @@ init();
 <script>
 /* 出力モーダルのラジオ行を、文字=左／ラジオ=右端の縦ラインで常に揃える */
 (function(){
-  function align(scope){
-    const radios = scope.querySelectorAll('input[type="radio"]');
-    radios.forEach(r=>{
-      // ラジオの1行分の親（li/div/p/label）を捕まえる
-      const row = r.closest('li,div,p,label') || r.parentElement;
-      if(!row) return;
+ function align(scope){
+  const radios = scope.querySelectorAll('input[type="radio"]');
+  radios.forEach(r=>{
+    const row = r.closest('li,div,p,label') || r.parentElement;
+    if(!row) return;
+// 追加：行全体をタップ可能に（多重バインド防止）
+if (!row.dataset.tlpBound) {
+  row.dataset.tlpBound = '1';
+  row.style.cursor = 'pointer';
+  row.addEventListener('click', (e)=>{
+    if (e.target !== r) {                  // input自体を触った時はそのまま
+      r.checked = true;
+      r.dispatchEvent(new Event('change', { bubbles:true }));
+    }
+  });
+}
+    // 行：ラジオ(左・固定幅) / テキスト(右・可変) の2カラム
+    row.style.display = 'grid';
+    row.style.gridTemplateColumns = '2.25em 1fr'; // ← ラジオ左で縦ライン固定
+    row.style.alignItems = 'center';
+    row.style.columnGap = '12px';
+    row.style.minHeight = '36px';
 
-      // 行を2カラムのグリッドに（左=テキスト / 右=ラジオ）
-      row.style.display = 'grid';
-      row.style.gridTemplateColumns = '1fr 2.25em'; // 右カラムを固定→縦ラインがブレない
-      row.style.alignItems = 'center';
-      row.style.columnGap = '12px';
-      row.style.minHeight = '36px';
+    // 文字は左寄せ＆改行なし
+    row.style.textAlign = 'left';
+    row.style.whiteSpace = 'nowrap';
+    row.style.justifyItems = 'start';
 
-      // ラジオは右端に寄せ、縦ラインを固定
-      r.style.margin = '0';
-      r.style.justifySelf = 'end';
-    });
-  }
+    // ラジオは左カラム中央に
+    r.style.margin = '0';
+    r.style.gridColumn = '1';
+    r.style.justifySelf = 'center';
+  });
+}
 
   // いま表示中に対して一度実行
-  align(document);
 
   // モーダルが開く／中身が差し替わるたびに再適用
   const mo = new MutationObserver(muts=>{
     muts.forEach(m=>{
       m.addedNodes && m.addedNodes.forEach(node=>{
         if(node.nodeType!==1) return;
-        // 出力モーダルっぽい領域 or ラジオを含む差し替えに反応
-        if (node.matches?.('#ModalExport, .modal-export, [data-modal="export"], .modal') ||
-            node.querySelector?.('input[type="radio"]')) {
-          align(node);
-        }
+        if (node.matches?.('.modal')) align(node);   // モーダルに限定
       });
     });
   });
