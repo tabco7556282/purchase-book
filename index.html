@@ -984,7 +984,7 @@ function renderHistory(){
   }
 
        // 編集用にIDを一時保存して、仕入入力へ遷移（次の手でフォームへ流し込み）
-      sessionStorage.setItem('editEntryId', id);
+      sessionStorage.setItem('editEntryId', entryId)
       const goInput = [...document.querySelectorAll('a,button')].find(el => /仕入入力/.test(el.textContent || ''));
       if (goInput) goInput.click();
  const entries = (store.entries||[]).filter(e=>{
