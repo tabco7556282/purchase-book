@@ -1582,13 +1582,7 @@ init();
   console.log("[TLP] Ready. Try: tlpDiag.check(), tlpDiag.openEula()");
 }catch(e){console.error("[TLP] diag init error", e);}})();
 </script>
-<script>
-  // 出力モーダル内のラジオの親行に option クラスを付ける
-  document.querySelectorAll('.modal-export input[type="radio"]').forEach(r=>{
-    const row = r.closest('li,div,p') || r.parentElement;
-    if(row) row.classList.add('option');
-  });
-</script>
+
 <style id="hotfix-mobile">
 /* 出力モーダル：文字は左、ラジオは右端で一直線 */
 .modal-export .option{
@@ -1612,6 +1606,58 @@ init();
 }
 </style>
 
+<script>
+/* 出力モーダルのラジオ行を、文字=左／ラジオ=右端の縦ラインで常に揃える */
+(function(){
+ function align(scope){
+  const radios = scope.querySelectorAll('input[type="radio"]');
+  radios.forEach(r=>{
+    const row = r.closest('li,div,p,label') || r.parentElement;
+    if(!row) return;
+// 追加：行全体をタップ可能に（多重バインド防止）
+if (!row.dataset.tlpBound) {
+  row.dataset.tlpBound = '1';
+  row.style.cursor = 'pointer';
+  row.addEventListener('click', (e)=>{
+    if (e.target !== r) {                  // input自体を触った時はそのまま
+      r.checked = true;
+      r.dispatchEvent(new Event('change', { bubbles:true }));
+    }
+  });
+}
+    // 行：ラジオ(左・固定幅) / テキスト(右・可変) の2カラム
+    row.style.display = 'grid';
+    row.style.gridTemplateColumns = '2.25em 1fr'; // ← ラジオ左で縦ライン固定
+    row.style.alignItems = 'center';
+    row.style.columnGap = '12px';
+    row.style.minHeight = '36px';
+
+    // 文字は左寄せ＆改行なし
+    row.style.textAlign = 'left';
+    row.style.whiteSpace = 'nowrap';
+    row.style.justifyItems = 'start';
+
+    // ラジオは左カラム中央に
+    r.style.margin = '0';
+    r.style.gridColumn = '1';
+    r.style.justifySelf = 'center';
+  });
+}
+
+  // いま表示中に対して一度実行
+
+  // モーダルが開く／中身が差し替わるたびに再適用
+  const mo = new MutationObserver(muts=>{
+    muts.forEach(m=>{
+      m.addedNodes && m.addedNodes.forEach(node=>{
+        if(node.nodeType!==1) return;
+        if (node.matches?.('.modal')) align(node);   // モーダルに限定
+      });
+    });
+  });
+  mo.observe(document.body, {childList:true, subtree:true});
+})();
+</script>
 
 
 </body>
