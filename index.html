@@ -1585,37 +1585,36 @@ init();
 
 
 <style id="tlp-export-align">
-/* データ出力モーダルだけ：ラジオ(左・固定幅)／テキスト(右・可変)で一直線、左寄せ・改行なし */
-@media (max-width:480px){
-  .modal.sheet .tlp-radio-row,
-  #ModalExport .tlp-radio-row,
-  .modal-export .tlp-radio-row,
-  [data-modal="export"] .tlp-radio-row{
-    display:grid;
-    grid-template-columns:2.25em 1fr;
-    align-items:center;
-    column-gap:12px;
-    min-height:36px;
-    text-align:left;
-    white-space:nowrap;
-  }
-  .modal.sheet .tlp-radio-row > input[type="radio"],
-  #ModalExport .tlp-radio-row > input[type="radio"],
-  .modal-export .tlp-radio-row > input[type="radio"],
-  [data-modal="export"] .tlp-radio-row > input[type="radio"]{
-    grid-column:1;
-    justify-self:center;
-    margin:0;
-  }
-  .modal.sheet .tlp-radio-row > :not(input),
-  #ModalExport .tlp-radio-row > :not(input),
-  .modal-export .tlp-radio-row > :not(input),
-  [data-modal="export"] .tlp-radio-row > :not(input){
-    grid-column:2;
-    margin:0;
-  }
+/* データ出力モーダル：ラジオ(左固定)／テキスト(右)で一直線、左寄せ・改行なし（JS不要） */
+#ModalExport label:has(> input[type="radio"]),
+.modal-export label:has(> input[type="radio"]),
+[data-modal="export"] label:has(> input[type="radio"]),
+.modal.sheet label:has(> input[type="radio"]) {
+  display: grid;
+  grid-template-columns: 2.25em 1fr;  /* 左=ラジオ固定 / 右=テキスト可変 */
+  align-items: center;
+  column-gap: 12px;
+  min-height: 36px;
+  text-align: left;
+  white-space: nowrap;
+}
+#ModalExport label:has(> input[type="radio"]) > input[type="radio"],
+.modal-export label:has(> input[type="radio"]) > input[type="radio"],
+[data-modal="export"] label:has(> input[type="radio"]) > input[type="radio"],
+.modal.sheet label:has(> input[type="radio"]) > input[type="radio"]{
+  grid-column: 1;
+  justify-self: center;
+  margin: 0;
+}
+#ModalExport label:has(> input[type="radio"]) > :not(input),
+.modal-export label:has(> input[type="radio"]) > :not(input),
+[data-modal="export"] label:has(> input[type="radio"]) > :not(input),
+.modal.sheet label:has(> input[type="radio"]) > :not(input){
+  grid-column: 2;
+  margin: 0;
 }
 </style>
+
 
 <script id="tlp-export-mark-rows">
 (function(){
