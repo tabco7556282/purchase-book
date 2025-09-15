@@ -1659,6 +1659,36 @@ if (!row.dataset.tlpBound) {
 })();
 </script>
 
+<style id="hotfix-export-align">
+/* データ出力モーダル内：ラジオ(左)／テキスト(右)で一直線、改行なし・左寄せ */
+@media (max-width: 480px){
+  /* ラジオを含む行だけを対象化（:has を使用） */
+  #ModalExport li:has(> input[type="radio"]),
+  .modal-export li:has(> input[type="radio"]),
+  [data-modal="export"] li:has(> input[type="radio"]) {
+    display: grid;
+    grid-template-columns: 2.25em 1fr;  /* 右を可変、左を固定幅 → 縦ラインが揃う */
+    align-items: center;
+    column-gap: 12px;
+    min-height: 36px;
+  }
+  #ModalExport li:has(> input[type="radio"]) > input[type="radio"],
+  .modal-export li:has(> input[type="radio"]) > input[type="radio"],
+  [data-modal="export"] li:has(> input[type="radio"]) > input[type="radio"] {
+    grid-column: 1;
+    justify-self: center;
+    margin: 0;
+  }
+  #ModalExport li:has(> input[type="radio"]) > :not(input),
+  .modal-export li:has(> input[type="radio"]) > :not(input),
+  [data-modal="export"] li:has(> input[type="radio"]) > :not(input) {
+    grid-column: 2;
+    text-align: left;
+    white-space: nowrap;   /* 「過去6か月」を折り返さない */
+    margin: 0;
+  }
+}
+</style>
 
 </body>
 </html>
