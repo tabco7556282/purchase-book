@@ -1645,13 +1645,18 @@ if (!row.dataset.tlpBound) {
 }
 
   // いま表示中に対して一度実行
+  align(document);
 
   // モーダルが開く／中身が差し替わるたびに再適用
   const mo = new MutationObserver(muts=>{
     muts.forEach(m=>{
       m.addedNodes && m.addedNodes.forEach(node=>{
         if(node.nodeType!==1) return;
-        if (node.matches?.('.modal')) align(node);   // モーダルに限定
+        // 出力モーダルっぽい領域 or ラジオを含む差し替えに反応
+        if (node.matches?.('#ModalExport, .modal-export, [data-modal="export"], .modal') ||
+            node.querySelector?.('input[type="radio"]')) {
+          align(node);
+        }
       });
     });
   });
