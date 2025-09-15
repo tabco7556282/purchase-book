@@ -1659,36 +1659,59 @@ if (!row.dataset.tlpBound) {
 })();
 </script>
 
-<style id="hotfix-export-align">
-/* データ出力モーダル内：ラジオ(左)／テキスト(右)で一直線、改行なし・左寄せ */
-@media (max-width: 480px){
-  /* ラジオを含む行だけを対象化（:has を使用） */
-  #ModalExport li:has(> input[type="radio"]),
-  .modal-export li:has(> input[type="radio"]),
-  [data-modal="export"] li:has(> input[type="radio"]) {
-    display: grid;
-    grid-template-columns: 2.25em 1fr;  /* 右を可変、左を固定幅 → 縦ラインが揃う */
-    align-items: center;
-    column-gap: 12px;
-    min-height: 36px;
-  }
-  #ModalExport li:has(> input[type="radio"]) > input[type="radio"],
-  .modal-export li:has(> input[type="radio"]) > input[type="radio"],
-  [data-modal="export"] li:has(> input[type="radio"]) > input[type="radio"] {
-    grid-column: 1;
-    justify-self: center;
-    margin: 0;
-  }
-  #ModalExport li:has(> input[type="radio"]) > :not(input),
-  .modal-export li:has(> input[type="radio"]) > :not(input),
-  [data-modal="export"] li:has(> input[type="radio"]) > :not(input) {
-    grid-column: 2;
-    text-align: left;
-    white-space: nowrap;   /* 「過去6か月」を折り返さない */
-    margin: 0;
-  }
-}
-</style>
 
+
+<script id="tlp-export-align">
+(function(){
+  function alignExportModal(root){
+    const scope =
+      root.querySelector('#ModalExport, .modal-export, [data-modal="export"]') || root;
+    const radios = scope.querySelectorAll('input[type="radio"]');
+    radios.forEach(r=>{
+      const row = r.closest('li,div,p,label,.row,.option,.form-row') || r.parentElement;
+      if(!row) return;
+
+      // 行：ラジオ(左=固定) / テキスト(右=可変) で一直線
+      row.style.display = 'grid';
+      row.style.gridTemplateColumns = '2.25em 1fr';
+      row.style.alignItems = 'center';
+      row.style.columnGap   = '12px';
+      row.style.minHeight   = '36px';
+      row.style.textAlign   = 'left';
+      row.style.whiteSpace  = 'nowrap';
+
+      r.style.margin       = '0';
+      r.style.gridColumn   = '1';
+      r.style.justifySelf  = 'center';
+
+      // 行全体タップ（既に要らなければ下4行は削除OK）
+      if(!row.dataset.tlpBound){
+        row.dataset.tlpBound='1';
+        row.style.cursor='pointer';
+        row.addEventListener('click', (e)=>{
+          if(e.target!==r){ r.checked=true; r.dispatchEvent(new Event('change',{bubbles:true})); }
+        });
+      }
+    });
+  }
+
+  // モーダルが出現した時のみ適用（本体には触れない）
+  const mo = new MutationObserver(muts=>{
+    for(const m of muts){
+      for(const node of m.addedNodes){
+        if(node.nodeType!==1) continue;
+        if(node.matches?.('#ModalExport, .modal-export, [data-modal="export"], .modal')){
+          alignExportModal(node);
+        }
+      }
+    }
+  });
+  mo.observe(document.body, {childList:true, subtree:true});
+
+  // もし既に開いている状態で読み込まれた場合の保険
+  const opened = document.querySelector('#ModalExport, .modal-export, [data-modal="export"]');
+  if(opened) alignExportModal(opened);
+})();
+</script>
 </body>
 </html>
