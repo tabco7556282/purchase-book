@@ -1614,17 +1614,7 @@ init();
   radios.forEach(r=>{
     const row = r.closest('li,div,p,label') || r.parentElement;
     if(!row) return;
-// 追加：行全体をタップ可能に（多重バインド防止）
-if (!row.dataset.tlpBound) {
-  row.dataset.tlpBound = '1';
-  row.style.cursor = 'pointer';
-  row.addEventListener('click', (e)=>{
-    if (e.target !== r) {                  // input自体を触った時はそのまま
-      r.checked = true;
-      r.dispatchEvent(new Event('change', { bubbles:true }));
-    }
-  });
-}
+
     // 行：ラジオ(左・固定幅) / テキスト(右・可変) の2カラム
     row.style.display = 'grid';
     row.style.gridTemplateColumns = '2.25em 1fr'; // ← ラジオ左で縦ライン固定
