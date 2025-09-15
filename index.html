@@ -1584,81 +1584,12 @@ init();
 </script>
 
 <style id="hotfix-mobile">
-/* 出力モーダル：文字は左、ラジオは右端で一直線 */
-.modal-export .option{
-  display: grid;
-  grid-template-columns: 1fr 2.25em; /* 右カラム幅を固定→縦ラインがブレない */
-  align-items: center;
-  column-gap: 12px;
-  margin: 8px 0;          /* 好みで調整可 */
-  min-height: 36px;       /* 行の高さを揃えて見栄え安定 */
-}
-.modal-export .option input[type="radio"]{
-  grid-column: 2;
-  justify-self: end;      /* 右端に寄せて縦ラインを揃える */
-  margin: 0;
-}
-.modal-export .option *:not(input){
-  grid-column: 1;
-  justify-self: start;    /* 文字は左寄せ */
-  text-align: left;
-  margin: 0;
+@media (max-width:480px){
+  /* 出力モーダル内：ラジオとラベルを1行・中央揃え */
+  .modal-export .option { display:flex; align-items:center; justify-content:space-between; }
+  .modal-export .option input[type="radio"]{ margin-left:12px; vertical-align:middle; }
 }
 </style>
-
-<script>
-/* 出力モーダルのラジオ行を、文字=左／ラジオ=右端の縦ラインで常に揃える */
-(function(){
- function align(scope){
-  const radios = scope.querySelectorAll('input[type="radio"]');
-  radios.forEach(r=>{
-    const row = r.closest('li,div,p,label') || r.parentElement;
-    if(!row) return;
-// 追加：行全体をタップ可能に（多重バインド防止）
-if (!row.dataset.tlpBound) {
-  row.dataset.tlpBound = '1';
-  row.style.cursor = 'pointer';
-  row.addEventListener('click', (e)=>{
-    if (e.target !== r) {                  // input自体を触った時はそのまま
-      r.checked = true;
-      r.dispatchEvent(new Event('change', { bubbles:true }));
-    }
-  });
-}
-    // 行：ラジオ(左・固定幅) / テキスト(右・可変) の2カラム
-    row.style.display = 'grid';
-    row.style.gridTemplateColumns = '2.25em 1fr'; // ← ラジオ左で縦ライン固定
-    row.style.alignItems = 'center';
-    row.style.columnGap = '12px';
-    row.style.minHeight = '36px';
-
-    // 文字は左寄せ＆改行なし
-    row.style.textAlign = 'left';
-    row.style.whiteSpace = 'nowrap';
-    row.style.justifyItems = 'start';
-
-    // ラジオは左カラム中央に
-    r.style.margin = '0';
-    r.style.gridColumn = '1';
-    r.style.justifySelf = 'center';
-  });
-}
-
-  // いま表示中に対して一度実行
-
-  // モーダルが開く／中身が差し替わるたびに再適用
-  const mo = new MutationObserver(muts=>{
-    muts.forEach(m=>{
-      m.addedNodes && m.addedNodes.forEach(node=>{
-        if(node.nodeType!==1) return;
-        if (node.matches?.('.modal')) align(node);   // モーダルに限定
-      });
-    });
-  });
-  mo.observe(document.body, {childList:true, subtree:true});
-})();
-</script>
-
 
 </body>
 </html>
