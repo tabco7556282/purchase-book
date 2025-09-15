@@ -1585,19 +1585,29 @@ init();
 
 
 <style id="tlp-export-align">
-/* データ出力モーダル：ラジオ(左固定)／テキスト(右)で一直線、左寄せ・改行なし（JS不要） */
+/* データ出力モーダル：ラジオ(左)＋テキスト(右)で一直線／左寄せ・改行なし＋行全体に枠 */
 #ModalExport label:has(> input[type="radio"]),
 .modal-export label:has(> input[type="radio"]),
 [data-modal="export"] label:has(> input[type="radio"]),
 .modal.sheet label:has(> input[type="radio"]) {
   display: grid;
-  grid-template-columns: 2.25em 1fr;  /* 左=ラジオ固定 / 右=テキスト可変 */
+  grid-template-columns: 2.25em 1fr; /* 左=ラジオ固定幅 / 右=テキスト可変 */
   align-items: center;
   column-gap: 12px;
   min-height: 36px;
   text-align: left;
   white-space: nowrap;
+
+  /* ← ここが“枠＋余白”の追加部分 */
+  padding: 10px 12px;
+  margin: 8px 0;
+  border: 1px dashed rgba(0,128,255,.35);
+  border-radius: 8px;
+  box-sizing: border-box;
+  cursor: pointer;
 }
+
+/* ラジオは左列に固定 */
 #ModalExport label:has(> input[type="radio"]) > input[type="radio"],
 .modal-export label:has(> input[type="radio"]) > input[type="radio"],
 [data-modal="export"] label:has(> input[type="radio"]) > input[type="radio"],
@@ -1606,6 +1616,8 @@ init();
   justify-self: center;
   margin: 0;
 }
+
+/* テキストは右列・左寄せ */
 #ModalExport label:has(> input[type="radio"]) > :not(input),
 .modal-export label:has(> input[type="radio"]) > :not(input),
 [data-modal="export"] label:has(> input[type="radio"]) > :not(input),
@@ -1613,7 +1625,24 @@ init();
   grid-column: 2;
   margin: 0;
 }
+
+/* 選択中とホバー時の視覚フィードバック */
+#ModalExport label:has(> input[type="radio"]:checked),
+.modal-export label:has(> input[type="radio"]:checked),
+[data-modal="export"] label:has(> input[type="radio"]:checked),
+.modal.sheet label:has(> input[type="radio"]:checked){
+  border-style: solid;
+  border-color: rgba(0,128,255,.6);
+  background: rgba(0,128,255,.06);
+}
+#ModalExport label:has(> input[type="radio"]):hover,
+.modal-export label:has(> input[type="radio"]):hover,
+[data-modal="export"] label:has(> input[type="radio"]):hover,
+.modal.sheet label:has(> input[type="radio"]):hover{
+  background: rgba(0,0,0,.03);
+}
 </style>
+
 
 
 <script id="tlp-export-mark-rows">
