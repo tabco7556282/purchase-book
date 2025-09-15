@@ -1605,113 +1605,70 @@ init();
   margin: 0;
 }
 </style>
-
-<script>
-/* 出力モーダルのラジオ行を、文字=左／ラジオ=右端の縦ラインで常に揃える */
-(function(){
- function align(scope){
-  const radios = scope.querySelectorAll('input[type="radio"]');
-  radios.forEach(r=>{
-    const row = r.closest('li,div,p,label') || r.parentElement;
-    if(!row) return;
-// 追加：行全体をタップ可能に（多重バインド防止）
-if (!row.dataset.tlpBound) {
-  row.dataset.tlpBound = '1';
-  row.style.cursor = 'pointer';
-  row.addEventListener('click', (e)=>{
-    if (e.target !== r) {                  // input自体を触った時はそのまま
-      r.checked = true;
-      r.dispatchEvent(new Event('change', { bubbles:true }));
-    }
-  });
+<style id="tlp-export-align">
+/* データ出力モーダルだけ：ラジオ(左・固定幅)／テキスト(右・可変)で一直線、左寄せ・改行なし */
+@media (max-width:480px){
+  .modal.sheet .tlp-radio-row,
+  #ModalExport .tlp-radio-row,
+  .modal-export .tlp-radio-row,
+  [data-modal="export"] .tlp-radio-row{
+    display:grid;
+    grid-template-columns:2.25em 1fr;
+    align-items:center;
+    column-gap:12px;
+    min-height:36px;
+    text-align:left;
+    white-space:nowrap;
+  }
+  .modal.sheet .tlp-radio-row > input[type="radio"],
+  #ModalExport .tlp-radio-row > input[type="radio"],
+  .modal-export .tlp-radio-row > input[type="radio"],
+  [data-modal="export"] .tlp-radio-row > input[type="radio"]{
+    grid-column:1;
+    justify-self:center;
+    margin:0;
+  }
+  .modal.sheet .tlp-radio-row > :not(input),
+  #ModalExport .tlp-radio-row > :not(input),
+  .modal-export .tlp-radio-row > :not(input),
+  [data-modal="export"] .tlp-radio-row > :not(input){
+    grid-column:2;
+    margin:0;
+  }
 }
-    // 行：ラジオ(左・固定幅) / テキスト(右・可変) の2カラム
-    row.style.display = 'grid';
-    row.style.gridTemplateColumns = '2.25em 1fr'; // ← ラジオ左で縦ライン固定
-    row.style.alignItems = 'center';
-    row.style.columnGap = '12px';
-    row.style.minHeight = '36px';
+</style>
 
-    // 文字は左寄せ＆改行なし
-    row.style.textAlign = 'left';
-    row.style.whiteSpace = 'nowrap';
-    row.style.justifyItems = 'start';
-
-    // ラジオは左カラム中央に
-    r.style.margin = '0';
-    r.style.gridColumn = '1';
-    r.style.justifySelf = 'center';
-  });
-}
-
-  // いま表示中に対して一度実行
-
-  // モーダルが開く／中身が差し替わるたびに再適用
-  const mo = new MutationObserver(muts=>{
-    muts.forEach(m=>{
-      m.addedNodes && m.addedNodes.forEach(node=>{
-        if(node.nodeType!==1) return;
-        if (node.matches?.('.modal')) align(node);   // モーダルに限定
-      });
-    });
-  });
-  mo.observe(document.body, {childList:true, subtree:true});
-})();
-</script>
-
-
-
-<script id="tlp-export-align">
+<script id="tlp-export-mark-rows">
 (function(){
-  function alignExportModal(root){
-    const scope =
-      root.querySelector('#ModalExport, .modal-export, [data-modal="export"]') || root;
-    const radios = scope.querySelectorAll('input[type="radio"]');
-    radios.forEach(r=>{
-      const row = r.closest('li,div,p,label,.row,.option,.form-row') || r.parentElement;
-      if(!row) return;
+  const SCOPE = '#ModalExport, .modal-export, [data-modal="export"], .modal.sheet';
 
-      // 行：ラジオ(左=固定) / テキスト(右=可変) で一直線
-      row.style.display = 'grid';
-      row.style.gridTemplateColumns = '2.25em 1fr';
-      row.style.alignItems = 'center';
-      row.style.columnGap   = '12px';
-      row.style.minHeight   = '36px';
-      row.style.textAlign   = 'left';
-      row.style.whiteSpace  = 'nowrap';
-
-      r.style.margin       = '0';
-      r.style.gridColumn   = '1';
-      r.style.justifySelf  = 'center';
-
-      // 行全体タップ（既に要らなければ下4行は削除OK）
-      if(!row.dataset.tlpBound){
-        row.dataset.tlpBound='1';
-        row.style.cursor='pointer';
-        row.addEventListener('click', (e)=>{
-          if(e.target!==r){ r.checked=true; r.dispatchEvent(new Event('change',{bubbles:true})); }
-        });
+  // モーダル内で「直下にラジオを持つ」行にだけクラスを付ける
+  function markRows(root){
+    const scope = root.matches?.(SCOPE) ? root : root.querySelector(SCOPE);
+    if(!scope) return;
+    scope.querySelectorAll('label, li, .row, .option, .form-row').forEach(el=>{
+      if (el.querySelector(':scope > input[type="radio"]')) {
+        el.classList.add('tlp-radio-row');
       }
     });
   }
 
-  // モーダルが出現した時のみ適用（本体には触れない）
-  const mo = new MutationObserver(muts=>{
+  // 既に開いていれば一度適用
+  document.querySelectorAll(SCOPE).forEach(markRows);
+
+  // これから開く／差し替わるモーダルにも適用（本体は無視）
+  new MutationObserver(muts=>{
     for(const m of muts){
       for(const node of m.addedNodes){
         if(node.nodeType!==1) continue;
-        if(node.matches?.('#ModalExport, .modal-export, [data-modal="export"], .modal')){
-          alignExportModal(node);
+        if(node.matches?.(SCOPE) || node.querySelector?.('input[type="radio"]')){
+          markRows(node);
         }
       }
     }
-  });
-  mo.observe(document.body, {childList:true, subtree:true});
-
-  // もし既に開いている状態で読み込まれた場合の保険
-  const opened = document.querySelector('#ModalExport, .modal-export, [data-modal="export"]');
-  if(opened) alignExportModal(opened);
+  }).observe(document.body, {childList:true, subtree:true});
 })();
 </script>
+
 </body>
 </html>
