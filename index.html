@@ -1977,6 +1977,34 @@ document.addEventListener("focusin", (e)=>{
   mo.observe(document.body, { childList:true, subtree:true });
 })();
 </script>
+<script id="route-watchdog">
+(()=>{ 'use strict';
+  // ルートと表示状態がズレていたら強制的に showPage する
+  function reconcile(){
+    const id = (location.hash || '#home').slice(1) || 'home';
+    const page = document.getElementById('page-' + id);
+    if (page && page.classList.contains('hidden')) {
+      console.warn('[route-fix] page was hidden for', id, '→ forcing showPage');
+      try { showPage(id); } catch(e){ console.error('[route-fix] showPage failed', e); }
+    }
+  }
+  // 初期＆ハッシュ変更時に実行
+  reconcile();
+  window.addEventListener('hashchange', ()=> {
+    // hash変更直後はDOM反映が遅れることがあるので少しだけ待って再確認
+    reconcile();
+    setTimeout(reconcile, 0);
+    setTimeout(reconcile, 30);
+  });
+  // クリック遷移（data-goto）直後にも保険
+  document.addEventListener('click', (e)=>{
+    if (e.target.closest('[data-goto="rights"]')) {
+      setTimeout(reconcile, 0);
+      setTimeout(reconcile, 30);
+    }
+  });
+})();
+</script>
 
 </body>
 </html>
