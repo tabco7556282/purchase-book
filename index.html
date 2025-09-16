@@ -1761,6 +1761,141 @@ init();
   };
 })();
 </script>
+<style>
+/* 編集モード時のみ、金額/数量を淡く強調 */
+.editing-mode input[name="amount"],
+.editing-mode input[name="qty"]{
+  outline: 2px solid rgba(0, 128, 255, 0.2);
+  box-shadow: 0 0 0 3px rgba(0, 128, 255, 0.08) inset;
+  transition: box-shadow .15s ease, outline-color .15s ease;
+}
+</style>
+<script>
+// --- グローバル編集ID（上書き対象の行ID） ---
+window.editingId = null;
+
+// --- 入力フォーム参照（必要に応じてidは調整） ---
+const $amount = document.querySelector('input[name="amount"]');
+const $qty    = document.querySelector('input[name="qty"]');
+const $save   = document.querySelector('#btnSave');   // 「明細の追加」ボタン
+
+// --- 編集UIオン/オフ ---
+function enterEditingUI(){
+  document.documentElement.classList.add('editing-mode'); // CSSのトリガー
+  if ($save) {
+    $save.dataset.mode = 'edit';               // 分岐用フラグ
+    $save.textContent = '上書き保存';          // 文言を変える（好みで）
+    // ミニ注釈を一時的に表示したい場合は↓
+    // showMiniNote('この操作は既存明細を更新します');
+  }
+}
+
+function exitEditingUI(){
+  document.documentElement.classList.remove('editing-mode');
+  if ($save) {
+    delete $save.dataset.mode;
+    $save.textContent = '明細の追加';          // 既存文言に戻す
+  }
+}
+
+// --- 1回だけプリフィルする ---
+async function prefillFromEditId(){
+  try{
+    const editId = sessionStorage.getItem('editEntryId');
+    if(!editId) return;
+
+    // ここでDBから該当レコードを取得（既存の取得関数に合わせて実装）
+    // 例）const item = await DB.getById(editId);
+    const item = await (window.DB?.getById ? DB.getById(editId) : null);
+    if(!item){
+      // レコードが見つからない場合は後始末だけ
+      sessionStorage.removeItem('editEntryId'); // ★ここで削除（1回だけ仕様）
+      return;
+    }
+
+    // プリフィル（必要な項目だけ）
+    if ($amount) $amount.value = item.amount ?? '';
+    if ($qty)    $qty.value    = item.qty ?? '';
+
+    // 編集フラグ立て & UI切替
+    window.editingId = editId;
+    enterEditingUI();
+
+  }finally{
+    // ★★★ 1回だけの固定：最後に必ず消す ★★★
+    sessionStorage.removeItem('editEntryId');
+    // コンソール確認用：nullになっているはず
+    console.debug('editEntryId after prefill =', sessionStorage.getItem('editEntryId'));
+  }
+}
+
+// 入力タブを開いたタイミングで呼ばれるように配線（既存のタブ切替フックに追加）
+window.addEventListener('DOMContentLoaded', ()=>{
+  // 既に入力タブが初期表示なら即プリフィル
+  prefillFromEditId();
+
+  // もしタブ切替イベントがあるなら、入力タブに来た時点でも呼ぶ
+  document.addEventListener('tlp:tab:input:shown', prefillFromEditId);
+});
+</script>
+<script>
+async function handleSaveEntry(ev){
+  try{
+    const isEdit = !!(window.editingId || ($save && $save.dataset.mode === 'edit'));
+
+    // 入力値の収集（実装に合わせて）
+    const payload = {
+      amount: Number($amount?.value || 0),
+      qty:    Number($qty?.value || 0),
+      // 他の項目も必要に応じて…
+    };
+
+    if (isEdit){
+      // --- 上書き保存 ---
+      const id = window.editingId;
+      if(!id){ console.warn('editingIdが未設定。datasetだけで判定'); }
+      // 例）await DB.update(id, payload);
+      if (window.DB?.update) {
+        await DB.update(id, payload);
+      }
+    } else {
+      // --- 新規追加 ---
+      // 例）await DB.insert(payload);
+      if (window.DB?.insert) {
+        await DB.insert(payload);
+      }
+    }
+
+    // クリアと再描画
+    window.editingId = null;
+    sessionStorage.removeItem('editEntryId'); // 念のため
+    exitEditingUI();
+
+    // 入力フォームのクリア（必要なら）
+    if ($amount) $amount.value = '';
+    if ($qty)    $qty.value    = '';
+
+    // 再描画（あなたの関数名に合わせて）
+    // 例）await renderTodayList(); await renderHistoryList();
+    if (window.renderTodayList)  await renderTodayList();
+    if (window.renderHistoryList) await renderHistoryList();
+
+  } catch(err){
+    console.error('保存失敗', err);
+    alert('保存に失敗しました。コンソールをご確認ください。');
+  }
+}
+
+// 既存ボタンにだけ紐付け（上書き）
+// 末尾 rescue スクリプトならその中でOK
+if ($save){
+  $save.removeEventListener('click', handleSaveEntry);
+  $save.addEventListener('click', handleSaveEntry);
+}
+
+// タブ離脱などで編集解除したい場合（任意）
+// document.addEventListener('tlp:tab:history:shown', exitEditingUI);
+</script>
 
 </body>
 </html>
