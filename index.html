@@ -1812,102 +1812,87 @@ document.addEventListener("focusin", (e)=>{
   setTimeout(()=>{ try{ inp.select && inp.select(); }catch(_){} }, 0);
 });
 </script>
-<script id="rights-autofill">
+<script id="rights-guard">
 (()=>{'use strict';
-  // ===== 設定（固定リンク先） =====
-  // アプリから公式ページへ直行させるためのURL（指定どおり）
-  const SITE_PAGE = 'https://cafetabco.com/tabco-ledger-plus-%e4%bb%95%e5%85%a5%e3%82%8c%e7%ae%a1%e7%90%86%e3%82%a2%e3%83%97%e3%83%aa/';
+  // ---- 固定リンク（公式ページ） ----
+  const SITE_PAGE = 'https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/';
 
-  // ===== メタ（既存があれば利用） =====
-  const meta = (window.__tlp_meta||{});
-  const app  = (window.TLP && TLP.APP) || {};
+  // メタ（バッジ用）
+  const meta = (window.__tlp_meta||{}), app=(window.TLP&&TLP.APP)||{};
   const APP_NAME = String(app.NAME || meta.app || 'Tabco Ledger Plus');
   const VERSION  = String(app.VERSION || meta.version || '0.0.0');
-  const BUILD    = String(meta.build || VERSION);
-  const EULA_VER = String(app.EULA_VERSION || meta.eulaVersion || '-');
-  const PUBLISHER= String(meta.publisher || 'チカキッサ.タブコ');
-  const YEAR     = new Date().getFullYear();
 
-  function hydrate(){
-    const card = document.querySelector('#page-rights .card');
-    const page = document.querySelector('#page-rights');
-    if(!card || !page || page.classList.contains('hidden')) return;
+  // 初回に Rights の「カード内容」をスナップショット保存
+  const rightsRoot = document.getElementById('page-rights');
+  const card = document.querySelector('#page-rights .card');
+  if (!window.__rightsSnapshot && card) {
+    window.__rightsSnapshot = card.innerHTML;        // 既存本文の完全コピー
+  }
 
-    // --- 重複注入防止（1回だけ） ---
-    if (card.__rightsAutofilled) return;
-    card.__rightsAutofilled = true;
+  function ensureBadge(){
+    const host = document.getElementById('tlp-rights-badge-host');
+    if (!host) return;
+    if (document.getElementById('tlp-brand-badge-rights')) return;
+    const el = document.createElement('div');
+    el.id = 'tlp-brand-badge-rights';
+    el.setAttribute('role','note');
+    el.textContent = `${APP_NAME}™ v${VERSION}`;
+    // 既存CSS（rights-css）と同じ見た目に近づける最低限の保険
+    el.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:7000;padding:8px 10px;border-radius:10px;background:#fff;color:#111;border:1px solid #e5e7eb;box-shadow:0 2px 8px rgba(0,0,0,.12);font-size:12px;white-space:nowrap;';
+    host.appendChild(el);
+  }
 
-    const ensure = (id, html)=>{
-      if (card.querySelector('#'+id)) return;
-      const sec = document.createElement('section');
-      sec.id = id; sec.innerHTML = html.trim(); card.appendChild(sec);
-    };
-
-    // 1) アプリ情報
-    ensure('rights-appinfo', `
-      <h4>App & Version</h4>
-      <p><b>App:</b> ${APP_NAME} / <b>Version:</b> ${VERSION} / <b>Build:</b> ${BUILD}</p>
-      <p><b>EULA:</b> ${EULA_VER} / <b>© ${YEAR} ${PUBLISHER}. All rights reserved.</b></p>
-    `);
-
-    // 2) EULAリンク（既存モーダルを開く）
-    ensure('rights-eula-note', `
-      <h4>使用許諾（EULA）</h4>
-      <p>本アプリのご利用により、<a href="#" id="rights-open-eula">EULA（使用許諾契約）</a>に同意したものとみなされます。</p>
-    `);
-    card.addEventListener('click', (e)=>{
-      const a = e.target.closest('#rights-open-eula'); if(!a) return;
-      e.preventDefault();
-      if (typeof window.tlpOpenEula === 'function') window.tlpOpenEula();
-      else if (window.TLP && typeof TLP.showEula === 'function') TLP.showEula();
-      else alert('EULAを表示できませんでした。');
-    });
-
-    // 3) サポート／公式サイト（→ 指定URLに統一）
-    ensure('rights-support', `
+  function ensureSupportLink(){
+    // 公式ページへのリンクが本文中に無い場合は簡易セクションを1度だけ追加
+    if (!card) return;
+    if (card.__supportAdded) return;
+    const hasLink = !!card.querySelector(`a[href="${SITE_PAGE}"]`);
+    if (hasLink) return;
+    const sec = document.createElement('section');
+    sec.id = 'rights-support';
+    sec.innerHTML = `
       <h4>サポート</h4>
       <p>不具合報告・お問い合わせの前に、公式ページをご確認ください。<br>
          Web: <a href="${SITE_PAGE}" target="_blank" rel="noopener">${SITE_PAGE}</a></p>
-    `);
-
-    // 4) 商標
-    ensure('rights-trademark', `
-      <h4>商標について</h4>
-      <p>“${APP_NAME}” および関連ロゴは ${PUBLISHER} の商標です。<br>
-         記載の会社名・製品名は各社の商標または登録商標です。</p>
-    `);
-
-    // 5) 体裁の軽微調整
-    const style = document.createElement('style');
-    style.textContent = `
-      #page-rights section + section { margin-top: 12px; }
-      #page-rights a { text-decoration: underline; }
-      #page-rights p { line-height: 1.6; }
     `;
-    card.appendChild(style);
-
-    // 外部リンクは新規タブで開く
-    card.querySelectorAll('a[href^="http"]').forEach(a=>{
-      a.setAttribute('target','_blank'); a.setAttribute('rel','noopener');
-    });
+    card.appendChild(sec);
+    card.__supportAdded = true;
   }
 
-  // 初回表示時＆rightsへ遷移時にだけ実行（二重防止済み）
-  function onRoute(){
-    if ((location.hash||'').slice(1)==='rights') {
-      // レイアウト反映待ちのため2回だけチェック
-      setTimeout(hydrate, 0);
-      setTimeout(hydrate, 30);
+  function restoreIfEmpty(){
+    if (!rightsRoot || !card) return;
+    // 目視上「空」に見える状態を判定（子要素0 or テキスト長が極端に短い）
+    const textLen = (card.textContent||'').trim().length;
+    if (card.children.length === 0 || textLen < 20) {
+      if (window.__rightsSnapshot) {
+        card.innerHTML = window.__rightsSnapshot;    // 本文復元
+      }
     }
+    // 外部リンクは新規タブで
+    card.querySelectorAll('a[href^="http"]').forEach(a=>{
+      a.target = '_blank'; a.rel = 'noopener';
+    });
+    ensureSupportLink();
+    ensureBadge();
   }
 
-  // 起動
+  function onRoute(){
+    const id = (location.hash||'').slice(1) || 'home';
+    if (id !== 'rights') return;
+    // hidden が残っていたら剥がす（最小保険）
+    if (rightsRoot && rightsRoot.classList.contains('hidden')) {
+      rightsRoot.classList.remove('hidden');
+    }
+    // レイアウト反映のタイミング差を吸収
+    restoreIfEmpty();
+    setTimeout(restoreIfEmpty, 0);
+    setTimeout(restoreIfEmpty, 30);
+  }
+
+  // 初期＆遷移時に実行
   onRoute();
   window.addEventListener('hashchange', onRoute);
-  // 直接「履歴・権利」ページを開いた場合にも実行
-  if (!location.hash || location.hash==='#rights') {
-    setTimeout(hydrate, 0);
-  }
+  if (!location.hash || location.hash==='#rights') setTimeout(onRoute, 0);
 })();
 </script>
 
