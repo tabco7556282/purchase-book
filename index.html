@@ -1802,6 +1802,16 @@ document.addEventListener("click", (e)=>{
 /* ========= ここまで ========= */
 })();
 </script>
+<script>
+/* ==== 入力時にワンタップ全選択（動的要素にも効く） ==== */
+document.addEventListener("focusin", (e)=>{
+  const inp = e.target?.closest('input[type="number"], input[type="text"]');
+  if(!inp || inp.readOnly || inp.disabled) return;
+  // すぐ & 次フレームでもう一度（端末差異対策）
+  try{ inp.select && inp.select(); }catch(_){}
+  setTimeout(()=>{ try{ inp.select && inp.select(); }catch(_){} }, 0);
+});
+</script>
 
 </body>
 </html>
