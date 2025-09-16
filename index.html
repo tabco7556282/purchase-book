@@ -1908,57 +1908,92 @@ document.addEventListener("focusin", (e)=>{
   });
 })();
 </script>
-<script id="rights-stabilizer">
+<script id="rights-onshow-refill">
 (()=>{'use strict';
-  // --- 1) 初期スナップショットを保存（1回だけ）
-  (function snapshotOnce(){
-    const root = document.getElementById('page-rights');
-    if (!root) return;
-    if (!window.__rights_init_html){
-      window.__rights_init_html = root.innerHTML;      // セクション丸ごと保存
-      window.__rights_init_len  = (root.textContent||'').trim().length;
-      // console.log('[rights] snapshot len=', window.__rights_init_len);
-    }
-  })();
+  // 既存の rights-autofill で入るべき要素が “無くなっていたら” だけ補う
+  function ensure(id, html){
+    const card = document.querySelector('#page-rights .card');
+    if (!card || card.querySelector('#'+id)) return;
+    const sec = document.createElement('section');
+    sec.id = id; sec.innerHTML = html.trim();
+    card.appendChild(sec);
+  }
 
-  // --- 2) Rights を健全状態に戻す（空なら初期HTMLへ戻す）
-  function restoreRightsIfNeeded(){
+  function refillIfMissing(){
     const root = document.getElementById('page-rights');
-    if (!root) return;
-    // 可視化（hiddenが残っていたら剥がす）
+    const card = document.querySelector('#page-rights .card');
+    if (!root || !card) return;
+
+    // 可視化の取りこぼし保険
     root.classList.remove('hidden');
 
-    // “空/劣化”の判定（テキスト長が小さい）
-    const len = (root.textContent||'').trim().length;
-    if (len < 50 && window.__rights_init_html){
-      root.innerHTML = window.__rights_init_html;
+    // 見出ししか残っていない（=中身が消えている）ときの判定
+    const len = (card.textContent||'').trim().length;
+    if (len < 80){
+      // 既存メタからラベル生成（無ければフォールバック）
+      const meta=(window.__tlp_meta||{}), app=(window.TLP&&TLP.APP)||{};
+      const APP_NAME = String(app.NAME || meta.app || 'Tabco Ledger Plus');
+      const VERSION  = String(app.VERSION || meta.version || '0.0.0');
+      const BUILD    = String(meta.build || VERSION);
+      const EULA_VER = String(app.EULA_VERSION || meta.eulaVersion || '-');
+      const PUBLISHER= String(meta.publisher || 'Tabco');
+      const YEAR     = new Date().getFullYear();
+
+      ensure('rights-appinfo', `
+        <h4>アプリ情報</h4>
+        <p><b>App:</b> ${APP_NAME} / <b>Version:</b> ${VERSION} / <b>Build:</b> ${BUILD}</p>
+        <p><b>EULA:</b> ${EULA_VER} / <b>© ${YEAR} ${PUBLISHER}. All rights reserved.</b></p>
+      `);
+      ensure('rights-privacy', `
+        <h4>プライバシーポリシー</h4>
+        <p>本アプリは、入力された仕入データを<b>端末ローカル</b>（ブラウザのローカルストレージ）に保存します。
+        開発者は利用者データを収集・送信しません。バックアップ機能を使用した場合は、
+        利用者自身のクラウドストレージに保存されます。</p>
+      `);
+      ensure('rights-eula-note', `
+        <h4>使用許諾（EULA）</h4>
+        <p>本アプリの利用により、<a href="#" id="rights-open-eula">EULA（使用許諾契約）</a>に同意したものとみなされます。</p>
+      `);
+      ensure('rights-support', `
+        <h4>サポート</h4>
+        <p>公式サイト：<a href="https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/" target="_blank" rel="noopener">
+        https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/</a></p>
+      `);
+      ensure('rights-trademark', `
+        <h4>商標について</h4>
+        <p>“${APP_NAME}” および関連ロゴは ${PUBLISHER} の商標です。</p>
+      `);
+      ensure('rights-oss', `
+        <h4>サードパーティ表記</h4>
+        <p>必要に応じてコンポーネントのライセンス情報を追記します。</p>
+      `);
+
+      // EULAリンクの配線（存在すれば）
+      card.addEventListener('click', (e)=>{
+        const a = e.target.closest('#rights-open-eula'); if(!a) return;
+        e.preventDefault();
+        if (typeof window.tlpOpenEula === 'function') window.tlpOpenEula();
+        else if (window.TLP && typeof TLP.showEula === 'function') TLP.showEula();
+      });
     }
 
-    // 外部リンクは新規タブ（保険）
-    root.querySelectorAll('a[href^="http"]').forEach(a=>{
-      a.setAttribute('target','_blank'); a.setAttribute('rel','noopener');
-    });
+    // 外部リンクは新規タブ統一
+    card.querySelectorAll('a[href^="http"]').forEach(a=>{ a.target='_blank'; a.rel='noopener'; });
   }
 
-  // --- 3) ルータ連携：rightsに来たときだけ実行（描画タイミング差を吸収）
   function onRoute(){
-    const id = (location.hash||'').slice(1) || 'home';
-    if (id !== 'rights') return;
-    restoreRightsIfNeeded();
-    // レイアウト反映のタイミング差を吸収
-    setTimeout(restoreRightsIfNeeded, 0);
-    setTimeout(restoreRightsIfNeeded, 30);
+    if ((location.hash||'').slice(1) !== 'rights') return;
+    refillIfMissing();
+    setTimeout(refillIfMissing, 0);
+    setTimeout(refillIfMissing, 30);
   }
 
-  // 初期／遷移で実行
-  if (document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', onRoute, {once:true});
-  } else {
-    onRoute();
-  }
+  // 起動時／ハッシュ変更時
+  onRoute();
   window.addEventListener('hashchange', onRoute);
 })();
 </script>
+
 
 </body>
 </html>
