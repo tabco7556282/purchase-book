@@ -1676,6 +1676,132 @@ init();
   }).observe(document.body, {childList:true, subtree:true});
 })();
 </script>
+<script>
+(()=>{ "use strict";
+/* ========= 履歴カード編集：末尾追記で有効 ========= */
+
+/** 明細IDからエントリを取得 */
+function _findEntryById(id){
+  if(!id) return null;
+  return (store.entries||[]).find(e=>e && !e.deleted && e.id===id) || null;
+}
+
+/** 価格履歴を更新（任意：最新5件に保つ） */
+function _pushPriceHistoryIfNeeded(e){
+  try{
+    if(!e || !e.product_id) return;
+    const arr = store.priceHistory[e.product_id] || [];
+    arr.push({ price: Number(e.price)||0, ts: Date.now(), taxrate: Number(e.taxrate)||0, taxmode: e.taxmode||"excl" });
+    store.priceHistory[e.product_id] = arr.slice(-5);
+  }catch(_){}
+}
+
+/** 編集モーダル（数量／単価／税率のみ） */
+function openEntryEditModalLite(entry){
+  if(!entry){ alert("明細が見つかりません"); return; }
+  const pname = (store.products.find(p=>p.id===entry.product_id)||{}).name || (entry.product_name_fallback || "未登録");
+  const sName = (store.suppliers.find(s=>s.id===entry.supplier_id)||{}).name || (entry.supplier_name_fallback || "未指定");
+  const taxLabel = entry.taxrate===0 ? "非課税" : (entry.taxrate+"%");
+  const modeLabel = entry.taxmode==="incl" ? "税込" : "税別";
+
+  openModalBase("明細を編集", `
+    <div class="grid cols-2">
+      <div style="grid-column:1/-1">
+        <div class="label">仕入れ先</div>
+        <input type="text" value="${sName}" disabled>
+      </div>
+      <div style="grid-column:1/-1">
+        <div class="label">商品</div>
+        <input type="text" value="${pname}" disabled>
+      </div>
+
+      <div>
+        <div class="label">数量</div>
+        <input id="mLiteQty" type="number" inputmode="numeric" min="0" step="1" value="${entry.qty}">
+      </div>
+      <div>
+        <div class="label">単価</div>
+        <input id="mLitePrice" type="number" inputmode="numeric" min="0" step="1" value="${entry.price}">
+      </div>
+
+      <div>
+        <div class="label">税率</div>
+        <select id="mLiteRate">
+          <option value="10" ${entry.taxrate===10?"selected":""}>10%</option>
+          <option value="8"  ${entry.taxrate===8 ?"selected":""}>8%</option>
+          <option value="0"  ${entry.taxrate===0 ?"selected":""}>非課税</option>
+        </select>
+      </div>
+      <div>
+        <div class="label">区分（参照のみ）</div>
+        <input type="text" value="${modeLabel}" disabled>
+      </div>
+
+      <div style="grid-column:1/-1" class="mini-meta">
+        ※ この画面では <b>数量・単価・税率</b>のみ変更できます。区分（${modeLabel}）とメモは編集対象外です。
+      </div>
+    </div>
+  `);
+
+  // 削除ボタンは非表示のまま
+  const delBtn = document.getElementById("modalDelete");
+  delBtn && delBtn.classList.add("hidden");
+
+  // OK = 更新保存
+  const ok = document.getElementById("modalOK");
+  if(ok){
+    ok.textContent = "更新";
+    ok.onclick = ()=>{
+      // 入力値取得・バリデーション軽め
+      const q = Number(document.getElementById("mLiteQty").value || 0);
+      const p = Number(document.getElementById("mLitePrice").value || 0);
+      const r = Number(document.getElementById("mLiteRate").value || entry.taxrate || 8);
+
+      if(!Number.isFinite(q) || q<=0){ alert("数量を正しく入力してください"); return; }
+      if(!Number.isFinite(p) || p<0){ alert("単価を正しく入力してください"); return; }
+      if(![0,8,10].includes(r)){ alert("税率を選択してください"); return; }
+
+      // 上書き（区分・メモは触らない）
+      entry.qty = q;
+      entry.price = p;
+      entry.taxrate = r;
+
+      // 価格履歴を更新（商品に紐づく場合のみ）
+      _pushPriceHistoryIfNeeded(entry);
+
+      // 保存＆再描画
+      DB.save(store);
+      try{ renderTodayList(); }catch(_){}
+      try{ renderHistory(); }catch(_){}
+      try{ refreshHome(); }catch(_){}
+      closeModal();
+    };
+  }
+
+  // キャンセルは既存配線のまま
+  // 初期フォーカス
+  setTimeout(()=>{ document.getElementById("mLiteQty")?.focus(); }, 0);
+}
+
+/** クリック委任：履歴カード／本日の明細 行 */
+function _isEntryRow(el){
+  return !!el && el.classList && el.classList.contains("entry") && el.hasAttribute("data-id");
+}
+
+document.addEventListener("click", (e)=>{
+  const row = e.target.closest("#historyList .entry, #todayList .entry");
+  if(!_isEntryRow(row)) return;
+
+  const id = row.getAttribute("data-id");
+  const entry = _findEntryById(id);
+  if(!entry){ alert("編集対象が見つかりません"); return; }
+  e.preventDefault();
+  openEntryEditModalLite(entry);
+});
+
+/* ========= ここまで ========= */
+})();
+</script>
 
 </body>
 </html>
