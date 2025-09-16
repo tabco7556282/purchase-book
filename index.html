@@ -1908,76 +1908,118 @@ document.addEventListener("focusin", (e)=>{
   });
 })();
 </script>
-<script id="rights-web-fallback">
+<script id="rights-rebuilder">
 (()=>{'use strict';
   // 公式ページ（日本語URL）
   const WEB_URL = 'https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/';
 
-  // 1) Web版ビューの枠を一度だけ作る（別の枠）
-  function ensureWebSection(){
-    if (document.getElementById('page-legalweb')) return;
-    const sec = document.createElement('section');
-    sec.id = 'page-legalweb';
-    sec.className = 'hidden';
-    sec.setAttribute('data-title','Licenses & Notices（Web版）');
-    sec.innerHTML = `
-      <div class="card" style="padding:0; overflow:hidden">
-        <div style="padding:12px 14px; border-bottom:1px solid var(--divider); display:flex; gap:8px; align-items:center; justify-content:space-between">
-          <div><b>Licenses & Notices（Web版）</b></div>
-          <div class="row" style="gap:8px">
-            <a class="btn ghost small" href="${WEB_URL}" target="_blank" rel="noopener">新しいタブで開く</a>
-            <button class="btn primary small" data-goto="rights" type="button">アプリ内版に戻る</button>
-          </div>
-        </div>
-        <iframe id="legalweb-frame" src="${WEB_URL}" title="Licenses & Notices (Web)"
-          style="width:100%; height: calc(100vh - 180px); border:0; display:block;"></iframe>
+  // メタから名称などを取得（無ければフォールバック）
+  const meta = (window.__tlp_meta||{}), app=(window.TLP&&TLP.APP)||{};
+  const APP_NAME = String(app.NAME || meta.app || 'Tabco Ledger Plus');
+  const VERSION  = String(app.VERSION || meta.version || '0.8.0');
+  const BUILD    = String(meta.build || 'v0.8.0-20250908');
+  const EULA_VER = String(app.EULA_VERSION || meta.eulaVersion || '2025-09-08');
+  const PUBLISHER= String(meta.publisher || 'チカキッサ.タブコ');
+  const YEAR     = new Date().getFullYear();
+
+  // このページを毎回“既知の良い状態”に完全再構築する
+  function buildRightsHTML(){
+    return `
+      <div class="card">
+        <h3>Licenses & Notices</h3>
+
+        <section>
+          <h4>App & Version</h4>
+          <p><b>App:</b> ${APP_NAME} / <b>Version:</b> ${VERSION} / <b>Build:</b> ${BUILD}</p>
+          <p><b>EULA Ver:</b> ${EULA_VER} / <b>© ${YEAR} ${PUBLISHER}. All rights reserved.</b></p>
+        </section>
+
+        <section>
+          <h4>Trademark Notice</h4>
+          <p>“${APP_NAME}” および関連ロゴは ${PUBLISHER} の商標です。記載の会社名・製品名は各社の商標または登録商標です。</p>
+        </section>
+
+        <section>
+          <h4>EULA（使用許諾）</h4>
+          <p>本アプリのご利用によりEULA（使用許諾契約）に同意したものとみなされます。
+             <a href="#" id="rights-open-eula">EULAを開く</a></p>
+        </section>
+
+        <section>
+          <h4>データとプライバシー</h4>
+          <p>データは基本的に端末ローカルに保存されます。クラウドバックアップを選んだ場合は、お客様自身のアカウントへ保存されます。</p>
+          <p>また、本アプリに入力した仕入れ情報は、将来提供予定の
+             <b>棚卸アプリ</b>・<b>原価計算アプリ</b>と共有できるよう設計します。</p>
+          <p>公式ページ：<a href="${WEB_URL}" target="_blank" rel="noopener">${WEB_URL}</a></p>
+        </section>
+
+        <section>
+          <h4>エクスポート（Excel XML）</h4>
+          <p>Excelで直接開ける <b>XML Spreadsheet 2003 形式（.xml）</b>で出力します。</p>
+          <ul>
+            <li>Excel：ダブルクリック or <em>ファイル → 開く</em> で読み込み可。</li>
+            <li>Googleスプレッドシート：<em>直接は開けません</em>。PCのExcelで <code>.xlsx</code> に保存してからアップロードしてください。</li>
+          </ul>
+        </section>
+
+        <section>
+          <h4>サードパーティ表記</h4>
+          <p>本アプリにはオープンソースコンポーネントが含まれる場合があり、そのライセンスを記載します。</p>
+        </section>
+
+        <section>
+          <h4>お問い合わせ</h4>
+          <p>ご不明点は公式ページをご確認ください（お問い合わせフォーム準備中）。<br>
+             <a href="${WEB_URL}" target="_blank" rel="noopener">${WEB_URL}</a></p>
+        </section>
+
+        <div id="tlp-rights-badge-host" aria-hidden="true"></div>
       </div>
-    `;
-    document.querySelector('main.container')?.appendChild(sec);
-
-    // タイトル切り替えに対応（既存の showPage と同じ流儀）
-    // → 既存の navigate/showPage が data-goto を拾ってくれるので特別な配線は不要
+    `.trim();
   }
 
-  // 2) Rights が空/劣化なら Web版へ自動フォールバック
-  function maybeRedirectToWeb(){
-    const hash = (location.hash||'').slice(1) || 'home';
-    if (hash !== 'rights') return;
+  function ensureBadge(){
+    const host = document.getElementById('tlp-rights-badge-host');
+    if (!host) return;
+    if (document.getElementById('tlp-brand-badge-rights')) return;
+    const el = document.createElement('div');
+    el.id = 'tlp-brand-badge-rights';
+    el.setAttribute('role','note');
+    el.textContent = `${APP_NAME}™ v${VERSION}`;
+    el.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:7000;padding:8px 10px;border-radius:10px;background:#fff;color:#111;border:1px solid #e5e7eb;box-shadow:0 2px 8px rgba(0,0,0,.12);font-size:12px;white-space:nowrap;';
+    document.body.appendChild(el);
+  }
+
+  function wireEulaLink(){
+    document.addEventListener('click', (e)=>{
+      const a = e.target.closest('#rights-open-eula'); if(!a) return;
+      e.preventDefault();
+      if (typeof window.tlpOpenEula === 'function') window.tlpOpenEula();
+      else if (window.TLP && typeof TLP.showEula === 'function') TLP.showEula();
+      else alert('EULAを表示できませんでした。');
+    });
+  }
+
+  function rebuildRights(){
     const root = document.getElementById('page-rights');
-    const card = document.querySelector('#page-rights .card');
-    const textLen = (card?.textContent||'').trim().length;
-
-    // “見出しだけ”や“空”っぽければ Web版へ
-    if (!root || !card || textLen < 80){
-      ensureWebSection();
-      // 既存の navigate を使わずに hash を切り替え
-      location.hash = 'legalweb';
-    }
+    if (!root) return;
+    // 完全再構築：毎回中身を捨てて決め打ちテンプレで置き換える
+    root.innerHTML = buildRightsHTML();
+    // 外部リンクのターゲット統一
+    root.querySelectorAll('a[href^="http"]').forEach(a=>{ a.target='_blank'; a.rel='noopener'; });
+    ensureBadge();
   }
 
-  // 3) Rights 内に “Web版で開く” の小リンクを一度だけ付ける（手動切替用）
-  function injectLinkOnce(){
-    const card = document.querySelector('#page-rights .card');
-    if (!card || card.__webLinkInjected) return;
-    const row = document.createElement('div');
-    row.style.cssText = 'margin:8px 0 0; display:flex; justify-content:flex-end;';
-    row.innerHTML = `<a href="${WEB_URL}" target="_blank" rel="noopener" class="btn ghost small">Web版（公式）で開く</a>`;
-    card.appendChild(row);
-    card.__webLinkInjected = true;
-  }
-
-  // 4) 初期化：Web枠だけ先に用意しておく
-  ensureWebSection();
-
-  // 5) ルート切替時に判定してフォールバック
   function onRoute(){
-    if ((location.hash||'').slice(1) === 'rights'){
-      // rights-autofill の後に実行されるようタイミングを2段で
-      setTimeout(injectLinkOnce, 0);
-      setTimeout(maybeRedirectToWeb, 0);
-      setTimeout(maybeRedirectToWeb, 30);
-    }
+    const id = (location.hash||'').slice(1) || 'home';
+    if (id !== 'rights') return;
+    // レイアウト反映のタイミング差を吸収（2段呼び）
+    rebuildRights();
+    setTimeout(rebuildRights, 0);
   }
+
+  // 起動
+  wireEulaLink();
   onRoute();
   window.addEventListener('hashchange', onRoute);
 })();
