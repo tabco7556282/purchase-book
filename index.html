@@ -1908,87 +1908,76 @@ document.addEventListener("focusin", (e)=>{
   });
 })();
 </script>
-<script id="rights-onshow-refill">
+<script id="rights-web-fallback">
 (()=>{'use strict';
-  // 既存の rights-autofill で入るべき要素が “無くなっていたら” だけ補う
-  function ensure(id, html){
-    const card = document.querySelector('#page-rights .card');
-    if (!card || card.querySelector('#'+id)) return;
+  // 公式ページ（日本語URL）
+  const WEB_URL = 'https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/';
+
+  // 1) Web版ビューの枠を一度だけ作る（別の枠）
+  function ensureWebSection(){
+    if (document.getElementById('page-legalweb')) return;
     const sec = document.createElement('section');
-    sec.id = id; sec.innerHTML = html.trim();
-    card.appendChild(sec);
+    sec.id = 'page-legalweb';
+    sec.className = 'hidden';
+    sec.setAttribute('data-title','Licenses & Notices（Web版）');
+    sec.innerHTML = `
+      <div class="card" style="padding:0; overflow:hidden">
+        <div style="padding:12px 14px; border-bottom:1px solid var(--divider); display:flex; gap:8px; align-items:center; justify-content:space-between">
+          <div><b>Licenses & Notices（Web版）</b></div>
+          <div class="row" style="gap:8px">
+            <a class="btn ghost small" href="${WEB_URL}" target="_blank" rel="noopener">新しいタブで開く</a>
+            <button class="btn primary small" data-goto="rights" type="button">アプリ内版に戻る</button>
+          </div>
+        </div>
+        <iframe id="legalweb-frame" src="${WEB_URL}" title="Licenses & Notices (Web)"
+          style="width:100%; height: calc(100vh - 180px); border:0; display:block;"></iframe>
+      </div>
+    `;
+    document.querySelector('main.container')?.appendChild(sec);
+
+    // タイトル切り替えに対応（既存の showPage と同じ流儀）
+    // → 既存の navigate/showPage が data-goto を拾ってくれるので特別な配線は不要
   }
 
-  function refillIfMissing(){
+  // 2) Rights が空/劣化なら Web版へ自動フォールバック
+  function maybeRedirectToWeb(){
+    const hash = (location.hash||'').slice(1) || 'home';
+    if (hash !== 'rights') return;
     const root = document.getElementById('page-rights');
     const card = document.querySelector('#page-rights .card');
-    if (!root || !card) return;
+    const textLen = (card?.textContent||'').trim().length;
 
-    // 可視化の取りこぼし保険
-    root.classList.remove('hidden');
-
-    // 見出ししか残っていない（=中身が消えている）ときの判定
-    const len = (card.textContent||'').trim().length;
-    if (len < 80){
-      // 既存メタからラベル生成（無ければフォールバック）
-      const meta=(window.__tlp_meta||{}), app=(window.TLP&&TLP.APP)||{};
-      const APP_NAME = String(app.NAME || meta.app || 'Tabco Ledger Plus');
-      const VERSION  = String(app.VERSION || meta.version || '0.0.0');
-      const BUILD    = String(meta.build || VERSION);
-      const EULA_VER = String(app.EULA_VERSION || meta.eulaVersion || '-');
-      const PUBLISHER= String(meta.publisher || 'Tabco');
-      const YEAR     = new Date().getFullYear();
-
-      ensure('rights-appinfo', `
-        <h4>アプリ情報</h4>
-        <p><b>App:</b> ${APP_NAME} / <b>Version:</b> ${VERSION} / <b>Build:</b> ${BUILD}</p>
-        <p><b>EULA:</b> ${EULA_VER} / <b>© ${YEAR} ${PUBLISHER}. All rights reserved.</b></p>
-      `);
-      ensure('rights-privacy', `
-        <h4>プライバシーポリシー</h4>
-        <p>本アプリは、入力された仕入データを<b>端末ローカル</b>（ブラウザのローカルストレージ）に保存します。
-        開発者は利用者データを収集・送信しません。バックアップ機能を使用した場合は、
-        利用者自身のクラウドストレージに保存されます。</p>
-      `);
-      ensure('rights-eula-note', `
-        <h4>使用許諾（EULA）</h4>
-        <p>本アプリの利用により、<a href="#" id="rights-open-eula">EULA（使用許諾契約）</a>に同意したものとみなされます。</p>
-      `);
-      ensure('rights-support', `
-        <h4>サポート</h4>
-        <p>公式サイト：<a href="https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/" target="_blank" rel="noopener">
-        https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/</a></p>
-      `);
-      ensure('rights-trademark', `
-        <h4>商標について</h4>
-        <p>“${APP_NAME}” および関連ロゴは ${PUBLISHER} の商標です。</p>
-      `);
-      ensure('rights-oss', `
-        <h4>サードパーティ表記</h4>
-        <p>必要に応じてコンポーネントのライセンス情報を追記します。</p>
-      `);
-
-      // EULAリンクの配線（存在すれば）
-      card.addEventListener('click', (e)=>{
-        const a = e.target.closest('#rights-open-eula'); if(!a) return;
-        e.preventDefault();
-        if (typeof window.tlpOpenEula === 'function') window.tlpOpenEula();
-        else if (window.TLP && typeof TLP.showEula === 'function') TLP.showEula();
-      });
+    // “見出しだけ”や“空”っぽければ Web版へ
+    if (!root || !card || textLen < 80){
+      ensureWebSection();
+      // 既存の navigate を使わずに hash を切り替え
+      location.hash = 'legalweb';
     }
-
-    // 外部リンクは新規タブ統一
-    card.querySelectorAll('a[href^="http"]').forEach(a=>{ a.target='_blank'; a.rel='noopener'; });
   }
 
+  // 3) Rights 内に “Web版で開く” の小リンクを一度だけ付ける（手動切替用）
+  function injectLinkOnce(){
+    const card = document.querySelector('#page-rights .card');
+    if (!card || card.__webLinkInjected) return;
+    const row = document.createElement('div');
+    row.style.cssText = 'margin:8px 0 0; display:flex; justify-content:flex-end;';
+    row.innerHTML = `<a href="${WEB_URL}" target="_blank" rel="noopener" class="btn ghost small">Web版（公式）で開く</a>`;
+    card.appendChild(row);
+    card.__webLinkInjected = true;
+  }
+
+  // 4) 初期化：Web枠だけ先に用意しておく
+  ensureWebSection();
+
+  // 5) ルート切替時に判定してフォールバック
   function onRoute(){
-    if ((location.hash||'').slice(1) !== 'rights') return;
-    refillIfMissing();
-    setTimeout(refillIfMissing, 0);
-    setTimeout(refillIfMissing, 30);
+    if ((location.hash||'').slice(1) === 'rights'){
+      // rights-autofill の後に実行されるようタイミングを2段で
+      setTimeout(injectLinkOnce, 0);
+      setTimeout(maybeRedirectToWeb, 0);
+      setTimeout(maybeRedirectToWeb, 30);
+    }
   }
-
-  // 起動時／ハッシュ変更時
   onRoute();
   window.addEventListener('hashchange', onRoute);
 })();
