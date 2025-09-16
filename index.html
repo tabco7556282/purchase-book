@@ -1809,85 +1809,70 @@ document.addEventListener("focusin", (e)=>{
   try{ inp.select && inp.select(); }catch(_){}
   setTimeout(()=>{ try{ inp.select && inp.select(); }catch(_){} }, 0);
 });
-</script>
-<script id="rights-guard">
+
+<script id="rights-stable-render">
 (()=>{'use strict';
-  // ---- 固定リンク（公式ページ） ----
+  // 公式ページ（日本語URLで統一）
   const SITE_PAGE = 'https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/';
 
-  // メタ（バッジ用）
-  const meta = (window.__tlp_meta||{}), app=(window.TLP&&TLP.APP)||{};
+  const meta=(window.__tlp_meta||{}), app=(window.TLP&&TLP.APP)||{};
   const APP_NAME = String(app.NAME || meta.app || 'Tabco Ledger Plus');
   const VERSION  = String(app.VERSION || meta.version || '0.0.0');
 
-  // 初回に Rights の「カード内容」をスナップショット保存
-  const rightsRoot = document.getElementById('page-rights');
-  const card = document.querySelector('#page-rights .card');
-  if (!window.__rightsSnapshot && card) {
-    window.__rightsSnapshot = card.innerHTML;        // 既存本文の完全コピー
+  // 起動直後や正常表示のタイミングで“良い状態”を一度だけ保存
+  function snapshotIfGood(){
+    const card = document.querySelector('#page-rights .card');
+    if (!card || window.__rights_good_html) return;
+    const len = (card.textContent||'').trim().length;
+    if (len > 200){ window.__rights_good_html = card.innerHTML; window.__rights_good_len = len; }
   }
 
   function ensureBadge(){
     const host = document.getElementById('tlp-rights-badge-host');
-    if (!host) return;
-    if (document.getElementById('tlp-brand-badge-rights')) return;
+    if (!host || document.getElementById('tlp-brand-badge-rights')) return;
     const el = document.createElement('div');
     el.id = 'tlp-brand-badge-rights';
     el.setAttribute('role','note');
     el.textContent = `${APP_NAME}™ v${VERSION}`;
-    // 既存CSS（rights-css）と同じ見た目に近づける最低限の保険
     el.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:7000;padding:8px 10px;border-radius:10px;background:#fff;color:#111;border:1px solid #e5e7eb;box-shadow:0 2px 8px rgba(0,0,0,.12);font-size:12px;white-space:nowrap;';
     host.appendChild(el);
   }
 
-  function ensureSupportLink(){
-    // 公式ページへのリンクが本文中に無い場合は簡易セクションを1度だけ追加
-    if (!card) return;
-    if (card.__supportAdded) return;
-    const hasLink = !!card.querySelector(`a[href="${SITE_PAGE}"]`);
-    if (hasLink) return;
-    const sec = document.createElement('section');
-    sec.id = 'rights-support';
-    sec.innerHTML = `
-      <h4>サポート</h4>
-      <p>不具合報告・お問い合わせの前に、公式ページをご確認ください。<br>
-         Web: <a href="${SITE_PAGE}" target="_blank" rel="noopener">${SITE_PAGE}</a></p>
-    `;
-    card.appendChild(sec);
-    card.__supportAdded = true;
+  function normalizeLinks(card){
+    card.querySelectorAll('a[href^="http"]').forEach(a=>{
+      a.target='_blank'; a.rel='noopener';
+      if (a.href.includes('cafetabco.com')) {
+        a.href = SITE_PAGE;
+        if (/^https?:\/\//.test(a.textContent.trim())) a.textContent = SITE_PAGE;
+      }
+    });
   }
 
-  function restoreIfEmpty(){
-    if (!rightsRoot || !card) return;
-    // 目視上「空」に見える状態を判定（子要素0 or テキスト長が極端に短い）
-    const textLen = (card.textContent||'').trim().length;
-    if (card.children.length === 0 || textLen < 20) {
-      if (window.__rightsSnapshot) {
-        card.innerHTML = window.__rightsSnapshot;    // 本文復元
-      }
+  function renderRightsStable(){
+    const root = document.getElementById('page-rights');
+    const card = document.querySelector('#page-rights .card');
+    if (!root || !card) return;
+    // 念のため可視化
+    if (root.classList.contains('hidden')) root.classList.remove('hidden');
+    // 空/劣化ならスナップショットで復元
+    const curLen = (card.textContent||'').trim().length;
+    if (curLen < 50 && window.__rights_good_html) {
+      card.innerHTML = window.__rights_good_html;
     }
-    // 外部リンクは新規タブで
-    card.querySelectorAll('a[href^="http"]').forEach(a=>{
-      a.target = '_blank'; a.rel = 'noopener';
-    });
-    ensureSupportLink();
+    normalizeLinks(card);
     ensureBadge();
   }
 
   function onRoute(){
-    const id = (location.hash||'').slice(1) || 'home';
-    if (id !== 'rights') return;
-    // hidden が残っていたら剥がす（最小保険）
-    if (rightsRoot && rightsRoot.classList.contains('hidden')) {
-      rightsRoot.classList.remove('hidden');
+    // 別ページへ移る前など、良い状態が取れたら保存
+    snapshotIfGood();
+    if ((location.hash||'').slice(1) === 'rights'){
+      renderRightsStable();
+      setTimeout(renderRightsStable, 0);
+      setTimeout(renderRightsStable, 30);
     }
-    // レイアウト反映のタイミング差を吸収
-    restoreIfEmpty();
-    setTimeout(restoreIfEmpty, 0);
-    setTimeout(restoreIfEmpty, 30);
   }
 
-  // 初期＆遷移時に実行
   onRoute();
   window.addEventListener('hashchange', onRoute);
   if (!location.hash || location.hash==='#rights') setTimeout(onRoute, 0);
