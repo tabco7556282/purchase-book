@@ -1979,16 +1979,18 @@ document.addEventListener("focusin", (e)=>{
   }
 
   function ensureBadge(){
-    const host = document.getElementById('tlp-rights-badge-host');
-    if (!host) return;
-    if (document.getElementById('tlp-brand-badge-rights')) return;
-    const el = document.createElement('div');
+  const host = document.querySelector('#page-rights #tlp-rights-badge-host');
+  if (!host) return;
+  let el = document.getElementById('tlp-brand-badge-rights');
+  if (!el){
+    el = document.createElement('div');
     el.id = 'tlp-brand-badge-rights';
     el.setAttribute('role','note');
     el.textContent = `${APP_NAME}™ v${VERSION}`;
     el.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:7000;padding:8px 10px;border-radius:10px;background:#fff;color:#111;border:1px solid #e5e7eb;box-shadow:0 2px 8px rgba(0,0,0,.12);font-size:12px;white-space:nowrap;';
-    document.body.appendChild(el);
   }
+  if (!host.contains(el)) host.appendChild(el);
+}
 
   function wireEulaLink(){
     document.addEventListener('click', (e)=>{
@@ -2023,6 +2025,11 @@ document.addEventListener("focusin", (e)=>{
   onRoute();
   window.addEventListener('hashchange', onRoute);
 })();
+window.addEventListener('hashchange', ()=>{
+  if (((location.hash||'').slice(1) || 'home') !== 'rights'){
+    document.getElementById('tlp-brand-badge-rights')?.remove();
+  }
+});
 </script>
 
 
