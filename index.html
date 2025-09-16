@@ -1908,6 +1908,57 @@ document.addEventListener("focusin", (e)=>{
   });
 })();
 </script>
+<script id="rights-stabilizer">
+(()=>{'use strict';
+  // --- 1) 初期スナップショットを保存（1回だけ）
+  (function snapshotOnce(){
+    const root = document.getElementById('page-rights');
+    if (!root) return;
+    if (!window.__rights_init_html){
+      window.__rights_init_html = root.innerHTML;      // セクション丸ごと保存
+      window.__rights_init_len  = (root.textContent||'').trim().length;
+      // console.log('[rights] snapshot len=', window.__rights_init_len);
+    }
+  })();
+
+  // --- 2) Rights を健全状態に戻す（空なら初期HTMLへ戻す）
+  function restoreRightsIfNeeded(){
+    const root = document.getElementById('page-rights');
+    if (!root) return;
+    // 可視化（hiddenが残っていたら剥がす）
+    root.classList.remove('hidden');
+
+    // “空/劣化”の判定（テキスト長が小さい）
+    const len = (root.textContent||'').trim().length;
+    if (len < 50 && window.__rights_init_html){
+      root.innerHTML = window.__rights_init_html;
+    }
+
+    // 外部リンクは新規タブ（保険）
+    root.querySelectorAll('a[href^="http"]').forEach(a=>{
+      a.setAttribute('target','_blank'); a.setAttribute('rel','noopener');
+    });
+  }
+
+  // --- 3) ルータ連携：rightsに来たときだけ実行（描画タイミング差を吸収）
+  function onRoute(){
+    const id = (location.hash||'').slice(1) || 'home';
+    if (id !== 'rights') return;
+    restoreRightsIfNeeded();
+    // レイアウト反映のタイミング差を吸収
+    setTimeout(restoreRightsIfNeeded, 0);
+    setTimeout(restoreRightsIfNeeded, 30);
+  }
+
+  // 初期／遷移で実行
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', onRoute, {once:true});
+  } else {
+    onRoute();
+  }
+  window.addEventListener('hashchange', onRoute);
+})();
+</script>
 
 </body>
 </html>
