@@ -1709,6 +1709,7 @@ init();
 
     // 編集モード印
     window.editingId = id;
+    document.documentElement.classList.add('editing-mode'); // ★ 枠色強調トリガー
 
     // 汎用セッター（要素があれば入れるだけ。無ければ無視）
     const set = (sel, val) => {
@@ -1726,13 +1727,13 @@ init();
       if (r) r.checked = true;
     };
 
-    // 代表的な項目だけ安全に流し込み（存在しないIDは無視）
+    // 代表的な項目だけ安全に流し込み
     set('#inDate', e.date);
     set('#inPrice', e.price);
     set('#inQty',   e.qty);
     set('#inMemo',  e.memo || '');
 
-    // 仕入先・商品（どれか当たるセレクタにしてある）
+    // 仕入先・商品
     const sup = document.querySelector('#selSupplier, select[name="supplier"], #supplier');
     if (sup) sup.value = (e.supplier_id ?? e.supplier_name_fallback ?? sup.value);
     const prod = document.querySelector('#selProduct, select[name="product"], #product');
@@ -1756,11 +1757,15 @@ init();
     const ret = origShow ? origShow(name) : undefined;
     if (name === 'input') {
       try { prefillFromEditId(); } catch(err){ console.warn('prefill error:', err); }
+      // ★ 1回だけ仕様：入力タブ表示後に必ず消す
+      sessionStorage.removeItem('editEntryId');
+      console.debug('editEntryId after prefill =', sessionStorage.getItem('editEntryId'));
     }
     return ret;
   };
 })();
 </script>
+
 <style>
 /* 編集モード時のみ、金額/数量を淡く強調 */
 .editing-mode input[name="amount"],
@@ -1770,74 +1775,7 @@ init();
   transition: box-shadow .15s ease, outline-color .15s ease;
 }
 </style>
-<script>
-// --- グローバル編集ID（上書き対象の行ID） ---
-window.editingId = null;
 
-// --- 入力フォーム参照（必要に応じてidは調整） ---
-const $amount = document.querySelector('input[name="amount"]');
-const $qty    = document.querySelector('input[name="qty"]');
-const $save   = document.querySelector('#btnSave');   // 「明細の追加」ボタン
-
-// --- 編集UIオン/オフ ---
-function enterEditingUI(){
-  document.documentElement.classList.add('editing-mode'); // CSSのトリガー
-  if ($save) {
-    $save.dataset.mode = 'edit';               // 分岐用フラグ
-    $save.textContent = '上書き保存';          // 文言を変える（好みで）
-    // ミニ注釈を一時的に表示したい場合は↓
-    // showMiniNote('この操作は既存明細を更新します');
-  }
-}
-
-function exitEditingUI(){
-  document.documentElement.classList.remove('editing-mode');
-  if ($save) {
-    delete $save.dataset.mode;
-    $save.textContent = '明細の追加';          // 既存文言に戻す
-  }
-}
-
-// --- 1回だけプリフィルする ---
-async function prefillFromEditId(){
-  try{
-    const editId = sessionStorage.getItem('editEntryId');
-    if(!editId) return;
-
-    // ここでDBから該当レコードを取得（既存の取得関数に合わせて実装）
-    // 例）const item = await DB.getById(editId);
-    const item = await (window.DB?.getById ? DB.getById(editId) : null);
-    if(!item){
-      // レコードが見つからない場合は後始末だけ
-      sessionStorage.removeItem('editEntryId'); // ★ここで削除（1回だけ仕様）
-      return;
-    }
-
-    // プリフィル（必要な項目だけ）
-    if ($amount) $amount.value = item.amount ?? '';
-    if ($qty)    $qty.value    = item.qty ?? '';
-
-    // 編集フラグ立て & UI切替
-    window.editingId = editId;
-    enterEditingUI();
-
-  }finally{
-    // ★★★ 1回だけの固定：最後に必ず消す ★★★
-    sessionStorage.removeItem('editEntryId');
-    // コンソール確認用：nullになっているはず
-    console.debug('editEntryId after prefill =', sessionStorage.getItem('editEntryId'));
-  }
-}
-
-// 入力タブを開いたタイミングで呼ばれるように配線（既存のタブ切替フックに追加）
-window.addEventListener('DOMContentLoaded', ()=>{
-  // 既に入力タブが初期表示なら即プリフィル
-  prefillFromEditId();
-
-  // もしタブ切替イベントがあるなら、入力タブに来た時点でも呼ぶ
-  document.addEventListener('tlp:tab:input:shown', prefillFromEditId);
-});
-</script>
 <script>
 async function handleSaveEntry(ev){
   try{
