@@ -1910,6 +1910,73 @@ document.addEventListener("focusin", (e)=>{
   });
 })();
 </script>
+<script id="rights-hydrate-fix">
+(()=>{ 'use strict';
+  const meta = (window.__tlp_meta||{});
+  const base = (meta.site||'').toString().trim().replace(/^https?:\/\//,'').replace(/\/+$/,'');
+  const SITE_URL = base ? `https://${base}` : 'https://cafetabco.com';
+  const APP = (window.TLP && TLP.APP) || {};
+  const APP_NAME = APP.NAME || (meta.app || 'Tabco Ledger Plus');
+  const VERSION  = APP.VERSION || meta.version || '0.0.0';
+  const BUILD    = meta.build || VERSION;
+  const EULA_VER = APP.EULA_VERSION || meta.eulaVersion || '-';
+  const PUBLISHER= meta.publisher || 'チカキッサ.タブコ';
+  const YEAR     = new Date().getFullYear();
+  const PP_URL   = meta.privacyUrl || (SITE_URL + '/privacy');
+
+  function ensureRightsSections(){
+    const card = document.querySelector('#page-rights .card');
+    if(!card) return;
+
+    // 既に内容があれば追記しない（idごとに不足分だけ）
+    const ensure = (id, html)=>{
+      if(card.querySelector('#'+id)) return;
+      const sec = document.createElement('section');
+      sec.id = id; sec.innerHTML = html.trim();
+      card.appendChild(sec);
+    };
+
+    // 必須項目を不足分だけ補填（審査で見られる部分）
+    ensure('rights-appinfo', `
+      <h4>App & Version</h4>
+      <p><b>App:</b> ${APP_NAME} / <b>Version:</b> ${VERSION} / <b>Build:</b> ${BUILD}</p>
+      <p><b>EULA:</b> ${EULA_VER} / <b>© ${YEAR} ${PUBLISHER}. All rights reserved.</b></p>
+    `);
+
+    ensure('rights-privacy-brief', `
+      <h4>プライバシー（要約）</h4>
+      <p>本アプリのデータは端末ローカルに保存され、開発者へ送信されません。
+         詳細は <a href="${PP_URL}" target="_blank" rel="noopener">プライバシーポリシー</a> をご確認ください。</p>
+    `);
+
+    ensure('rights-trademark-brief', `
+      <h4>商標について</h4>
+      <p>“${APP_NAME}” および関連ロゴは ${PUBLISHER} の商標です。</p>
+    `);
+
+    // 既存・追加を含め、外部リンクは新規タブで開くよう統一（直行OK）
+    card.querySelectorAll('a[href^="http"]').forEach(a=>{
+      a.setAttribute('target','_blank'); a.setAttribute('rel','noopener');
+    });
+  }
+
+  // ページが Licenses に切り替わったら必ず補填実行（初回遷移でもOK）
+  function onRoute(){
+    const hash = (location.hash||'').replace('#','');
+    if(hash === 'rights') ensureRightsSections();
+  }
+
+  // 初期＆ハッシュ変更でチェック
+  onRoute();
+  window.addEventListener('hashchange', onRoute);
+
+  // SPA内でDOM差し替えがあっても拾えるよう軽い監視（性能に配慮）
+  const mo = new MutationObserver((muts)=>{
+    if(document.querySelector('#page-rights:not(.hidden)')) ensureRightsSections();
+  });
+  mo.observe(document.body, { childList:true, subtree:true });
+})();
+</script>
 
 </body>
 </html>
