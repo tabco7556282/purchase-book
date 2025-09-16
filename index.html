@@ -945,10 +945,7 @@ function openEntryModal(e){
 
 /* ===== HISTORY（描画） ===== */
 function renderHistory(){
-  const t = document.getElementById('todayList');
- 　const h = document.getElementById('historyList');
-　 const list = (h && h.offsetParent !== null && getComputedStyle(h).display !== 'none') ? h : t;
- if(!list) return;
+  const list = $("#historyList"); if(!list) return;
 
   const rangeKey = String(store.settings.hisRange || "30"); // "7"|"30"|"fiscal"
   const showBoth = !!store.settings.historyShowBoth;
@@ -964,24 +961,8 @@ function renderHistory(){
   }
 
   list.innerHTML = "";
-   // ▼ 履歴カードの「行タップ」委譲（1回だけバインド）
-if (!list.dataset.bindEdit) {
-  list.dataset.bindEdit = '1';
-  list.addEventListener('click', function (ev) {
-    const row = ev.target.closest('.entry');
-    if (!row || !list.contains(row)) return;
 
-    const entryId = row.getAttribute('data-id');
-    if (!entryId) return;
-
-    // 編集対象IDだけ保存（ここでは画面遷移しない）
-    sessionStorage.setItem('editEntryId', entryId);
-  }, false);
-}
-
-
-       
- const entries = (store.entries||[]).filter(e=>{
+  const entries = (store.entries||[]).filter(e=>{
     if(!e || e.deleted || !e.date) return false;
     const d = new Date(e.date+"T12:00:00");
     return d >= from && d <= now;
@@ -1694,145 +1675,6 @@ init();
     }
   }).observe(document.body, {childList:true, subtree:true});
 })();
-</script>
-<script id="tlp-edit-pickup">
-(function(){
-  function prefillFromEditId(){
-    const id = sessionStorage.getItem('editEntryId');
-    if (!id) return;
-
-    // データ読み出し
-    const s = (typeof store!=='undefined' && store) || (window.DB && typeof DB.load==='function' && DB.load());
-    if (!s || !Array.isArray(s.entries)) return;
-    const e = s.entries.find(x => x && x.id === id);
-    if (!e) { sessionStorage.removeItem('editEntryId'); return; }
-
-    // 編集モード印
-    window.editingId = id;
-    document.documentElement.classList.add('editing-mode'); // ★ 枠色強調トリガー
-
-    // 汎用セッター（要素があれば入れるだけ。無ければ無視）
-    const set = (sel, val) => {
-      const el = document.querySelector(sel);
-      if (!el || val == null) return;
-      if (el.tagName === 'SELECT') {
-        const opt = [...el.options].find(o => o.value == val || o.text == val);
-        if (opt) el.value = opt.value;
-      } else {
-        el.value = val;
-      }
-    };
-    const setRadio = (name, val) => {
-      const r = document.querySelector(`input[name="${name}"][value="${val}"]`);
-      if (r) r.checked = true;
-    };
-
-    // 代表的な項目だけ安全に流し込み
-    set('#inDate', e.date);
-    set('#inPrice', e.price);
-    set('#inQty',   e.qty);
-    set('#inMemo',  e.memo || '');
-
-    // 仕入先・商品
-    const sup = document.querySelector('#selSupplier, select[name="supplier"], #supplier');
-    if (sup) sup.value = (e.supplier_id ?? e.supplier_name_fallback ?? sup.value);
-    const prod = document.querySelector('#selProduct, select[name="product"], #product');
-    if (prod) prod.value = (e.product_id ?? e.product_name_fallback ?? prod.value);
-
-    // 税
-    setRadio('taxmode', e.taxmode === 'incl' ? 'incl' : 'excl');
-    setRadio('taxrate', String(e.taxrate ?? 0));
-
-    // ボタン表記を編集モードに
-    const btn = document.getElementById('btnAddLine');
-    if (btn) { btn.textContent = '明細を更新'; btn.dataset.mode = 'edit'; }
-
-    // 入力欄へスクロール（任意）
-    (document.querySelector('#inPrice') || btn)?.scrollIntoView({behavior:'smooth', block:'center'});
-  }
-
-  // showPage をラップ：入力タブが表示された時だけ流し込む
-  const origShow = window.showPage;
-  window.showPage = function(name){
-    const ret = origShow ? origShow(name) : undefined;
-    if (name === 'input') {
-      try { prefillFromEditId(); } catch(err){ console.warn('prefill error:', err); }
-      // ★ 1回だけ仕様：入力タブ表示後に必ず消す
-      sessionStorage.removeItem('editEntryId');
-      console.debug('editEntryId after prefill =', sessionStorage.getItem('editEntryId'));
-    }
-    return ret;
-  };
-})();
-</script>
-
-<style>
-/* 編集モード時のみ、金額/数量を淡く強調 */
-.editing-mode input[name="amount"],
-.editing-mode input[name="qty"]{
-  outline: 2px solid rgba(0, 128, 255, 0.2);
-  box-shadow: 0 0 0 3px rgba(0, 128, 255, 0.08) inset;
-  transition: box-shadow .15s ease, outline-color .15s ease;
-}
-</style>
-
-<script>
-async function handleSaveEntry(ev){
-  try{
-    const isEdit = !!(window.editingId || ($save && $save.dataset.mode === 'edit'));
-
-    // 入力値の収集（実装に合わせて）
-    const payload = {
-      amount: Number($amount?.value || 0),
-      qty:    Number($qty?.value || 0),
-      // 他の項目も必要に応じて…
-    };
-
-    if (isEdit){
-      // --- 上書き保存 ---
-      const id = window.editingId;
-      if(!id){ console.warn('editingIdが未設定。datasetだけで判定'); }
-      // 例）await DB.update(id, payload);
-      if (window.DB?.update) {
-        await DB.update(id, payload);
-      }
-    } else {
-      // --- 新規追加 ---
-      // 例）await DB.insert(payload);
-      if (window.DB?.insert) {
-        await DB.insert(payload);
-      }
-    }
-
-    // クリアと再描画
-    window.editingId = null;
-    sessionStorage.removeItem('editEntryId'); // 念のため
-    exitEditingUI();
-
-    // 入力フォームのクリア（必要なら）
-    if ($amount) $amount.value = '';
-    if ($qty)    $qty.value    = '';
-
-    // 再描画（あなたの関数名に合わせて）
-    // 例）await renderTodayList(); await renderHistoryList();
-    if (window.renderTodayList)  await renderTodayList();
-    if (window.renderHistoryList) await renderHistoryList();
-
-  } catch(err){
-    console.error('保存失敗', err);
-    alert('保存に失敗しました。コンソールをご確認ください。');
-  }
-}
-
-// 既存ボタンにだけ紐付け（上書き）
-// 末尾 rescue スクリプトならその中でOK
-if ($save){
-  $save.removeEventListener('click', handleSaveEntry);
-  $save.addEventListener('click', handleSaveEntry);
-}
-
-// タブ離脱などで編集解除したい場合（任意）
-// document.addEventListener('tlp:tab:history:shown', exitEditingUI);
 </script>
 
 </body>
