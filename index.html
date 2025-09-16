@@ -1810,72 +1810,150 @@ document.addEventListener("focusin", (e)=>{
   setTimeout(()=>{ try{ inp.select && inp.select(); }catch(_){} }, 0);
 });
 </script>
-<script id="rights-stable-render">
+<script id="rights-hard-restore">
 (()=>{'use strict';
   // 公式ページ（日本語URLで統一）
   const SITE_PAGE = 'https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/';
 
+  // メタ（無ければフォールバック）
   const meta=(window.__tlp_meta||{}), app=(window.TLP&&TLP.APP)||{};
   const APP_NAME = String(app.NAME || meta.app || 'Tabco Ledger Plus');
-  const VERSION  = String(app.VERSION || meta.version || '0.0.0');
+  const VERSION  = String(app.VERSION || meta.version || '0.8.0');
+  const BUILD    = String(meta.build || 'v0.8.0-20250908');
+  const EULA_VER = String(app.EULA_VERSION || meta.eulaVersion || '2025-09-08');
+  const PUBLISHER= String(meta.publisher || 'チカキッサ.タブコ');
+  const YEAR     = new Date().getFullYear();
 
-  // 起動直後や正常表示のタイミングで“良い状態”を一度だけ保存
-  function snapshotIfGood(){
-    const card = document.querySelector('#page-rights .card');
-    if (!card || window.__rights_good_html) return;
-    const len = (card.textContent||'').trim().length;
-    if (len > 200){ window.__rights_good_html = card.innerHTML; window.__rights_good_len = len; }
+  function template(){
+    return `
+      <div class="card">
+        <h3>Licenses & Notices</h3>
+
+        <section id="rights-appinfo">
+          <h4>App & Version</h4>
+          <p><b>App:</b> ${APP_NAME} / <b>Version:</b> ${VERSION}</p>
+          <p><b>Build:</b> ${BUILD} / <b>EULA Ver:</b> ${EULA_VER}</p>
+        </section>
+
+        <section id="rights-copyright">
+          <h4>Copyright</h4>
+          <p>© ${YEAR} ${PUBLISHER}. All rights reserved.</p>
+        </section>
+
+        <section id="rights-trademark">
+          <h4>Trademark Notice</h4>
+          <p>“${APP_NAME}” および関連ロゴは ${PUBLISHER} の商標です。記載の会社名・製品名は各社の商標または登録商標です。</p>
+        </section>
+
+        <section id="rights-eula">
+          <h4>EULA（使用許諾）</h4>
+          <p>本アプリのご利用によりEULA（使用許諾契約）に同意したものとみなされます。 <a href="#" id="open-eula-inline">EULAを開く</a></p>
+        </section>
+
+        <section id="rights-privacy">
+          <h4>データとプライバシー</h4>
+          <p>データは基本的に端末ローカルに保存されます。クラウドバックアップを選んだ場合はお客様自身のアカウントに保存されます。</p>
+          <p>仕入れ管理に入力した情報は、今後開発予定の棚卸アプリや原価計算アプリと共有する場合があります。</p>
+          <p>公式ページ：<a href="${SITE_PAGE}" target="_blank" rel="noopener">${SITE_PAGE}</a></p>
+        </section>
+
+        <section id="rights-export">
+          <h4>エクスポート（Excel XML）</h4>
+          <p>Excelで直接開ける <b>XML Spreadsheet 2003 形式（.xml）</b>で出力します。</p>
+          <ul>
+            <li>Excel：ダブルクリック or <em>ファイル → 開く</em> で読み込み可。</li>
+            <li>Googleスプレッドシート：<em>直接は開けません</em>。PCのExcelで開いて <code>.xlsx</code> に保存してからアップロードしてください。</li>
+          </ul>
+        </section>
+
+        <section id="rights-oss">
+          <h4>サードパーティ表記</h4>
+          <p>本アプリにはオープンソースコンポーネントが含まれる場合があり、そのライセンスを記載します。</p>
+        </section>
+
+        <section id="rights-contact">
+          <h4>お問い合わせ</h4>
+          <p>ご不明点は公式ページをご確認ください：<a href="${SITE_PAGE}" target="_blank" rel="noopener">${SITE_PAGE}</a></p>
+        </section>
+
+        <div id="tlp-rights-badge-host" aria-hidden="true"></div>
+      </div>
+    `.trim();
   }
 
   function ensureBadge(){
     const host = document.getElementById('tlp-rights-badge-host');
-    if (!host || document.getElementById('tlp-brand-badge-rights')) return;
+    if (!host) return;
+    if (document.getElementById('tlp-brand-badge-rights')) return;
     const el = document.createElement('div');
     el.id = 'tlp-brand-badge-rights';
     el.setAttribute('role','note');
     el.textContent = `${APP_NAME}™ v${VERSION}`;
     el.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:7000;padding:8px 10px;border-radius:10px;background:#fff;color:#111;border:1px solid #e5e7eb;box-shadow:0 2px 8px rgba(0,0,0,.12);font-size:12px;white-space:nowrap;';
-    host.appendChild(el);
+    document.body.appendChild(el);
   }
 
-  function normalizeLinks(card){
-    card.querySelectorAll('a[href^="http"]').forEach(a=>{
-      a.target='_blank'; a.rel='noopener';
-      if (a.href.includes('cafetabco.com')) {
-        a.href = SITE_PAGE;
-        if (/^https?:\/\//.test(a.textContent.trim())) a.textContent = SITE_PAGE;
-      }
+  function wireEulaLink(){
+    document.addEventListener('click', (e)=>{
+      const a = e.target.closest('#open-eula-inline');
+      if (!a) return;
+      e.preventDefault();
+      if (typeof window.tlpOpenEula === 'function') window.tlpOpenEula();
+      else if (window.TLP && typeof TLP.showEula === 'function') TLP.showEula();
+      else alert('EULAを表示できませんでした。');
     });
   }
 
-  function renderRightsStable(){
-    const root = document.getElementById('page-rights');
+  function normalizeLinks(){
     const card = document.querySelector('#page-rights .card');
-    if (!root || !card) return;
-    // 念のため可視化
-    if (root.classList.contains('hidden')) root.classList.remove('hidden');
-    // 空/劣化ならスナップショットで復元
-    const curLen = (card.textContent||'').trim().length;
-    if (curLen < 50 && window.__rights_good_html) {
-      card.innerHTML = window.__rights_good_html;
+    if (!card) return;
+    card.querySelectorAll('a[href^="http"]').forEach(a=>{
+      a.target = '_blank'; a.rel = 'noopener';
+    });
+    // 表示テキストがURLなら日本語URLに揃える
+    card.querySelectorAll(`a[href*="cafetabco.com"]`).forEach(a=>{
+      a.href = SITE_PAGE;
+      if (/^https?:\/\//.test((a.textContent||'').trim())) a.textContent = SITE_PAGE;
+    });
+  }
+
+  function hardRestoreIfNeeded(){
+    const root = document.getElementById('page-rights');
+    if (!root) return;
+    // 可視化（念のため）
+    root.classList.remove('hidden');
+
+    // カード有無チェック
+    let card = root.querySelector('.card');
+    const textLen = (card && card.textContent || '').trim().length;
+
+    // 「空 or 劣化」判定 → 既定テンプレで再構築
+    if (!card || textLen < 50) {
+      root.innerHTML = template();
+      card = root.querySelector('.card');
     }
-    normalizeLinks(card);
+
+    normalizeLinks();
     ensureBadge();
   }
 
   function onRoute(){
-    // 別ページへ移る前など、良い状態が取れたら保存
-    snapshotIfGood();
-    if ((location.hash||'').slice(1) === 'rights'){
-      renderRightsStable();
-      setTimeout(renderRightsStable, 0);
-      setTimeout(renderRightsStable, 30);
-    }
+    const id = (location.hash||'').slice(1) || 'home';
+    if (id !== 'rights') return;
+    // 描画タイミングの差を吸収
+    hardRestoreIfNeeded();
+    setTimeout(hardRestoreIfNeeded, 0);
+    setTimeout(hardRestoreIfNeeded, 30);
   }
 
-  onRoute();
+  // 起動
+  wireEulaLink();
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', onRoute, { once:true });
+  } else {
+    onRoute();
+  }
   window.addEventListener('hashchange', onRoute);
-  if (!location.hash || location.hash==='#rights') setTimeout(onRoute, 0);
 })();
 </script>
 
