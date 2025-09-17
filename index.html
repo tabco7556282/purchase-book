@@ -2020,6 +2020,107 @@ window.addEventListener('hashchange', ()=>{
 });
 </script>
 
+<!-- Step1: プラン判定と上限制御（</body>直前に1ブロック追加） -->
+<script>
+(()=> {
+  const NS = (window.TLP = window.TLP || {});
+  const LS_KEY = "tlpPlan"; // "free" | "mid" | "pro"
+
+  const limits = {
+    free: { suppliers: 5, perSupplier: 10, totalProducts: 50, exportDays: 31, ads: true },
+    mid:  { suppliers: 15, perSupplier: 15, totalProducts: 225, exportDays: null, ads: false },
+    pro:  { suppliers: Infinity, perSupplier: Infinity, totalProducts: Infinity, exportDays: null, ads: false },
+    fiscalYearStart: (d = new Date()) => new Date(d.getFullYear(), 0, 1) // 個人事業主: 1/1起点
+  };
+
+  const plan = {
+    get(){
+      const v = (localStorage.getItem(LS_KEY) || "free").toLowerCase();
+      return (v==="mid"||v==="pro") ? v : "free";
+    },
+    set(v){
+      if(!["free","mid","pro"].includes(v)) return;
+      localStorage.setItem(LS_KEY, v);
+    },
+    isFree(){ return this.get()==="free"; },
+    isMid(){  return this.get()==="mid";  },
+    isPro(){  return this.get()==="pro";  },
+    limits
+  };
+
+  function notifyLimit(kind, detail){
+    // 最小通知（UIは後続Stepで差し替え可）
+    console.warn(`[PLAN LIMIT] ${kind}`, { plan: plan.get(), ...detail });
+    alert(detail?.message || "現在のプランでは上限に達しています。");
+  }
+
+  function canAddSupplier(totalSuppliers){
+    const p = plan.get(), lim = limits[p].suppliers;
+    const ok = totalSuppliers < lim;
+    if(!ok) notifyLimit("supplier", { current: totalSuppliers, limit: lim });
+    return ok;
+  }
+
+  function canAddProduct(productsInThisSupplier, totalProductsAll){
+    const p = plan.get(), L = limits[p];
+    const ok1 = productsInThisSupplier < L.perSupplier;
+    const ok2 = totalProductsAll < L.totalProducts;
+    if(!(ok1 && ok2)){
+      notifyLimit("product", {
+        currentPerSupplier: productsInThisSupplier, limitPerSupplier: L.perSupplier,
+        currentTotal: totalProductsAll, limitTotal: L.totalProducts
+      });
+    }
+    return ok1 && ok2;
+  }
+
+  function normalizeDate(x){
+    if(!x) return null;
+    if(x instanceof Date) return x;
+    const d = new Date(x);
+    return isNaN(+d) ? null : d;
+  }
+
+  // 返り値: { start: Date, end: Date }
+  function clampExportRange(start, end){
+    const p = plan.get();
+    const now = new Date();
+    let s = normalizeDate(start) || now, e = normalizeDate(end) || now;
+    if(e > now) e = now;
+
+    if(p === "free"){
+      const minStart = new Date(e.getTime() - (limits.free.exportDays * 86400000));
+      if(s < minStart) s = minStart;
+      return { start: s, end: e };
+    }
+    if(p === "mid"){
+      const fy = limits.fiscalYearStart(e);
+      if(s < fy) s = fy;
+      return { start: s, end: e };
+    }
+    // pro: 無制限（要求範囲そのまま／将来の安全のため now までに丸め）
+    return { start: s, end: e };
+  }
+
+  function shouldShowAds(){ return limits[plan.get()].ads; }
+
+  NS.plan = Object.freeze({
+    get: plan.get.bind(plan),
+    set: plan.set.bind(plan),
+    isFree: plan.isFree.bind(plan),
+    isMid: plan.isMid.bind(plan),
+    isPro: plan.isPro.bind(plan),
+    limits,
+    canAddSupplier,
+    canAddProduct,
+    clampExportRange,
+    shouldShowAds,
+    notifyLimit
+  });
+
+  console.info("[TLP] plan module ready:", plan.get());
+})();
+</script>
 
 </body>
 </html>
