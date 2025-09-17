@@ -2183,11 +2183,17 @@ function toYMDLocal(d){
   }
 
   // カウント（DOM基準・安全フォールバック）
-  function countSuppliers(){
-    let n = document.querySelectorAll('.supplier-card').length;
-    if(!n) n = document.querySelectorAll('#suppliers .card').length;
-    return n;
-  }
+ function countSuppliers(){
+  // 1) DBがあれば最優先
+  const nDB = window.DB?.data?.suppliers?.length;
+  if (typeof nDB === 'number') return nDB;
+
+  // 2) DOMフォールバック
+  let n = document.querySelectorAll('.supplier-card').length;
+  if(!n) n = document.querySelectorAll('#suppliers .card').length;
+  return n;
+}
+
   function countProductsNear(btn){
     // 1カード内の行数（見つからなければ #items 内）
     let root = btn?.closest?.('.supplier-card') || document.querySelector('#items') || document;
