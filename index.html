@@ -2165,6 +2165,61 @@ function toYMDLocal(d){
   }, { capture: true });
 })();
 </script>
+<!-- 仕入先・商品追加の上限制御（委譲1本、最小追加） -->
+<script>
+(()=> {
+  // マッチ判定（ID/属性/テキストの複合）
+  function isAddSupplierBtn(el){
+    if(!el) return false;
+    if(el.matches?.('#btnAddSupplier,[data-role="add-supplier"]')) return true;
+    const s = ((el.innerText||'') + ' ' + (el.id||'') + ' ' + (el.className||'')).toLowerCase();
+    return /(仕入先|ｻﾌﾟﾗｲﾔ|サプライヤ|supplier).*(追加|\+)|追加.*(仕入先|ｻﾌﾟﾗｲﾔ|サプライヤ|supplier)/.test(s);
+  }
+  function isAddProductBtn(el){
+    if(!el) return false;
+    if(el.matches?.('#btnAddLine,[data-role="add-item"],[data-role="add-line"]')) return true;
+    const s = ((el.innerText||'') + ' ' + (el.id||'') + ' ' + (el.className||'')).toLowerCase();
+    return /(商品|明細|item|line).*(追加|\+)|(\+|＋)/.test(s);
+  }
+
+  // カウント（DOM基準・安全フォールバック）
+  function countSuppliers(){
+    let n = document.querySelectorAll('.supplier-card').length;
+    if(!n) n = document.querySelectorAll('#suppliers .card').length;
+    return n;
+  }
+  function countProductsNear(btn){
+    // 1カード内の行数（見つからなければ #items 内）
+    let root = btn?.closest?.('.supplier-card') || document.querySelector('#items') || document;
+    const ps = root.querySelectorAll?.('.item-row')?.length || 0;
+    // 画面全体の合計行数
+    const tp = document.querySelectorAll('.item-row').length || 0;
+    return { ps, tp };
+  }
+
+  // 委譲（キャプチャで早期ブロック）
+  document.addEventListener('click', (ev)=>{
+    if(!window.TLP || !TLP.plan) return;
+    const target = ev.target?.closest('button,a');
+    if(!target) return;
+
+    // 仕入先追加
+    if(isAddSupplierBtn(target)){
+      const ok = TLP.plan.canAddSupplier(countSuppliers());
+      if(!ok){ ev.preventDefault(); ev.stopImmediatePropagation(); }
+      return;
+    }
+
+    // 商品（明細）追加
+    if(isAddProductBtn(target)){
+      const {ps, tp} = countProductsNear(target);
+      const ok = TLP.plan.canAddProduct(ps, tp);
+      if(!ok){ ev.preventDefault(); ev.stopImmediatePropagation(); }
+      return;
+    }
+  }, { capture:true });
+})();
+</script>
 
 </body>
 </html>
