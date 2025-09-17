@@ -878,13 +878,13 @@ function openProductModal(p,defaultSid){
     const note=$("#mProdNote").value||"";
     if(p){ p.supplier_id=sid; p.name=name; p.default_price=price; p.tax_rate=tax_rate; p.tax_mode=tax_mode; p.note=note; }
     else { store.products.push({id:uid(),supplier_id:sid,name,default_price:price,tax_rate:tax_rate,tax_mode:tax_mode,note}); }
-    DB.save(store); renderProducts(); renderProductSelect($("#inProduct"),$("#inSupplier").value,$("#prodSearch").value||""); closeModal();
+    DB.save(store); renderProducts();renderSuppliers(); renderProductSelect($("#inProduct"),$("#inSupplier").value,$("#prodSearch").value||""); closeModal();
   };
   $("#modalOK").onclick=onOK;
 
   if(p){
     const delBtn=$("#modalDelete"); delBtn.classList.remove("hidden");
-    delBtn.onclick=()=>{ if(confirm("削除しますか？")){ p.deleted=true; DB.save(store); renderProducts(); closeModal(); } };
+    delBtn.onclick=()=>{ if(confirm("削除しますか？")){ p.deleted=true; DB.save(store); renderProducts(); renderSuppliers();closeModal(); } };
     $(".actions").insertBefore(delBtn, $("#modalCancel"));
   }
 }
