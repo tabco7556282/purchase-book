@@ -2134,6 +2134,37 @@ function toYMDLocal(d){
   console.info("[TLP] plan module ready:", plan.get());
 })();
 </script>
+<!-- 出力ボタンのクリック直前で期間をプラン範囲に丸める（追加のみ） -->
+<script>
+(()=> {
+  document.addEventListener('click', (ev)=>{
+    const btn = ev.target && ev.target.closest('#btnExport,#btnExport2');
+    if(!btn || !window.TLP || !TLP.plan) return;
+
+    // 1) 期間取得（優先: 入力欄 / 次: グローバル）
+    const fromEl = document.querySelector('#fromDate');
+    const toEl   = document.querySelector('#toDate');
+
+    if (fromEl && toEl) {
+      const s = fromEl.value ? new Date(fromEl.value) : new Date();
+      const e = toEl.value   ? new Date(toEl.value)   : new Date();
+      const r = TLP.plan.clampExportRange(s, e);
+      // 2) 書き戻し（ローカル日付表示）
+      fromEl.value = TLP.plan.formatYMD(r.start);
+      toEl.value   = TLP.plan.formatYMD(r.end);
+      return;
+    }
+
+    if ('hisStart' in window || 'hisEnd' in window) {
+      const s = window.hisStart instanceof Date ? window.hisStart : new Date();
+      const e = window.hisEnd   instanceof Date ? window.hisEnd   : new Date();
+      const r = TLP.plan.clampExportRange(s, e);
+      window.hisStart = r.start;
+      window.hisEnd   = r.end;
+    }
+  }, { capture: true });
+})();
+</script>
 
 </body>
 </html>
