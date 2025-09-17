@@ -2104,7 +2104,14 @@ window.addEventListener('hashchange', ()=>{
 
   function shouldShowAds(){ return limits[plan.get()].ads; }
 
-  NS.plan = Object.freeze({
+ function toYMDLocal(d){
+  if(!(d instanceof Date)) d = new Date(d);
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+ NS.plan = Object.freeze({
     get: plan.get.bind(plan),
     set: plan.set.bind(plan),
     isFree: plan.isFree.bind(plan),
@@ -2116,7 +2123,8 @@ window.addEventListener('hashchange', ()=>{
     clampExportRange,
     shouldShowAds,
     notifyLimit
-  });
+    formatYMD: toYMDLocal,
+});
 
   console.info("[TLP] plan module ready:", plan.get());
 })();
