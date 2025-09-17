@@ -497,17 +497,6 @@ function refreshHome(){
   $("#pillBackup").textContent = bk?("最終バックアップ："+bk.toLocaleString("ja-JP")):"最終バックアップ：未実施";
 }
 
-/* ===== Sample（初回のみ） ===== */
-function ensureSample(){
-  if(store.suppliers.length===0 && store.entries.length===0 && store.products.length===0){
-    store.suppliers.push({id:uid(),name:"玉屋商店",contact:"山田",phone:"075-000-0000",invoice_number:"T1234567890123"});
-    store.suppliers.push({id:uid(),name:"佐藤青果",contact:"佐藤",phone:"090-000-0000",invoice_number:"T0000000000000"});
-    const s1=store.suppliers[0].id, s2=store.suppliers[1].id;
-    store.products.push({id:uid(),supplier_id:s1,name:"牛肩ロース",default_price:2000,tax_rate:10,tax_mode:"incl",note:""});
-    store.products.push({id:uid(),supplier_id:s2,name:"トマト",default_price:180,tax_rate:8,tax_mode:"excl",note:""});
-    DB.save(store);
-  }
-}
 
 /* ===== Input ===== */
 function fillSupplierSelect(sel){
@@ -1268,7 +1257,6 @@ document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyPro") setPlan(
 /* ===== Init ===== */
 function init(){
   try{
-    ensureSample();
     applyTheme();
     refreshHome();
     initInputPage();
