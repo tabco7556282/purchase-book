@@ -1220,7 +1220,7 @@ document.addEventListener("change",(e)=>{
       }, data.tables.settings||{});
       DB.save(store);
       alert("復元しました");
-      applyTheme(); refreshHome(); initInputPage(); renderSuppliers(); fillFilterSupplier(); renderProducts(); renderHistory(); navigate("home"); enableSelectOnFocus();
+      applyTheme(); refreshHome(); initInputPage(); renderSuppliers(); fillFilterSupplier(); renderProducts(); renderHistory();renderTodayList(); navigate("home"); enableSelectOnFocus();
     }catch{ alert("復元に失敗しました。ファイルをご確認ください。"); }
   };
   r.readAsText(f);
@@ -1257,7 +1257,7 @@ document.addEventListener("click",(e)=>{
   store={suppliers:[],products:[],entries:[],priceHistory:{},settings:keep};
   DB.save(store);
   alert("データを初期化しました。");
-  applyTheme(); refreshHome(); initInputPage(); renderSuppliers(); fillFilterSupplier(); renderProducts(); renderHistory(); navigate("home");
+  applyTheme(); refreshHome(); initInputPage(); renderSuppliers(); fillFilterSupplier(); renderProducts(); renderHistory();renderTodayList(); navigate("home");
 });
 
 /* ===== License mock ===== */
