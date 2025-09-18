@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
-<title>仕入れ管理｜MVP v0.7.1</title>
+<title>仕入れ管理｜MVP v0.8.1-plans</title>
 <style>
 :root{
   --brand:#FFC107; --brand-ink:#1A1300;
@@ -114,6 +114,13 @@ textarea{min-height:84px;resize:vertical}
 [data-theme="dark"] input::placeholder,[data-theme="dark"] textarea::placeholder{color:rgba(245,245,245,.6)}
 [data-theme="dark"] .label{color:#ddd}
 [data-theme="dark"] #hisRange{background:var(--card)!important;color:var(--text)!important;border-color:#3a3b3f!important}
+
+/* Free版広告枠（邪魔しない小バナー） */
+#homeAd { margin-top:10px; }
+#homeAd .ad{ display:flex; gap:10px; align-items:center; padding:10px; border:1px dashed #E0B600; border-radius:12px; background:#FFF7CC; }
+#homeAd .ad img{ width:56px; height:56px; border-radius:10px; object-fit:cover; }
+#homeAd .ad .txt{ font-size:14px; line-height:1.3; }
+#homeAd .ad .txt b{ display:block; margin-bottom:2px; }
 </style>
 </head>
 <body>
@@ -148,6 +155,8 @@ textarea{min-height:84px;resize:vertical}
 　    <button class="btn danger" id="btnFactoryReset" type="button">データ初期化</button>
       <div class="label">※初期化の前にバックアップを取ってください。</div>
     </div>
+    <!-- Free でだけ表示する控えめ広告枠 -->
+    <div id="homeAd" class="hidden"></div>
   </section>
 
   <!-- INPUT -->
@@ -263,9 +272,35 @@ textarea{min-height:84px;resize:vertical}
   <!-- LICENSE -->
   <section id="page-license" class="hidden" data-title="ライセンス">
     <div class="grid" style="grid-template-columns:1fr;gap:12px">
-      <div class="card"><h3>無料版</h3><ul><li>広告あり</li><li>仕入れ先 5社まで／商品 合計50品まで</li><li>出力は直近1か月</li></ul><button class="btn ghost small" type="button" disabled>使用中</button></div>
-      <div class="card"><h3>ミドル（¥700）</h3><ul><li>広告なし</li><li>仕入れ先 20社まで／1社15品の目安</li><li>出力は過去6か月</li></ul><button class="btn primary small" id="mockBuyMid" type="button">アップグレードする</button></div>
-      <div class="card"><h3>プロ（¥1,500）</h3><ul><li>広告なし</li><li>上限なし</li><li>出力は無制限</li></ul><button class="btn primary small" id="mockBuyPro" type="button">フル機能で使う</button></div>
+      <div class="card">
+        <h3>無料版（Free）</h3>
+        <ul>
+          <li>広告あり</li>
+          <li>仕入れ先 5社まで／1社あたり10品まで（合計50品）</li>
+          <li>出力は当月（直近1か月）</li>
+        </ul>
+        <button class="btn ghost small" type="button" disabled>使用中</button>
+      </div>
+      <div class="card">
+        <h3>ミディアム（¥700 / Mid）</h3>
+        <ul>
+          <li>広告なし</li>
+          <li>仕入れ先 15社まで／1社あたり15品まで（合計225品）</li>
+          <li>出力は当年（1/1〜本日まで・回数制限なし）</li>
+        </ul>
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <button class="btn primary small" id="mockBuyMid" type="button">アップグレードする</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>プロ（¥1,500 / Pro）</h3>
+        <ul>
+          <li>広告なし</li>
+          <li>上限なし</li>
+          <li>出力は全期間（無制限）</li>
+        </ul>
+        <button class="btn primary small" id="mockBuyPro" type="button">フル機能で使う</button>
+      </div>
     </div>
   </section>
 
@@ -273,21 +308,18 @@ textarea{min-height:84px;resize:vertical}
   <section id="page-rights" class="hidden" data-title="Licenses & Notices">
     <div class="card">
       <h3>Licenses & Notices</h3>
-      <section><h4>App & Version</h4><p>Tabco Ledger Plus v0.8.0</p></section>
+      <section><h4>App & Version</h4><p>Tabco Ledger Plus v0.8.1</p></section>
       <section><h4>Copyright</h4><p>© 2025 Tabco. All rights reserved.</p></section>
       <section><h4>Trademark Notice</h4><p>“Tabco Ledger Plus” and related logos are trademarks of Tabco.</p></section>
       <section><h4>EULA（使用許諾）</h4><p>本アプリのご利用によりEULA（使用許諾契約）に同意したものとみなされます。 <a href="#" id="open-eula">EULAを開く</a></p></section>
-      <section><h4>データとプライバシー</h4><p>データは基本的にお使いの端末に保存されます。クラウドバックアップを選んだ場合は、お客様自身のアカウントへ保存されます。</p></section>
       <section>
-  <h4>エクスポート（Excel XML）</h4>
-  <p>Excelで直接開ける <b>XML Spreadsheet 2003 形式（.xml）</b>で出力します。</p>
-  <ul>
-    <li>Excel：ダブルクリック or <em>ファイル → 開く</em> で読み込み可。</li>
-    <li>Googleスプレッドシート：<em>直接は開けません</em>。PCのExcelで開いて <code>.xlsx</code> に保存してからアップロードしてください。</li>
-  </ul>
-</section>
-
-      <section><h4>サードパーティ表記</h4><p>本アプリにはオープンソースコンポーネントが含まれる場合があり、そのライセンスを記載します。</p></section>
+        <h4>エクスポート（Excel XML）</h4>
+        <p>Excelで直接開ける <b>XML Spreadsheet 2003 形式（.xml）</b>で出力します。</p>
+        <ul>
+          <li>Excel：ダブルクリック or <em>ファイル → 開く</em> で読み込み可。</li>
+          <li>Googleスプレッドシート：<em>直接は開けません</em>。PCのExcelで <code>.xlsx</code> に保存してからアップロードしてください。</li>
+        </ul>
+      </section>
       <section><h4>お問い合わせ</h4><p>ご不明点は info@example.com までご連絡ください。</p></section>
       <div id="tlp-rights-badge-host" aria-hidden="true"></div>
     </div>
@@ -343,6 +375,10 @@ const DB = {
       priceHistory: (raw.priceHistory && typeof raw.priceHistory === "object") ? raw.priceHistory : {},
       settings: Object.assign({}, defaults.settings, (raw.settings || {}))
     };
+
+    // === 互換：旧 "middle" → 新 "mid"
+    if (out.settings.plan === "middle") out.settings.plan = "mid";
+
     return out;
   },
   save(d){
@@ -351,6 +387,37 @@ const DB = {
   }
 };
 let store = DB.load();
+
+/* ===== Plan Config & Helpers ===== */
+const PLAN = () => String(store.settings.plan || "free"); // 'free' | 'mid' | 'pro'
+const planLabel = p => p==="pro" ? "Pro" : p==="mid" ? "Mid" : "無料";
+const PlanRules = {
+  free: { maxSuppliers: 5, maxPerSupplier: 10, maxProductsTotal: 50, exportMax: "month", ads: true },
+  mid : { maxSuppliers: 15, maxPerSupplier: 15, maxProductsTotal: 225, exportMax: "year", ads: false },
+  pro : { maxSuppliers: Infinity, maxPerSupplier: Infinity, maxProductsTotal: Infinity, exportMax: "all", ads: false },
+};
+function countSuppliers(){ return (store.suppliers||[]).filter(s=>!s.deleted).length; }
+function countProductsTotal(){ return (store.products||[]).filter(p=>!p.deleted).length; }
+function countProductsBySupplier(sid){ return (store.products||[]).filter(p=>!p.deleted && p.supplier_id===sid).length; }
+
+/** 上限チェック：仕入先追加 */
+function canAddSupplier(){
+  const r = PlanRules[PLAN()];
+  const cur = countSuppliers();
+  if (cur >= r.maxSuppliers) return { ok:false, reason:`現在のプランでは仕入れ先は${r.maxSuppliers===Infinity?'無制限':(r.maxSuppliers+'社')}までです。` };
+  return { ok:true };
+}
+/** 上限チェック：商品追加（総量＆仕入先あたり） */
+function canAddProduct(supplierId){
+  const r = PlanRules[PLAN()];
+  const tot = countProductsTotal();
+  if (tot >= r.maxProductsTotal) return { ok:false, reason:`現在のプランでは商品は合計${r.maxProductsTotal===Infinity?'無制限':(r.maxProductsTotal+'品')}までです。` };
+  if (supplierId){
+    const per = countProductsBySupplier(supplierId);
+    if (per >= r.maxPerSupplier) return { ok:false, reason:`この仕入れ先には${r.maxPerSupplier===Infinity?'無制限':(r.maxPerSupplier+'品')}まで登録できます。` };
+  }
+  return { ok:true };
+}
 
 /* ===== Utils ===== */
 const $  = (s,el)=>(el||document).querySelector(s);
@@ -397,58 +464,26 @@ window.HistoryUI = (function(){
   let bound = false;
 
   function sync(){
-    // --- 旧 → 新 への自動移行（初回のみ）
     if (store.settings.hisRange == null) {
       const d = store.settings.hisRangeDays;
       store.settings.hisRange = (d === 7 || d === 30) ? String(d) : "30";
       DB.save(store);
     }
-
-    // 税別小計＋税込表示
-    const cbGross = $("#toggleGross");
-    if (cbGross) cbGross.checked = !!store.settings.historyShowBoth;
-
-    // 明細の詳細
-    const cbDet = $("#showDetail");
-    if (cbDet) cbDet.checked = !!store.settings.showTaxFlags;
-
-    // 期間セレクト（"7" | "30" | "fiscal"）
-    const sel = $("#hisRange");
-    if (sel) {
-      const v = String(store.settings.hisRange ?? "30");
-      if (sel.value !== v) sel.value = v;
-    }
+    const cbGross = $("#toggleGross"); if (cbGross) cbGross.checked = !!store.settings.historyShowBoth;
+    const cbDet = $("#showDetail");   if (cbDet) cbDet.checked   = !!store.settings.showTaxFlags;
+    const sel = $("#hisRange");       if (sel) { const v = String(store.settings.hisRange ?? "30"); if (sel.value !== v) sel.value = v; }
   }
 
   function bindOnce(){
     if (bound) return;
-
     document.addEventListener("change", (e) => {
-      const t = e.target;
-      if (!t) return;
-
-      if (t.id === "toggleGross") {
-        store.settings.historyShowBoth = !!t.checked;
-        DB.save(store);
-        renderHistory();
-      }
-
-      if (t.id === "showDetail") {
-        store.settings.showTaxFlags = !!t.checked;
-        DB.save(store);
-        renderHistory();
-      }
-
-      if (t.id === "hisRange") {
-        store.settings.hisRange = String(t.value || "30"); // ← 新キーに保存
-        DB.save(store);
-        renderHistory();
-      }
+      const t = e.target; if (!t) return;
+      if (t.id === "toggleGross") { store.settings.historyShowBoth = !!t.checked; DB.save(store); renderHistory(); }
+      if (t.id === "showDetail")  { store.settings.showTaxFlags   = !!t.checked; DB.save(store); renderHistory(); }
+      if (t.id === "hisRange")    { store.settings.hisRange = String(t.value || "30"); DB.save(store); renderHistory(); }
     });
-
     bound = true;
   }
-
   return { sync, bindOnce };
 })();
 
@@ -476,7 +511,7 @@ window.addEventListener("hashchange",()=>{ if(internalNav) return; showPage(loca
 document.addEventListener("click",(e)=>{ const b=e.target.closest("[data-goto]"); if(!b) return; e.preventDefault(); navigate(b.getAttribute("data-goto")); });
 document.addEventListener("click",(e)=>{ if(e.target.closest("#btnHome")) navigate("home"); });
 
-/* ===== Home KPIs ===== */
+/* ===== Home KPIs + Ads ===== */
 function calcTotals(days){
   const now=new Date(), from=new Date(now.getTime()-days*86400000);
   return store.entries.reduce((sum,e)=>{
@@ -489,14 +524,32 @@ function calcTotals(days){
     return sum;
   },0);
 }
+function renderAd(){
+  const slot = $("#homeAd"); if(!slot) return;
+  const needAd = !!PlanRules[PLAN()].ads;
+  slot.classList.toggle("hidden", !needAd);
+  if(!needAd){ slot.innerHTML=""; return; }
+  // ダミー（将来差し替え可能）
+  slot.innerHTML = `
+    <div class="ad">
+      <img src="https://picsum.photos/seed/containers/112" alt="Ad">
+      <div class="txt">
+        <b>調理容器・保存容器の定番</b>
+        キッチンの業務効率をアップ。<br>飲食店向けまとめ買いがお得。
+      </div>
+      <a class="btn small ghost" href="https://example.com" target="_blank" rel="noopener">見る</a>
+    </div>
+  `;
+}
 function refreshHome(){
   $("#kpiWeek").textContent = yen(calcTotals(7));
   $("#kpiMonth").textContent = yen(calcTotals(30));
-  $("#pillPlan").textContent  = "プラン："+(store.settings.plan==="free"?"無料":store.settings.plan);
+  const p = PLAN();
+  $("#pillPlan").textContent  = "プラン："+(p==="free"?"無料":(p==="mid"?"Mid":"Pro"));
   const bk=store.settings.lastBackupAt?new Date(store.settings.lastBackupAt):null;
   $("#pillBackup").textContent = bk?("最終バックアップ："+bk.toLocaleString("ja-JP")):"最終バックアップ：未実施";
+  renderAd();
 }
-
 
 /* ===== Input ===== */
 function fillSupplierSelect(sel){
@@ -606,10 +659,7 @@ function addLine(){
     arr.push({price,ts:Date.now(),taxrate,taxmode});
     store.priceHistory[product_id]=arr.slice(-5);
   }
-
-
-
-bumpRecentProduct(product_id);
+  bumpRecentProduct(product_id);
   DB.save(store); renderTodayList(); refreshHome();
   if(store.settings.autoClear){
     $("#inProduct").value=""; $("#inPrice").value=""; $("#inQty").value=1; $("#inMemo").value=""; $("#priceHistory").innerHTML="";
@@ -638,22 +688,21 @@ window.confirmLeaveFromInput = function confirmLeaveFromInput(){
     }
     return;
   }
-  // window.confirmLeaveFromInput 内の openModalBase(...) ～ ボタン配線部
-openModalBase("未追加の入力があります", `
+  openModalBase("未追加の入力があります", `
   <div style="margin-top:4px">どうしますか？</div>
   <ul style="margin:8px 0 0 16px">
     <li><b>追加して戻る</b>：明細に追加してホームへ</li>
     <li><b>破棄</b>：入力中の内容は捨ててホームへ</li>
   </ul>
 `);
-const ok = document.getElementById('modalOK');      // 追加して戻る
-const del = document.getElementById('modalDelete'); // 破棄
+const ok = document.getElementById('modalOK');
+const del = document.getElementById('modalDelete');
 const cancel = document.getElementById('modalCancel');
 
 ok.textContent = "追加して戻る";
 del.textContent = "破棄";
 del.classList.remove("hidden");
-del.classList.add("danger","small"); // 目立たせる
+del.classList.add("danger","small");
   ok.onclick = ()=>{ const b=(store.entries||[]).length; addLine(); const s=(store.entries||[]).length>b;
     closeModal(); if (s){ navigate("home"); refreshHome(); } };
   del.onclick = ()=>{ closeModal(); navigate("home"); refreshHome(); };
@@ -744,6 +793,14 @@ function renderSuppliers(){
       </div>`;
     list.appendChild(item);
   });
+
+  // 仕入先上限で追加ボタンの活性/非活性
+  const addBtn = $("#btnAddSupplier");
+  if (addBtn){
+    const chk = canAddSupplier();
+    addBtn.disabled = !chk.ok;
+    addBtn.title = chk.ok ? "" : chk.reason;
+  }
 }
 function fillFilterSupplier(){
   const sel=$("#filterProdSupplier"); if(!sel) return;
@@ -753,6 +810,15 @@ function fillFilterSupplier(){
     const o=document.createElement("option"); o.value=s.id; o.textContent=s.name; sel.appendChild(o);
   });
   if(cur && [...sel.options].some(o=>o.value===cur)) sel.value=cur;
+
+  // 商品追加ボタンの活性/非活性（フィルタ選択時点で判定）
+  const addBtn = $("#btnAddProduct");
+  if (addBtn){
+    const sid = sel.value || null;
+    const chk = canAddProduct(sid);
+    addBtn.disabled = !chk.ok;
+    addBtn.title = chk.ok ? "" : chk.reason;
+  }
 }
 document.addEventListener("click",(e)=>{
   const addp=e.target.closest("#supplierList .addp");
@@ -795,8 +861,15 @@ function renderProducts(){
       </div>`;
     list.appendChild(item);
   });
+
+  // 商品追加ボタン 活性/非活性
+  const addBtn = $("#btnAddProduct");
+  if (addBtn){
+    const chk = canAddProduct(sid || null);
+    addBtn.disabled = !chk.ok;
+    addBtn.title = chk.ok ? "" : chk.reason;
+  }
 }
-document.addEventListener("change",(e)=>{ if(e.target.id==="filterProdSupplier") renderProducts(); });
 
 /* ===== モーダル基盤 ===== */
 function closeModal(){ $("#modalHost").classList.add("hidden"); $("#modalHost").setAttribute("aria-hidden","true"); }
@@ -829,12 +902,15 @@ function openSupplierModal(s){
     </div>`);
   const onOK=()=>{
     const name=$("#mSupName").value.trim(); if(!name){ alert("社名を入力してください"); return; }
-    const contact=$("#mSupContact").value.trim();
-    const phone  =$("#mSupPhone").value.trim();
-    const inv    =$("#mSupInv").value.trim();
-    if(s){ s.name=name; s.contact=contact; s.phone=phone; s.invoice_number=inv; }
-    else { store.suppliers.push({id:uid(),name,contact,phone,invoice_number:inv}); }
-    DB.save(store); renderSuppliers(); refreshHome(); fillSupplierSelect($("#inSupplier")); closeModal();
+
+    if(!s){
+      const chk = canAddSupplier();
+      if (!chk.ok){ alert(chk.reason+"\n\nアップグレードをご検討ください（Plans画面からMid/Pro）。"); return; }
+      store.suppliers.push({id:uid(),name,contact:$("#mSupContact").value.trim(),phone:$("#mSupPhone").value.trim(),invoice_number:$("#mSupInv").value.trim()});
+    }else{
+      s.name=name; s.contact=$("#mSupContact").value.trim(); s.phone=$("#mSupPhone").value.trim(); s.invoice_number=$("#mSupInv").value.trim();
+    }
+    DB.save(store); renderSuppliers(); refreshHome(); fillSupplierSelect($("#inSupplier")); fillFilterSupplier(); closeModal();
   };
   $("#modalOK").onclick=onOK;
 
@@ -869,27 +945,29 @@ function openProductModal(p,defaultSid){
     const sid=$("#mProdSup").value;
     const name=$("#mProdName").value.trim();
     if(!sid||!name){ alert("仕入れ先と商品名を入力してください"); return; }
-    if(!p && store.products.some(x=>!x.deleted&&x.supplier_id===sid&&x.name===name)){
-      if(!confirm("同一仕入れ先に同名の商品があります。登録しますか？")) return;
+
+    if(!p){
+      const chk = canAddProduct(sid);
+      if (!chk.ok){ alert(chk.reason+"\n\nアップグレードをご検討ください（Plans画面からMid/Pro）。"); return; }
+      if(store.products.some(x=>!x.deleted&&x.supplier_id===sid&&x.name===name)){
+        if(!confirm("同一仕入れ先に同名の商品があります。登録しますか？")) return;
+      }
+      store.products.push({id:uid(),supplier_id:sid,name,default_price:Number($("#mProdPrice").value||0),tax_rate:Number($("#mProdRate").value||8),tax_mode:$("#mProdMode").value||"excl",note:$("#mProdNote").value||""});
+    }else{
+      p.supplier_id=sid; p.name=name; p.default_price=Number($("#mProdPrice").value||0); p.tax_rate=Number($("#mProdRate").value||8); p.tax_mode=$("#mProdMode").value||"excl"; p.note=$("#mProdNote").value||"";
     }
-    const price=Number($("#mProdPrice").value||0);
-    const tax_rate=Number($("#mProdRate").value||8);
-    const tax_mode=$("#mProdMode").value||"excl";
-    const note=$("#mProdNote").value||"";
-    if(p){ p.supplier_id=sid; p.name=name; p.default_price=price; p.tax_rate=tax_rate; p.tax_mode=tax_mode; p.note=note; }
-    else { store.products.push({id:uid(),supplier_id:sid,name,default_price:price,tax_rate:tax_rate,tax_mode:tax_mode,note}); }
-    DB.save(store); renderProducts();renderSuppliers(); renderProductSelect($("#inProduct"),$("#inSupplier").value,$("#prodSearch").value||""); closeModal();
+    DB.save(store); renderProducts();renderSuppliers(); renderProductSelect($("#inProduct"),$("#inSupplier").value,$("#prodSearch").value||""); fillFilterSupplier(); closeModal();
   };
   $("#modalOK").onclick=onOK;
 
   if(p){
     const delBtn=$("#modalDelete"); delBtn.classList.remove("hidden");
-    delBtn.onclick=()=>{ if(confirm("削除しますか？")){ p.deleted=true; DB.save(store); renderProducts(); renderSuppliers();closeModal(); } };
+    delBtn.onclick=()=>{ if(confirm("削除しますか？")){ p.deleted=true; DB.save(store); renderProducts(); renderSuppliers(); fillFilterSupplier(); closeModal(); } };
     $(".actions").insertBefore(delBtn, $("#modalCancel"));
   }
 }
 
-/* ===== 明細編集モーダル ===== */
+/* ===== 明細編集モーダル（Lite） ===== */
 function openEntryModal(e){
   const pname=prodName(e.product_id,e.product_name_fallback);
   openModalBase("明細を編集",`
@@ -970,7 +1048,6 @@ function renderHistory(){
       const sec = document.createElement("div"); sec.className = "card";
       let html = `<b>${ym}</b>`;
 
-      // 月内を仕入先グループ
       const group = {};
       for (const e of byMonth[ym]){
         const sk = e.supplier_id || e.supplier_name_fallback || "未指定";
@@ -1043,7 +1120,7 @@ function renderHistory(){
 
 /* ===== Export（Excel XML一本化） ===== */
 
-// Excel XML を保存（型付き＆Excelヒント）
+// Excel XML を保存
 function saveExcelXML(name, rows2d){
   const esc = s => String(s ?? "")
     .replace(/&/g,"&amp;").replace(/</g,"&lt;")
@@ -1084,6 +1161,7 @@ function saveExcelXML(name, rows2d){
   a.click();
   setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
 }
+
 // === 期間ユーティリティ ===
 function _ym(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
 function _startOfMonth(d){ return new Date(d.getFullYear(), d.getMonth(), 1); }
@@ -1091,8 +1169,13 @@ function _endOfDay(d){ const x=new Date(d); x.setHours(23,59,59,999); return x; 
 function _addMonths(d,n){ return new Date(d.getFullYear(), d.getMonth()+n, 1); }
 function getExportRange(key){
   const now=new Date();
-  if(key==="6m"){
-    const from=_startOfMonth(_addMonths(now,-5));  // 今月含む6か月
+  if(key==="year"){
+    const from=new Date(now.getFullYear(),0,1);
+    const to=_endOfDay(new Date());
+    return {from,to,label:`${now.getFullYear()}年`,key};
+  }
+  if(key==="6m"){ // 互換（未使用）
+    const from=_startOfMonth(_addMonths(now,-5));
     const to=_endOfDay(new Date());
     return {from,to,label:`${_ym(from)}〜${_ym(now)}`,key};
   }
@@ -1111,12 +1194,12 @@ function _inRange(ymd, range){
 
 // === 出力本体（プラン制限＋期間選択） ===
 function exportData(rangeKey){
-  const plan = store.settings.plan || "free";        // 'free' | 'middle' | 'pro'
-  const maxKey = (plan==="pro") ? "all" : (plan==="middle" ? "6m" : "month");
-  const key = (["month","6m","all"].includes(rangeKey) ? rangeKey : "month");
+  const plan = PLAN(); // 'free' | 'mid' | 'pro'
+  const maxKey = PlanRules[plan].exportMax; // 'month' | 'year' | 'all'
+  const key = (["month","year","all"].includes(rangeKey) ? rangeKey : "month");
   const effectiveKey =
     (maxKey==="month" && key!=="month") ? "month" :
-    (maxKey==="6m"   && key==="all")    ? "6m"   : key;
+    (maxKey==="year"  && key==="all")    ? "year"  : key;
 
   const range = getExportRange(effectiveKey);
 
@@ -1135,31 +1218,32 @@ function exportData(rangeKey){
   });
 
   const base = effectiveKey==="month" ? range.label :
-               effectiveKey==="6m"   ? `過去6か月_${range.label}` : "全期間";
+               effectiveKey==="year"  ? `${range.label}` :
+               "全期間";
   saveExcelXML(`仕入れ記録_${base}.xml`, rows);
   alert("Excel XML（.xml）で出力しました。");
 }
 
 // === 確認モーダル（期間選択＋プラン制限） ===
 function ModalExport(){
-  const plan = store.settings.plan || "free"; // 'free'|'middle'|'pro'
-  const allowed = (plan==="pro") ? "all" : (plan==="middle" ? "6m" : "month");
+  const plan = PLAN(); // 'free'|'mid'|'pro'
+  const allowed = PlanRules[plan].exportMax; // 'month'|'year'|'all'
 
   openModalBase("データ出力", `
-    <div class="grid">
+    <div id="ModalExport" class="grid">
       <div class="label">出力範囲</div>
-      <label><input type="radio" name="exRange" value="month"> 当月</label>
-      <label><input type="radio" name="exRange" value="6m"> 過去6か月</label>
+      <label><input type="radio" name="exRange" value="month"> 当月（直近1か月）</label>
+      <label><input type="radio" name="exRange" value="year"> 当年（1/1〜本日）</label>
       <label><input type="radio" name="exRange" value="all"> 全期間</label>
-      <div class="mini-meta">プラン：${plan}</div>
+      <div class="mini-meta">プラン：${planLabel(plan)}</div>
     </div>
   `);
 
-  const disallow = v => (allowed==="month" && v!=="month") || (allowed==="6m" && v==="all");
+  const disallow = v => (allowed==="month" && v!=="month") || (allowed==="year" && v==="all");
   $$('input[name="exRange"]').forEach(r=>{
     if(disallow(r.value)){ r.disabled=true; r.parentElement.style.opacity=".5"; }
   });
-  const def = allowed==="all" ? "all" : (allowed==="6m" ? "6m" : "month");
+  const def = allowed==="all" ? "all" : (allowed==="year" ? "year" : "month");
   const defEl = $$('input[name="exRange"]').find(r=>r.value===def); if(defEl) defEl.checked=true;
 
   const ok=$("#modalOK");
@@ -1171,8 +1255,7 @@ function ModalExport(){
   };
 }
 
-
-// 出力ボタンは必ずモーダル経由（委任）
+// 出力ボタンは必ずモーダル経由
 document.addEventListener("click", (e)=>{
   const btn = e.target.closest("#btnExport, #btnExport2");
   if(!btn) return;
@@ -1207,6 +1290,7 @@ document.addEventListener("change",(e)=>{
         theme:store.settings.theme, plan:store.settings.plan, autoClear:true,
         historyShowBoth:true, showTaxFlags:false, recentProducts:store.settings.recentProducts||[], hisRangeDays:30
       }, data.tables.settings||{});
+      if (store.settings.plan === "middle") store.settings.plan = "mid"; // 互換
       DB.save(store);
       alert("復元しました");
       applyTheme(); refreshHome(); initInputPage(); renderSuppliers(); fillFilterSupplier(); renderProducts(); renderHistory();renderTodayList(); navigate("home"); enableSelectOnFocus();
@@ -1250,30 +1334,91 @@ document.addEventListener("click",(e)=>{
 });
 
 /* ===== License mock ===== */
-function setPlan(p){ store.settings.plan=p; DB.save(store); refreshHome(); alert("プランが更新されました（デモ）"); }
-document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyMid") setPlan("middle"); });
+function setPlan(p){
+  store.settings.plan=p;
+  DB.save(store);
+  refreshHome();
+  // 追加・出力ボタンの活性再評価
+  renderSuppliers(); fillFilterSupplier(); renderProducts();
+  alert(`プランを ${p==='pro'?'Pro':p==='mid'?'Mid':'無料'} に更新しました（デモ）。`);
+}
+document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyMid") setPlan("mid"); });
 document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyPro") setPlan("pro"); });
 
-/* ===== Init ===== */
-function init(){
-  try{
-    applyTheme();
-    refreshHome();
-    initInputPage();
-    renderTodayList();
-    enableSelectOnFocus();
-    renderSuppliers();
-    fillFilterSupplier();
-    renderProducts();
-    refreshFiscalLabel();
-    showPage(location.hash.replace("#","")||"home");
-    if ((location.hash||"") === "#history") { try{ renderHistory(); }catch(e){ console.error(e); } }
-  }catch(err){
-    console.error("init failed:", err);
-    alert("初期化中に問題が発生しました。ページを再読み込みしてください。");
-  }
+/* ===== 履歴カード編集：Lite（既存追記版） ===== */
+(()=>{ "use strict";
+/** 明細IDからエントリを取得 */
+function _findEntryById(id){
+  if(!id) return null;
+  return (store.entries||[]).find(e=>e && !e.deleted && e.id===id) || null;
 }
-init();
+function _pushPriceHistoryIfNeeded(e){
+  try{
+    if(!e || !e.product_id) return;
+    const arr = store.priceHistory[e.product_id] || [];
+    arr.push({ price: Number(e.price)||0, ts: Date.now(), taxrate: Number(e.taxrate)||0, taxmode: e.taxmode||"excl" });
+    store.priceHistory[e.product_id] = arr.slice(-5);
+  }catch(_){}
+}
+function openEntryEditModalLite(entry){
+  if(!entry){ alert("明細が見つかりません"); return; }
+  const pname = (store.products.find(p=>p.id===entry.product_id)||{}).name || (entry.product_name_fallback || "未登録");
+  const sName = (store.suppliers.find(s=>s.id===entry.supplier_id)||{}).name || (entry.supplier_name_fallback || "未指定");
+  const modeLabel = entry.taxmode==="incl" ? "税込" : "税別";
+
+  openModalBase("明細を編集", `
+    <div class="grid cols-2">
+      <div style="grid-column:1/-1"><div class="label">仕入れ先</div><input type="text" value="${sName}" disabled></div>
+      <div style="grid-column:1/-1"><div class="label">商品</div><input type="text" value="${pname}" disabled></div>
+      <div><div class="label">数量</div><input id="mLiteQty" type="number" inputmode="numeric" min="0" step="1" value="${entry.qty}"></div>
+      <div><div class="label">単価</div><input id="mLitePrice" type="number" inputmode="numeric" min="0" step="1" value="${entry.price}"></div>
+      <div><div class="label">税率</div>
+        <select id="mLiteRate">
+          <option value="10" ${entry.taxrate===10?"selected":""}>10%</option>
+          <option value="8"  ${entry.taxrate===8 ?"selected":""}>8%</option>
+          <option value="0"  ${entry.taxrate===0 ?"selected":""}>非課税</option>
+        </select>
+      </div>
+      <div><div class="label">区分（参照）</div><input type="text" value="${modeLabel}" disabled></div>
+      <div style="grid-column:1/-1" class="mini-meta">※ この画面では <b>数量・単価・税率</b>のみ変更できます。</div>
+    </div>
+  `);
+  const delBtn = document.getElementById("modalDelete"); delBtn && delBtn.classList.add("hidden");
+  const ok = document.getElementById("modalOK");
+  if(ok){
+    ok.textContent = "更新";
+    ok.onclick = ()=>{
+      const q = Number(document.getElementById("mLiteQty").value || 0);
+      const p = Number(document.getElementById("mLitePrice").value || 0);
+      const r = Number(document.getElementById("mLiteRate").value || entry.taxrate || 8);
+      if(!Number.isFinite(q) || q<=0){ alert("数量を正しく入力してください"); return; }
+      if(!Number.isFinite(p) || p<0){ alert("単価を正しく入力してください"); return; }
+      if(![0,8,10].includes(r)){ alert("税率を選択してください"); return; }
+      entry.qty = q; entry.price = p; entry.taxrate = r;
+      _pushPriceHistoryIfNeeded(entry);
+      DB.save(store);
+      try{ renderTodayList(); }catch(_){}
+      try{ renderHistory(); }catch(_){}
+      try{ refreshHome(); }catch(_){}
+      closeModal();
+    };
+  }
+  setTimeout(()=>{ document.getElementById("mLiteQty")?.focus(); }, 0);
+}
+function _isEntryRow(el){ return !!el && el.classList && el.classList.contains("entry") && el.hasAttribute("data-id"); }
+document.addEventListener("click", (e)=>{
+  const row = e.target.closest("#historyList .entry, #todayList .entry");
+  if(!_isEntryRow(row)) return;
+  const id = row.getAttribute("data-id");
+  const entry = _findEntryById(id);
+  if(!entry){ alert("編集対象が見つかりません"); return; }
+  e.preventDefault();
+  openEntryEditModalLite(entry);
+});
+})();
+
+/* ===== Rights: 既存（略） ===== */
+/* （権利ページの再構築/EULA周りの既存スクリプトは、そのまま下に続きます） */
 </script>
 
 <!-- ===== TLP EULA Modal (drop-in) ===== -->
@@ -1284,7 +1429,7 @@ init();
       <button id="tlpEulaClose" type="button" class="tlp-eula-close" aria-label="閉じる">×</button>
     </header>
     <section class="tlp-eula-body">
-      <p><strong>App:</strong> Tabco Ledger Plus / <strong>Version:</strong> 0.8.0 /
+      <p><strong>App:</strong> Tabco Ledger Plus / <strong>Version:</strong> 0.8.1 /
          <strong>EULA Ver:</strong> <span id="tlp-eula-ver-label">2025-09-08</span></p>
       <ol>
         <li><b>ライセンス付与：</b>非独占・譲渡不可。再配布/逆コンパイル禁止。</li>
@@ -1304,6 +1449,7 @@ init();
 
 <style>
 :root{ color-scheme: light dark; --tlp-footer-h: 0px; }
+/* ...（EULA用CSSは元のまま）... */
 .tlp-eula-overlay{
   position:fixed; inset:0; display:none; align-items:center; justify-content:center;
   background: rgba(15,23,42,.60);
@@ -1317,30 +1463,14 @@ init();
   box-shadow:0 16px 64px rgba(0,0,0,.35);
   box-sizing:border-box;
 }
-/* === Z層の基準 === */
-:root{
-  --z-eula: 2147483647;
-  --z-modal: 3000;
-  --z-actions: 2000;
-  --z-floating: 1000;
-}
+:root{ --z-eula: 2147483647; --z-modal: 3000; --z-actions: 2000; --z-floating: 1000; }
 .tlp-eula-overlay{ z-index: var(--z-eula) !important; }
-:where([role="dialog"],[aria-modal="true"],.modal,.dialog,.popup,.confirm,.sheet,.drawer){
-  z-index: var(--z-modal) !important;
-}
-:where(.tlp-form-actions,.form-actions,.footer-actions,.actions,.btn-row){
-  z-index: var(--z-actions) !important;
-}
-.tlp-eula-header, .tlp-eula-footer{
-  display:flex; align-items:center; gap:8px; padding:12px 16px;
-  background:#f9fafb; border-bottom:1px solid #e5e7eb;
-}
+:where([role="dialog"],[aria-modal="true"],.modal,.dialog,.popup,.confirm,.sheet,.drawer){ z-index: var(--z-modal) !important; }
+:where(.tlp-form-actions,.form-actions,.footer-actions,.actions,.btn-row){ z-index: var(--z-actions) !important; }
+.tlp-eula-header, .tlp-eula-footer{ display:flex; align-items:center; gap:8px; padding:12px 16px; background:#f9fafb; border-bottom:1px solid #e5e7eb; }
 .tlp-eula-footer{ justify-content:flex-end; border-top:1px solid #e5e7eb; border-bottom:none; }
 .tlp-eula-header h2{ margin:0; font-size:1.05rem; }
-.tlp-eula-close{
-  margin-left:auto; border:1px solid #e5e7eb; border-radius:10px; background:#fff;
-  padding:6px 10px; cursor:pointer;
-}
+.tlp-eula-close{ margin-left:auto; border:1px solid #e5e7eb; border-radius:10px; background:#fff; padding:6px 10px; cursor:pointer; }
 .tlp-eula-body{ max-height:60vh; overflow:auto; padding:16px 18px; }
 .tlp-muted{ opacity:.7; }
 .btn{ padding:10px 14px; border-radius:10px; border:1px solid #e5e7eb; cursor:pointer; }
@@ -1410,7 +1540,7 @@ init();
   const TLP = (window.TLP = window.TLP || {});
   const meta = (window.__tlp_meta || {});
   const REQUIRED_EULA_VERSION = String(meta.eulaVersion || '2025-09-08');
-  TLP.APP = Object.assign({ NAME:'Tabco Ledger Plus', VERSION:'0.8.0', EULA_VERSION: REQUIRED_EULA_VERSION }, TLP.APP || {});
+  TLP.APP = Object.assign({ NAME:'Tabco Ledger Plus', VERSION:'0.8.1', EULA_VERSION: REQUIRED_EULA_VERSION }, TLP.APP || {});
   const LS = window.localStorage;
   const KEYS = { EULA_VER_NEW:'tlp_eula_version', EULA_VER_OLD:'tlp_eula_version_accepted', EULA_AT:'tlp_eula_accepted_at', LICENSE:'tlp_license_status' };
   TLP.keys = KEYS;
@@ -1450,71 +1580,40 @@ init();
   window.__tlp_meta = Object.assign({
     app: "Tabco Ledger Plus",
     brand: "Tabco Ledger Plus",
-    version: (window.TLP && TLP.APP && TLP.APP.VERSION) || "0.8.0",
+    version: (window.TLP && TLP.APP && TLP.APP.VERSION) || "0.8.1",
     eulaVersion: (window.TLP && TLP.APP && TLP.APP.EULA_VERSION) || "2025-09-08",
-    build: "v0.8.0-20250908",
+    build: "v0.8.1-20250918",
     site: "cafetabco.com"
   }, window.__tlp_meta || {});
 })();
 </script>
 
 <style id="rights-css">
-/* === Rights page: 軽い体裁 ===================== */
+/* （権利ページ用のスタイルは従前どおり） */
 #page-rights h3 { margin: 0 0 8px; }
 #page-rights h4 { margin: 14px 0 6px; font-size: 0.98rem; }
 #page-rights p  { margin: 0 0 8px; }
-
-/* 権利ページ専用バッジ（右下固定・横一列） */
 #tlp-brand-badge-rights{
-  position: fixed;
-  right: 12px;
-  bottom: 12px;
-  z-index: 7000;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,.12);
-  background: #fff;
-  font-size: 12px;
-  white-space: nowrap;
+  position: fixed; right: 12px; bottom: 12px; z-index: 7000; display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.12); background: #fff; font-size: 12px; white-space: nowrap;
 }
-
-/* 印刷時は余計なUIとバッジを非表示 */
 @media print {
   nav, header, footer, .actions, .btn-row, .toolbar { display: none !important; }
   .modal, .dialog, .backdrop, #modalHost, #eula-modal, .modal-backdrop { display: none !important; }
   #tlp-brand-badge-rights { display: none !important; }
-  body { margin: 0 !important; }
 }
-/* 既定（ライト）— 白背景に濃い文字を固定 */
-#tlp-brand-badge-rights{
-  background:#fff;
-  color:#111;            /* ←これで継承を上書き */
-  border:1px solid #e5e7eb;
-}
-
-/* ダーク時は背景も暗色にして読みやすく */
 [data-theme="dark"] #tlp-brand-badge-rights{
-  background:#121212;
-  color:#f5f5f5;
-  border-color:#2a2a2a;
-  box-shadow:0 3px 12px rgba(0,0,0,.6);
+  background:#121212; color:#f5f5f5; border-color:#2a2a2a; box-shadow:0 3px 12px rgba(0,0,0,.6);
 }
 </style>
 <script id="rights-js">
 (() => {
-  try {
-    window.__tlp_meta = window.__tlp_meta || {};
-    if (!window.__tlp_meta.eulaVersion) window.__tlp_meta.eulaVersion = '2025-09-08';
-  } catch(e){}
-
+  try { window.__tlp_meta = window.__tlp_meta || {}; if (!window.__tlp_meta.eulaVersion) window.__tlp_meta.eulaVersion = '2025-09-08'; } catch(e){}
   function buildRightsBadge(){
     const el = document.createElement('div');
     el.id = 'tlp-brand-badge-rights';
     el.setAttribute('role','note');
-    el.textContent = 'Tabco Ledger Plus\u2122 v0.8.0';
+    el.textContent = 'Tabco Ledger Plus\u2122 v0.8.1';
     return el;
   }
   function mountRightsBadge(){
@@ -1545,7 +1644,7 @@ init();
 (()=>{try{
   const meta = window.__tlp_meta || {};
   const eulaVer = meta.eulaVersion || "2025-09-08";
-  console.log("[TLP] diag boot v0.8.0 (minimal)");
+  console.log("[TLP] diag boot v0.8.1 (plans)");
   window.addEventListener("keydown", (e)=>{
     if(e.altKey && e.key.toLowerCase()==="e"){
       e.preventDefault();
@@ -1554,72 +1653,44 @@ init();
       else console.warn("EULA open handler not found");
     }
   });
-  window.addEventListener("tlp:eula-accepted", ()=>{
-    try{ localStorage.setItem("tlpEulaAcceptedVersion", eulaVer); }catch(_){}
-    console.log("[TLP] EULA accepted:", eulaVer);
-  });
+  window.addEventListener("tlp:eula-accepted", ()=>{ try{ localStorage.setItem("tlpEulaAcceptedVersion", eulaVer); }catch(_){} console.log("[TLP] EULA accepted:", eulaVer); });
   window.addEventListener("tlp:eula-declined", ()=>{ console.warn("[TLP] EULA declined"); });
   window.tlpDiag = {
-    check(){ console.table({ eulaVersion: eulaVer, eulaOpenFn: typeof window.tlpOpenEula === "function" ? "OK" : "fallback" }); },
-    openEula(){ if (typeof window.tlpOpenEula === "function") window.tlpOpenEula();
-                else if (window.TLP && typeof TLP.showEula === "function") TLP.showEula();
-                else console.warn("EULA open handler not found"); }
+    check(){ console.table({ eulaVersion: eulaVer, plan: (store?.settings?.plan||'free'), exportMax: (PlanRules[(store?.settings?.plan||'free')]||{}).exportMax }); },
+    setPlanPro(){ setPlan('pro'); },
+    setPlanMid(){ setPlan('mid'); }
   };
-  console.log("[TLP] Ready. Try: tlpDiag.check(), tlpDiag.openEula()");
+  console.log("[TLP] Ready. Try: tlpDiag.check()");
 }catch(e){console.error("[TLP] diag init error", e);}})();
 </script>
 
-
 <style id="tlp-export-align">
-/* データ出力モーダル：ラジオ(左)＋テキスト(右)で一直線／左寄せ・改行なし＋行全体に枠 */
+/* データ出力モーダル：ラジオ行の整列 */
 #ModalExport label:has(> input[type="radio"]),
 .modal-export label:has(> input[type="radio"]),
 [data-modal="export"] label:has(> input[type="radio"]),
 .modal.sheet label:has(> input[type="radio"]) {
-  display: grid;
-  grid-template-columns: 2.25em 1fr; /* 左=ラジオ固定幅 / 右=テキスト可変 */
-  align-items: center;
-  column-gap: 12px;
-  min-height: 36px;
-  text-align: left;
-  white-space: nowrap;
-
-  /* ← ここが“枠＋余白”の追加部分 */
-  padding: 10px 12px;
-  margin: 8px 0;
-  border: 1px dashed rgba(0,128,255,.35);
-  border-radius: 8px;
-  box-sizing: border-box;
-  cursor: pointer;
+  display: grid; grid-template-columns: 2.25em 1fr; align-items: center; column-gap: 12px; min-height: 36px;
+  text-align: left; white-space: nowrap; padding: 10px 12px; margin: 8px 0; border: 1px dashed rgba(0,128,255,.35);
+  border-radius: 8px; box-sizing: border-box; cursor: pointer;
 }
-
-/* ラジオは左列に固定 */
 #ModalExport label:has(> input[type="radio"]) > input[type="radio"],
 .modal-export label:has(> input[type="radio"]) > input[type="radio"],
 [data-modal="export"] label:has(> input[type="radio"]) > input[type="radio"],
 .modal.sheet label:has(> input[type="radio"]) > input[type="radio"]{
-  grid-column: 1;
-  justify-self: center;
-  margin: 0;
+  grid-column: 1; justify-self: center; margin: 0;
 }
-
-/* テキストは右列・左寄せ */
 #ModalExport label:has(> input[type="radio"]) > :not(input),
 .modal-export label:has(> input[type="radio"]) > :not(input),
 [data-modal="export"] label:has(> input[type="radio"]) > :not(input),
 .modal.sheet label:has(> input[type="radio"]) > :not(input){
-  grid-column: 2;
-  margin: 0;
+  grid-column: 2; margin: 0;
 }
-
-/* 選択中とホバー時の視覚フィードバック */
 #ModalExport label:has(> input[type="radio"]:checked),
 .modal-export label:has(> input[type="radio"]:checked),
 [data-modal="export"] label:has(> input[type="radio"]:checked),
 .modal.sheet label:has(> input[type="radio"]:checked){
-  border-style: solid;
-  border-color: rgba(0,128,255,.6);
-  background: rgba(0,128,255,.06);
+  border-style: solid; border-color: rgba(0,128,255,.6); background: rgba(0,128,255,.06);
 }
 #ModalExport label:has(> input[type="radio"]):hover,
 .modal-export label:has(> input[type="radio"]):hover,
@@ -1629,50 +1700,35 @@ init();
 }
 </style>
 
-
-
 <script id="tlp-export-mark-rows">
 (function(){
   const SCOPE = '#ModalExport, .modal-export, [data-modal="export"], .modal.sheet';
-
-  // モーダル内で「直下にラジオを持つ」行にだけクラスを付ける
   function markRows(root){
     const scope = root.matches?.(SCOPE) ? root : root.querySelector(SCOPE);
     if(!scope) return;
     scope.querySelectorAll('label, li, .row, .option, .form-row').forEach(el=>{
-      if (el.querySelector(':scope > input[type="radio"]')) {
-        el.classList.add('tlp-radio-row');
-      }
+      if (el.querySelector(':scope > input[type="radio"]')) el.classList.add('tlp-radio-row');
     });
   }
-
-  // 既に開いていれば一度適用
   document.querySelectorAll(SCOPE).forEach(markRows);
-
-  // これから開く／差し替わるモーダルにも適用（本体は無視）
   new MutationObserver(muts=>{
     for(const m of muts){
       for(const node of m.addedNodes){
         if(node.nodeType!==1) continue;
-        if(node.matches?.(SCOPE) || node.querySelector?.('input[type="radio"]')){
-          markRows(node);
-        }
+        if(node.matches?.(SCOPE) || node.querySelector?.('input[type="radio"]')) markRows(node);
       }
     }
   }).observe(document.body, {childList:true, subtree:true});
 })();
 </script>
+
 <script>
 (()=>{ "use strict";
-/* ========= 履歴カード編集：末尾追記で有効 ========= */
-
-/** 明細IDからエントリを取得 */
+/* ========= 履歴カード編集：末尾追記で有効（元のLiteを維持） ========= */
 function _findEntryById(id){
   if(!id) return null;
   return (store.entries||[]).find(e=>e && !e.deleted && e.id===id) || null;
 }
-
-/** 価格履歴を更新（任意：最新5件に保つ） */
 function _pushPriceHistoryIfNeeded(e){
   try{
     if(!e || !e.product_id) return;
@@ -1681,81 +1737,41 @@ function _pushPriceHistoryIfNeeded(e){
     store.priceHistory[e.product_id] = arr.slice(-5);
   }catch(_){}
 }
-
-/** 編集モーダル（数量／単価／税率のみ） */
 function openEntryEditModalLite(entry){
   if(!entry){ alert("明細が見つかりません"); return; }
   const pname = (store.products.find(p=>p.id===entry.product_id)||{}).name || (entry.product_name_fallback || "未登録");
   const sName = (store.suppliers.find(s=>s.id===entry.supplier_id)||{}).name || (entry.supplier_name_fallback || "未指定");
-  const taxLabel = entry.taxrate===0 ? "非課税" : (entry.taxrate+"%");
   const modeLabel = entry.taxmode==="incl" ? "税込" : "税別";
-
   openModalBase("明細を編集", `
     <div class="grid cols-2">
-      <div style="grid-column:1/-1">
-        <div class="label">仕入れ先</div>
-        <input type="text" value="${sName}" disabled>
-      </div>
-      <div style="grid-column:1/-1">
-        <div class="label">商品</div>
-        <input type="text" value="${pname}" disabled>
-      </div>
-
-      <div>
-        <div class="label">数量</div>
-        <input id="mLiteQty" type="number" inputmode="numeric" min="0" step="1" value="${entry.qty}">
-      </div>
-      <div>
-        <div class="label">単価</div>
-        <input id="mLitePrice" type="number" inputmode="numeric" min="0" step="1" value="${entry.price}">
-      </div>
-
-      <div>
-        <div class="label">税率</div>
+      <div style="grid-column:1/-1"><div class="label">仕入れ先</div><input type="text" value="${sName}" disabled></div>
+      <div style="grid-column:1/-1"><div class="label">商品</div><input type="text" value="${pname}" disabled></div>
+      <div><div class="label">数量</div><input id="mLiteQty" type="number" inputmode="numeric" min="0" step="1" value="${entry.qty}"></div>
+      <div><div class="label">単価</div><input id="mLitePrice" type="number" inputmode="numeric" min="0" step="1" value="${entry.price}"></div>
+      <div><div class="label">税率</div>
         <select id="mLiteRate">
           <option value="10" ${entry.taxrate===10?"selected":""}>10%</option>
           <option value="8"  ${entry.taxrate===8 ?"selected":""}>8%</option>
           <option value="0"  ${entry.taxrate===0 ?"selected":""}>非課税</option>
         </select>
       </div>
-      <div>
-        <div class="label">区分（参照のみ）</div>
-        <input type="text" value="${modeLabel}" disabled>
-      </div>
-
-      <div style="grid-column:1/-1" class="mini-meta">
-        ※ この画面では <b>数量・単価・税率</b>のみ変更できます。区分（${modeLabel}）とメモは編集対象外です。
-      </div>
+      <div><div class="label">区分（参照）</div><input type="text" value="${modeLabel}" disabled></div>
+      <div style="grid-column:1/-1" class="mini-meta">※ この画面では <b>数量・単価・税率</b>のみ変更できます。</div>
     </div>
   `);
-
-  // 削除ボタンは非表示のまま
-  const delBtn = document.getElementById("modalDelete");
-  delBtn && delBtn.classList.add("hidden");
-
-  // OK = 更新保存
+  const delBtn = document.getElementById("modalDelete"); delBtn && delBtn.classList.add("hidden");
   const ok = document.getElementById("modalOK");
   if(ok){
     ok.textContent = "更新";
     ok.onclick = ()=>{
-      // 入力値取得・バリデーション軽め
       const q = Number(document.getElementById("mLiteQty").value || 0);
       const p = Number(document.getElementById("mLitePrice").value || 0);
       const r = Number(document.getElementById("mLiteRate").value || entry.taxrate || 8);
-
       if(!Number.isFinite(q) || q<=0){ alert("数量を正しく入力してください"); return; }
       if(!Number.isFinite(p) || p<0){ alert("単価を正しく入力してください"); return; }
       if(![0,8,10].includes(r)){ alert("税率を選択してください"); return; }
-
-      // 上書き（区分・メモは触らない）
-      entry.qty = q;
-      entry.price = p;
-      entry.taxrate = r;
-
-      // 価格履歴を更新（商品に紐づく場合のみ）
+      entry.qty = q; entry.price = p; entry.taxrate = r;
       _pushPriceHistoryIfNeeded(entry);
-
-      // 保存＆再描画
       DB.save(store);
       try{ renderTodayList(); }catch(_){}
       try{ renderHistory(); }catch(_){}
@@ -1763,44 +1779,35 @@ function openEntryEditModalLite(entry){
       closeModal();
     };
   }
-
-  // キャンセルは既存配線のまま
-  // 初期フォーカス
   setTimeout(()=>{ document.getElementById("mLiteQty")?.focus(); }, 0);
 }
-
-/** クリック委任：履歴カード／本日の明細 行 */
 function _isEntryRow(el){
   return !!el && el.classList && el.classList.contains("entry") && el.hasAttribute("data-id");
 }
-
 document.addEventListener("click", (e)=>{
   const row = e.target.closest("#historyList .entry, #todayList .entry");
   if(!_isEntryRow(row)) return;
-
   const id = row.getAttribute("data-id");
   const entry = _findEntryById(id);
   if(!entry){ alert("編集対象が見つかりません"); return; }
   e.preventDefault();
   openEntryEditModalLite(entry);
 });
-
-/* ========= ここまで ========= */
 })();
 </script>
+
 <script>
 /* ==== 入力時にワンタップ全選択（動的要素にも効く） ==== */
 document.addEventListener("focusin", (e)=>{
   const inp = e.target?.closest('input[type="number"], input[type="text"]');
   if(!inp || inp.readOnly || inp.disabled) return;
-  // すぐ & 次フレームでもう一度（端末差異対策）
   try{ inp.select && inp.select(); }catch(_){}
   setTimeout(()=>{ try{ inp.select && inp.select(); }catch(_){} }, 0);
 });
 </script>
+
 <script id="rights-autofill">
 (()=>{ 'use strict';
-  // 依存: window.__tlp_meta / TLP.APP（既に下で定義済み）
   const meta  = (window.__tlp_meta||{});
   const app   = (window.TLP && TLP.APP) || {};
   const page  = document.querySelector('#page-rights .card');
@@ -1816,7 +1823,6 @@ document.addEventListener("focusin", (e)=>{
   const PUBLISHER  = meta.publisher || 'Tabco';
   const CURRENT_Y  = new Date().getFullYear();
 
-  // 既存セクションの下に“必要項目”を不足分だけ追加
   const ensure = (id, html) => {
     if (page.querySelector('#'+id)) return;
     const wrap = document.createElement('section');
@@ -1825,161 +1831,64 @@ document.addEventListener("focusin", (e)=>{
     page.appendChild(wrap);
   };
 
-  // 1) アプリ情報（詳細）
-  ensure('rights-appinfo', `
-    <h4>アプリ情報</h4>
-    <p><b>App:</b> ${APP_NAME} / <b>Version:</b> ${VERSION} / <b>Build:</b> ${BUILD}</p>
-    <p><b>EULA:</b> ${EULA_VER} / <b>© ${CURRENT_Y} ${PUBLISHER}. All rights reserved.</b></p>
-  `);
-
-  // 2) プライバシーポリシー（審査必須）
-  ensure('rights-privacy', `
-    <h4>プライバシーポリシー</h4>
-    <p>本アプリは、入力された仕入データを <b>端末ローカル</b>（ブラウザのローカルストレージ）に保存します。
-       開発者は利用者データを収集・送信しません。バックアップ機能を使用した場合は、
-       利用者自身のクラウドストレージ（例：OneDrive等）に保存されます。</p>
-    <p>詳細は <a href="${PP_URL}" target="_blank" rel="noopener">プライバシーポリシー</a> をご覧ください。</p>
-  `);
-
-  // 3) EULA 案内（既存モーダル呼び出しと文言の整合）
-  ensure('rights-eula-note', `
-    <h4>使用許諾（EULA）</h4>
-    <p>本アプリの利用により、<a href="#" id="rights-open-eula">EULA（使用許諾契約）</a>に同意したものとみなされます。</p>
-  `);
-  // クリックで既存のEULAモーダルを開く
+  ensure('rights-appinfo', `<h4>アプリ情報</h4><p><b>App:</b> ${APP_NAME} / <b>Version:</b> ${VERSION} / <b>Build:</b> ${BUILD}</p><p><b>EULA:</b> ${EULA_VER} / <b>© ${CURRENT_Y} ${PUBLISHER}. All rights reserved.</b></p>`);
+  ensure('rights-privacy', `<h4>プライバシーポリシー</h4><p>本アプリは入力データを<b>端末ローカル</b>に保存します。バックアップ機能使用時は利用者自身のクラウドへ保存されます。</p><p>詳細は <a href="${PP_URL}" target="_blank" rel="noopener">プライバシーポリシー</a> をご覧ください。</p>`);
+  ensure('rights-eula-note', `<h4>使用許諾（EULA）</h4><p>本アプリの利用により、<a href="#" id="rights-open-eula">EULA（使用許諾契約）</a>に同意したものとみなされます。</p>`);
   page.addEventListener('click', (e)=>{
-    const a = e.target.closest('#rights-open-eula');
-    if(!a) return;
-    e.preventDefault();
+    const a = e.target.closest('#rights-open-eula'); if(!a) return; e.preventDefault();
     if (typeof window.tlpOpenEula === 'function') window.tlpOpenEula();
     else if (window.TLP && typeof TLP.showEula === 'function') TLP.showEula();
     else alert('EULAを表示できませんでした。');
   });
+  ensure('rights-support', `<h4>サポート</h4><p>不具合報告・お問い合わせ:<br> Email: <a href="mailto:${SUPPORT_MAIL}">${SUPPORT_MAIL}</a><br> Web: <a href="${SITE_URL}" target="_blank" rel="noopener">${SITE_URL}</a></p>`);
+  ensure('rights-trademark', `<h4>商標について</h4><p>“${APP_NAME}” および関連ロゴは ${PUBLISHER} の商標です。記載の会社名・製品名は各社の商標または登録商標です。</p>`);
+  ensure('rights-oss', `<h4>オープンソースコンポーネント</h4><p>必要に応じてコンポーネントのライセンス情報をここに追記します。</p><ul id="oss-list" style="margin-top:4px"></ul>`);
 
-  // 4) サポート窓口
-  ensure('rights-support', `
-    <h4>サポート</h4>
-    <p>不具合報告・お問い合わせ:<br>
-       Email: <a href="mailto:${SUPPORT_MAIL}">${SUPPORT_MAIL}</a><br>
-       Web: <a href="${SITE_URL}" target="_blank" rel="noopener">${SITE_URL}</a></p>
-  `);
-
-  // 5) 商標
-  ensure('rights-trademark', `
-    <h4>商標について</h4>
-    <p>“${APP_NAME}” および関連ロゴは ${PUBLISHER} の商標です。<br>
-       記載の会社名・製品名は各社の商標または登録商標です。</p>
-  `);
-
-  // 6) オープンソースコンポーネント（必要になれば追記）
-  ensure('rights-oss', `
-    <h4>オープンソースコンポーネント</h4>
-    <p>本アプリは主にネイティブWeb技術（HTML/CSS/JavaScript）で構築されています。
-       必要に応じてコンポーネントのライセンス情報をここに追記します。</p>
-    <ul id="oss-list" style="margin-top:4px"></ul>
-  `);
-
-  // 7) 体裁の微調整（既存テーマに合わせ軽量に）
-  const css = `
-    #page-rights section + section { margin-top: 12px; }
-    #page-rights a { text-decoration: underline; }
-    #page-rights p { line-height: 1.6; }
-  `;
-  const styleTag = document.createElement('style');
-  styleTag.textContent = css;
-  page.appendChild(styleTag);
-
-  // 外部リンクの target/rel を保険で付与
-  page.querySelectorAll('a[href^="http"]').forEach(a=>{
-    a.setAttribute('target','_blank');
-    a.setAttribute('rel','noopener');
-  });
+  const css = `#page-rights section + section { margin-top: 12px; } #page-rights a { text-decoration: underline; } #page-rights p { line-height: 1.6; }`;
+  const styleTag = document.createElement('style'); styleTag.textContent = css; page.appendChild(styleTag);
+  page.querySelectorAll('a[href^="http"]').forEach(a=>{ a.setAttribute('target','_blank'); a.setAttribute('rel','noopener'); });
 })();
 </script>
+
 <script id="rights-rebuilder">
 (()=>{'use strict';
-  // 公式ページ（日本語URL）
   const WEB_URL = 'https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/';
-
-  // メタから名称などを取得（無ければフォールバック）
   const meta = (window.__tlp_meta||{}), app=(window.TLP&&TLP.APP)||{};
   const APP_NAME = String(app.NAME || meta.app || 'Tabco Ledger Plus');
-  const VERSION  = String(app.VERSION || meta.version || '0.8.0');
-  const BUILD    = String(meta.build || 'v0.8.0-20250908');
+  const VERSION  = String(app.VERSION || meta.version || '0.8.1');
+  const BUILD    = String(meta.build || 'v0.8.1-20250918');
   const EULA_VER = String(app.EULA_VERSION || meta.eulaVersion || '2025-09-08');
   const PUBLISHER= String(meta.publisher || 'チカキッサ.タブコ');
   const YEAR     = new Date().getFullYear();
 
-  // このページを毎回“既知の良い状態”に完全再構築する
   function buildRightsHTML(){
     return `
       <div class="card">
         <h3>Licenses & Notices</h3>
-
-        <section>
-          <h4>App & Version</h4>
-          <p><b>App:</b> ${APP_NAME} / <b>Version:</b> ${VERSION} / <b>Build:</b> ${BUILD}</p>
-          <p><b>EULA Ver:</b> ${EULA_VER} / <b>© ${YEAR} ${PUBLISHER}. All rights reserved.</b></p>
-        </section>
-
-        <section>
-          <h4>Trademark Notice</h4>
-          <p>“${APP_NAME}” および関連ロゴは ${PUBLISHER} の商標です。記載の会社名・製品名は各社の商標または登録商標です。</p>
-        </section>
-
-        <section>
-          <h4>EULA（使用許諾）</h4>
-          <p>本アプリのご利用によりEULA（使用許諾契約）に同意したものとみなされます。
-             <a href="#" id="rights-open-eula">EULAを開く</a></p>
-        </section>
-
-        <section>
-          <h4>データとプライバシー</h4>
-          <p>データは基本的に端末ローカルに保存されます。クラウドバックアップを選んだ場合は、お客様自身のアカウントへ保存されます。</p>
-          <p>また、本アプリに入力した仕入れ情報は、将来提供予定の
-             <b>棚卸アプリ</b>・<b>原価計算アプリ</b>と共有できるよう設計します。</p>
-          <p>公式ページ：<a href="${WEB_URL}" target="_blank" rel="noopener">${WEB_URL}</a></p>
-        </section>
-
-        <section>
-          <h4>エクスポート（Excel XML）</h4>
-          <p>Excelで直接開ける <b>XML Spreadsheet 2003 形式（.xml）</b>で出力します。</p>
-          <ul>
-            <li>Excel：ダブルクリック or <em>ファイル → 開く</em> で読み込み可。</li>
-            <li>Googleスプレッドシート：<em>直接は開けません</em>。PCのExcelで <code>.xlsx</code> に保存してからアップロードしてください。</li>
-          </ul>
-        </section>
-
-        <section>
-          <h4>サードパーティ表記</h4>
-          <p>本アプリにはオープンソースコンポーネントが含まれる場合があり、そのライセンスを記載します。</p>
-        </section>
-
-        <section>
-          <h4>お問い合わせ</h4>
-          <p>ご不明点は公式ページをご確認ください（お問い合わせフォーム準備中）。<br>
-             <a href="${WEB_URL}" target="_blank" rel="noopener">${WEB_URL}</a></p>
-        </section>
-
+        <section><h4>App & Version</h4><p><b>App:</b> ${APP_NAME} / <b>Version:</b> ${VERSION} / <b>Build:</b> ${BUILD}</p><p><b>EULA Ver:</b> ${EULA_VER} / <b>© ${YEAR} ${PUBLISHER}. All rights reserved.</b></p></section>
+        <section><h4>Trademark Notice</h4><p>“${APP_NAME}” および関連ロゴは ${PUBLISHER} の商標です。</p></section>
+        <section><h4>EULA（使用許諾）</h4><p>本アプリのご利用によりEULAに同意したものとみなされます。<a href="#" id="rights-open-eula">EULAを開く</a></p></section>
+        <section><h4>データとプライバシー</h4><p>データは基本的に端末ローカルに保存されます。バックアップ利用時はお客様自身のクラウドに保存されます。</p><p>公式ページ：<a href="${WEB_URL}" target="_blank" rel="noopener">${WEB_URL}</a></p></section>
+        <section><h4>エクスポート（Excel XML）</h4><p>Excelで直接開ける <b>XML Spreadsheet 2003 形式（.xml）</b>で出力します。</p><ul><li>Excel：ダブルクリック or <em>ファイル → 開く</em> で読み込み可。</li><li>Googleスプレッドシート：<em>直接は開けません</em>。PCのExcelで <code>.xlsx</code> に保存してからアップロードしてください。</li></ul></section>
+        <section><h4>サードパーティ表記</h4><p>本アプリにはオープンソースコンポーネントが含まれる場合があり、そのライセンスを記載します。</p></section>
+        <section><h4>お問い合わせ</h4><p>公式ページをご確認ください（お問い合わせフォーム準備中）。<br><a href="${WEB_URL}" target="_blank" rel="noopener">${WEB_URL}</a></p></section>
         <div id="tlp-rights-badge-host" aria-hidden="true"></div>
       </div>
     `.trim();
   }
-
   function ensureBadge(){
-  const host = document.querySelector('#page-rights #tlp-rights-badge-host');
-  if (!host) return;
-  let el = document.getElementById('tlp-brand-badge-rights');
-  if (!el){
-    el = document.createElement('div');
-    el.id = 'tlp-brand-badge-rights';
-    el.setAttribute('role','note');
-    el.textContent = `${APP_NAME}™ v${VERSION}`;
-    el.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:7000;padding:8px 10px;border-radius:10px;background:#fff;color:#111;border:1px solid #e5e7eb;box-shadow:0 2px 8px rgba(0,0,0,.12);font-size:12px;white-space:nowrap;';
+    const host = document.querySelector('#page-rights #tlp-rights-badge-host');
+    if (!host) return;
+    let el = document.getElementById('tlp-brand-badge-rights');
+    if (!el){
+      el = document.createElement('div');
+      el.id = 'tlp-brand-badge-rights';
+      el.setAttribute('role','note');
+      el.textContent = `${APP_NAME}™ v${VERSION}`;
+      el.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:7000;padding:8px 10px;border-radius:10px;background:#fff;color:#111;border:1px solid #e5e7eb;box-shadow:0 2px 8px rgba(0,0,0,.12);font-size:12px;white-space:nowrap;';
+    }
+    if (!host.contains(el)) host.appendChild(el);
   }
-  if (!host.contains(el)) host.appendChild(el);
-}
-
   function wireEulaLink(){
     document.addEventListener('click', (e)=>{
       const a = e.target.closest('#rights-open-eula'); if(!a) return;
@@ -1989,37 +1898,45 @@ document.addEventListener("focusin", (e)=>{
       else alert('EULAを表示できませんでした。');
     });
   }
-
   function rebuildRights(){
     const root = document.getElementById('page-rights');
     if (!root) return;
-    // 完全再構築：毎回中身を捨てて決め打ちテンプレで置き換える
     root.innerHTML = buildRightsHTML();
-    // 外部リンクのターゲット統一
     root.querySelectorAll('a[href^="http"]').forEach(a=>{ a.target='_blank'; a.rel='noopener'; });
     ensureBadge();
   }
-
   function onRoute(){
     const id = (location.hash||'').slice(1) || 'home';
     if (id !== 'rights') return;
-    // レイアウト反映のタイミング差を吸収（2段呼び）
-    rebuildRights();
-    setTimeout(rebuildRights, 0);
+    rebuildRights(); setTimeout(rebuildRights, 0);
   }
-
-  // 起動
-  wireEulaLink();
-  onRoute();
-  window.addEventListener('hashchange', onRoute);
+  wireEulaLink(); onRoute(); window.addEventListener('hashchange', onRoute);
 })();
-window.addEventListener('hashchange', ()=>{
-  if (((location.hash||'').slice(1) || 'home') !== 'rights'){
-    document.getElementById('tlp-brand-badge-rights')?.remove();
-  }
-});
+window.addEventListener('hashchange', ()=>{ if (((location.hash||'').slice(1) || 'home') !== 'rights'){ document.getElementById('tlp-brand-badge-rights')?.remove(); }});
 </script>
 
+<script>
+/* ===== Init ===== */
+function init(){
+  try{
+    applyTheme();
+    refreshHome();
+    initInputPage();
+    renderTodayList();
+    enableSelectOnFocus();
+    renderSuppliers();
+    fillFilterSupplier();
+    renderProducts();
+    refreshFiscalLabel();
+    showPage(location.hash.replace("#","")||"home");
+    if ((location.hash||"") === "#history") { try{ renderHistory(); }catch(e){ console.error(e); } }
+  }catch(err){
+    console.error("init failed:", err);
+    alert("初期化中に問題が発生しました。ページを再読み込みしてください。");
+  }
+}
+init();
+</script>
 
 </body>
 </html>
