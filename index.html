@@ -2019,6 +2019,406 @@ window.addEventListener('hashchange', ()=>{
   }
 });
 </script>
+<script>
+/* ================== TLP Plan Module (drop-in) ================== */
+/* 目的：既存コードを壊さず、無料/ミドル/プロの上限・広告・UI制御を“後付け”
+   手順：この <script> を </body> 直前に 1 回 だけ貼る
+   既存の plan 文字列は 'free' | 'middle' | 'pro' を尊重（'mid' 同義吸収）
+*/
+(()=>{ 'use strict';
+  // ---- 設定（後から差し替え可） ----
+  const PLAN_META = {
+    free:   { label:'無料',  price: 0 },
+    middle: { label:'ミドル', price: 700 },
+    pro:    { label:'プロ',   price: 1500 }
+  };
+  const PLAN_LIMITS = {
+    free:   { supplierMax: 5,  perCardMax: 10, totalProductsMax: 50,  exportScope: 'month', ads:true  },
+    middle: { supplierMax: 15, perCardMax: 15, totalProductsMax: 225, exportScope: 'all',  ads:false },
+    pro:    { supplierMax: Infinity, perCardMax: Infinity, totalProductsMax: Infinity, exportScope: 'all', ads:false }
+  };
+
+  // ---- ヘルパ ----
+  const $  = (s,el)=>(el||document).querySelector(s);
+  const $$ = (s,el)=>Array.from((el||document).querySelectorAll(s));
+  const isFiniteN = v => Number.isFinite(v) && v >= 0;
+
+  const TLPNS = (window.TLP = window.TLP || {});
+  function normPlan(p){
+    if (p === 'mid') return 'middle';
+    return (p==='free'||p==='middle'||p==='pro') ? p : 'free';
+  }
+  function getPlan(){
+    try{
+      const p = (window.store?.settings?.plan) || 'free';
+      return normPlan(p);
+    }catch(_){ return 'free'; }
+  }
+  function setPlan(p){
+    p = normPlan(p);
+    try{
+      if (!window.store) return;
+      window.store.settings.plan = p;
+      if (window.DB?.save) DB.save(store);
+      if (typeof window.refreshHome === 'function') refreshHome();
+    }catch(_){}
+  }
+  TLPNS.getPlan = getPlan;
+  TLPNS.setPlan = setPlan;
+
+  function limits(){ return PLAN_LIMITS[getPlan()]; }
+  function countSuppliers(){
+    try{ return (store.suppliers||[]).filter(s=>!s.deleted).length; }catch(_){ return 0; }
+  }
+  function countProductsTotal(){
+    try{ return (store.products||[]).filter(p=>!p.deleted).length; }catch(_){ return 0; }
+  }
+  function countProductsBySupplier(sid){
+    try{ return (store.products||[]).filter(p=>!p.deleted && p.supplier_id===sid).length; }catch(_){ return 0; }
+  }
+
+  // ---- アップグレード導線（共通モーダル） ----
+  function openUpgrade(reason){
+    if (typeof window.openModalBase !== 'function'){ alert(reason+"\n\n上位プランへのアップグレードをご検討ください。"); return; }
+    const plan = getPlan();
+    const lim  = limits();
+    const meta = PLAN_META;
+    const mkRow = (k,v)=>`<tr><th>${k}</th><td>${v}</td></tr>`;
+    const tbl = `
+      <table style="width:100%;border-collapse:collapse;font-size:.95em">
+        <tbody>
+          ${mkRow('現在のプラン', `${PLAN_META[plan]?.label||plan}`)}
+          ${mkRow('制限（仕入先）', lim.supplierMax===Infinity?'無制限':`${lim.supplierMax}社`)}
+          ${mkRow('制限（商品/仕入先）', lim.perCardMax===Infinity?'無制限':`${lim.perCardMax}品/社`)}
+          ${mkRow('制限（商品 合計）', lim.totalProductsMax===Infinity?'無制限':`${lim.totalProductsMax}品`)}
+          ${mkRow('出力範囲', lim.exportScope==='all'?'無制限':'直近1か月')}
+          ${mkRow('広告', lim.ads?'あり':'なし')}
+        </tbody>
+      </table>
+    `;
+    openModalBase("上位プランのご案内", `
+      <div class="grid">
+        <div class="label">制限に達しました：</div>
+        <div style="margin-bottom:8px">${reason}</div>
+        ${tbl}
+        <div class="row" style="gap:10px;flex-wrap:wrap;margin-top:8px">
+          <button class="btn primary small" id="tlpGoMiddle" type="button">ミドル（¥${meta.middle.price}）へ</button>
+          <button class="btn primary small" id="tlpGoPro" type="button">プロ（¥${meta.pro.price}）へ</button>
+          <button class="btn ghost small"   id="tlpGoClose" type="button">閉じる</button>
+        </div>
+      </div>
+    `);
+    const ok  = $("#modalOK"); if (ok) ok.classList.add('hidden');
+    const del = $("#modalDelete"); del && del.classList.add('hidden');
+    $("#tlpGoMiddle")?.addEventListener('click', ()=>{ setPlan('middle'); closeModal(); alert('ミドルに切り替えました（デモ）'); });
+    $("#tlpGoPro")?.addEventListener('click',   ()=>{ setPlan('pro');    closeModal(); alert('プロに切り替えました（デモ）'); });
+    $("#tlpGoClose")?.addEventListener('click', ()=> closeModal());
+  }
+
+  // ---- 出力範囲の上書き：free=month / middle&pro=all （既存のModalExportはそのままでもOKだが、保険で強制） ----
+  (function forceExportScope(){
+    const _getExportRange = window.getExportRange;
+    if (typeof _getExportRange === 'function'){
+      window.getExportRange = function(key){
+        const pl = getPlan();
+        const allow = (pl==='free') ? 'month' : 'all';
+        const desired = (key==='all'||key==='6m'||key==='month') ? key : 'month';
+        const eff = (allow==='month' && desired!=='month') ? 'month' : (allow==='all' ? desired : 'month');
+        return _getExportRange(eff);
+      };
+    }
+  })();
+
+  // ---- 追加ボタンの見た目制御（上限到達で disable + title 表示） ----
+  function refreshLimitUI(){
+    try{
+      const lim = limits();
+      const sup = countSuppliers();
+      const prod= countProductsTotal();
+
+      const bSup = $("#btnAddSupplier");
+      if (bSup){
+        const hit = sup >= lim.supplierMax;
+        bSup.disabled = !!hit;
+        bSup.title = hit ? `このプランでは仕入れ先は最大 ${lim.supplierMax} 社です` : '';
+      }
+
+      const bProd = $("#btnAddProduct");
+      if (bProd){
+        const hit = prod >= lim.totalProductsMax;
+        bProd.disabled = !!hit;
+        bProd.title = hit ? `このプランでは商品 合計 ${lim.totalProductsMax} 品までです` : '';
+      }
+    }catch(_){}
+  }
+
+  // ---- モーダルOKのフック：openSupplierModal / openProductModal を“呼んだ後”にOKハンドラを差し替え ----
+  function wrapSupplierModal(){
+    const orig = window.openSupplierModal;
+    if (typeof orig !== 'function') return;
+    window.openSupplierModal = function(s){
+      orig.apply(this, arguments); // モーダルを開いて、既存のOKをセットさせる
+      // 既存OKを捕捉
+      const ok = document.getElementById('modalOK');
+      if (!ok) return;
+
+      const prev = ok.onclick; // オリジナル onOK
+      ok.onclick = function(ev){
+        // 既存レコードの編集はそのまま許可
+        if (s){ return prev && prev(ev); }
+
+        const lim = limits();
+        const supCount = countSuppliers();
+        if (supCount >= lim.supplierMax){
+          openUpgrade(`仕入れ先の上限（${lim.supplierMax}社）に達しました。`);
+          return; // 中断
+        }
+        // 新規登録は許可
+        prev && prev(ev);
+        setTimeout(refreshLimitUI, 0);
+      };
+    };
+  }
+  function wrapProductModal(){
+    const orig = window.openProductModal;
+    if (typeof orig !== 'function') return;
+    window.openProductModal = function(p, defaultSid){
+      orig.apply(this, arguments);
+      const ok = document.getElementById('modalOK');
+      if (!ok) return;
+
+      const prev = ok.onclick;
+      ok.onclick = function(ev){
+        // 編集は素通り
+        if (p){ return prev && prev(ev); }
+
+        const lim = limits();
+        // 合計制限
+        const total = countProductsTotal();
+        if (total >= lim.totalProductsMax){
+          openUpgrade(`商品合計の上限（${lim.totalProductsMax}品）に達しました。`);
+          return;
+        }
+        // 仕入先ごとの上限
+        const sid = String(document.getElementById('mProdSup')?.value || defaultSid || '');
+        if (!sid){
+          // 既存のバリデーションに任せる
+          return prev && prev(ev);
+        }
+        const bySup = countProductsBySupplier(sid);
+        if (bySup >= lim.perCardMax){
+          openUpgrade(`この仕入れ先の上限（${lim.perCardMax}品/社）に達しました。`);
+          return;
+        }
+        // OK
+        prev && prev(ev);
+        setTimeout(refreshLimitUI, 0);
+      };
+    };
+  }
+
+  // ---- 無料版の広告スロット（非侵入・下部） ----
+  function ensureAdSlot(){
+    const need = limits().ads === true;
+    const places = ['#page-home', '#page-input'];
+    for (const sel of places){
+      const host = document.querySelector(sel);
+      if (!host) continue;
+      let slot = host.querySelector('#tlp-adslot');
+      if (!need){ if (slot) slot.remove(); continue; }
+      if (!slot){
+        slot = document.createElement('div');
+        slot.id = 'tlp-adslot';
+        slot.className = 'card';
+        slot.style.marginTop = '12px';
+        slot.innerHTML = `
+          <div class="label">おすすめツール（広告）</div>
+          <div style="font-size:.95em;line-height:1.5">
+            業務で役立つ調理器具・保存容器などをピックアップ（将来差し替え可）。
+            <ul style="margin:6px 0 0 16px">
+              <li>耐熱保存容器 60サイズ最適パック</li>
+              <li>ステンレス寸胴 20L（在庫管理に便利）</li>
+              <li>消耗品まとめ買いガイド</li>
+            </ul>
+          </div>`;
+        host.appendChild(slot);
+      }
+    }
+  }
+
+  // ---- Plans 表示の文言を“後付けで補正”（既存HTMLは触らない） ----
+  function patchPlansText(){
+    const sec = document.getElementById('page-license');
+    if (!sec) return;
+    // 既存カード内の説明を置換（分かる範囲で）
+    const cards = sec.querySelectorAll('.card');
+    // 0:無料 / 1:ミドル / 2:プロ という現在の構造想定
+    const free = cards[0]; const mid = cards[1]; const pro = cards[2];
+    if (free){
+      free.querySelector('ul')?.replaceChildren(...(function(){
+        const ul = document.createElement('ul');
+        ul.innerHTML = `<li>広告あり</li><li>仕入れ先 ${PLAN_LIMITS.free.supplierMax}社まで／商品 合計${PLAN_LIMITS.free.totalProductsMax}品（1社${PLAN_LIMITS.free.perCardMax}品）</li><li>出力は直近1か月</li>`;
+        return ul.childNodes;
+      })());
+    }
+    if (mid){
+      mid.querySelector('h3') && (mid.querySelector('h3').textContent = `ミドル（¥${PLAN_META.middle.price}）`);
+      mid.querySelector('ul')?.replaceChildren(...(function(){
+        const ul = document.createElement('ul');
+        ul.innerHTML = `<li>広告なし</li><li>仕入れ先 ${PLAN_LIMITS.middle.supplierMax}社まで／1社${PLAN_LIMITS.middle.perCardMax}品（合計${PLAN_LIMITS.middle.totalProductsMax}品）</li><li>出力は年度分でも制限なし（実装上は無制限）</li>`;
+        return ul.childNodes;
+      })());
+    }
+    if (pro){
+      pro.querySelector('h3') && (pro.querySelector('h3').textContent = `プロ（¥${PLAN_META.pro.price}）`);
+      pro.querySelector('ul')?.replaceChildren(...(function(){
+        const ul = document.createElement('ul');
+        ul.innerHTML = `<li>広告なし</li><li>上限なし</li><li>出力は無制限</li>`;
+        return ul.childNodes;
+      })());
+    }
+  }
+
+  // ---- ルータ遷移やデータ変更時に UI 反映 ----
+  function onRoute(){
+    ensureAdSlot();
+    refreshLimitUI();
+    if (((location.hash||'').slice(1) || 'home') === 'license'){ patchPlansText(); }
+  }
+  window.addEventListener('hashchange', onRoute);
+
+  // ---- 初期化：既存 init 後に少し遅延して噛ませる ----
+  function boot(){
+    try{
+      // 既存の open* をラップ
+      wrapSupplierModal();
+      wrapProductModal();
+      // 最初の表示
+      ensureAdSlot();
+      refreshLimitUI();
+      // Pill 表示の微調整（「ミドル/プロ」表記にする）
+      const pill = document.getElementById('pillPlan');
+      if (pill){
+        const p = getPlan(); const label = PLAN_META[p]?.label || p;
+        pill.textContent = `プラン：${label}`;
+      }
+      // ミドル/プロのモック購入ボタンも setPlan に接続（既存 setPlan でもOK、保険）
+      document.getElementById('mockBuyMid')?.addEventListener('click', ()=> setPlan('middle'));
+      document.getElementById('mockBuyPro')?.addEventListener('click', ()=> setPlan('pro'));
+    }catch(e){ console.warn('[TLP Plan] boot warning:', e); }
+  }
+  // 既存 init 実行後に呼びたいので少し遅延
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', ()=> setTimeout(boot, 0));
+  }else{
+    setTimeout(boot, 0);
+  }
+})();
+</script>
+<script>
+/* ===== TLP Plan micro patch v1.1 ===== */
+(()=>{'use strict';
+  const $=(s,el)=>(el||document).querySelector(s);
+  const $$=(s,el)=>Array.from((el||document).querySelectorAll(s));
+  const LABEL={free:'無料', middle:'ミドル', pro:'プロ'};
+  const getPlan=()=> (window.TLP&&TLP.getPlan)?TLP.getPlan():(window.store?.settings?.plan||'free');
+
+  /* 1) Exportモーダルを差し替え：ミドル/プロ=全期間をUIから選択可能に */
+  const oldExportData = window.exportData;
+  window.ModalExport = function ModalExportPatched(){
+    const plan = getPlan();
+    const allow = (plan==='free') ? 'month' : 'all'; // free=当月, middle/pro=全期間
+    const radios = `
+      <div class="grid">
+        <div class="label">出力範囲</div>
+        <label><input type="radio" name="exRange" value="month"> 当月</label>
+        <label><input type="radio" name="exRange" value="6m"> 過去6か月</label>
+        <label><input type="radio" name="exRange" value="all"> 全期間</label>
+        <div class="mini-meta">プラン：${LABEL[plan]||plan}</div>
+      </div>`;
+    if (typeof window.openModalBase!=='function'){ alert('出力範囲を選択できません'); return; }
+    openModalBase('データ出力', radios);
+
+    // 無料のみ"month"固定、それ以外は全て選択可
+    $$('input[name="exRange"]').forEach(r=>{
+      if (allow==='month' && r.value!=='month'){
+        r.disabled = true; r.parentElement.style.opacity='.5';
+      }
+    });
+    const def = (allow==='month'?'month':'all');
+    const defEl = $$('input[name="exRange"]').find(r=>r.value===def);
+    if(defEl) defEl.checked = true;
+
+    const ok=$("#modalOK");
+    ok.textContent='出力する';
+    ok.onclick=()=>{
+      const chosen = (document.querySelector('input[name="exRange"]:checked')?.value) || def;
+      closeModal();
+      // 既存の exportData を利用（Planモジュール側の丸めも有効）
+      (oldExportData || window.exportData)(chosen);
+    };
+  };
+
+  /* 2) 広告カードは入力画面の固定バー直前に差し込む（重なり防止） */
+  function ensureAdPlacement(){
+    const plan = getPlan();
+    const need = (plan==='free');
+    const home = $('#page-home');
+    const input= $('#page-input');
+    function mount(container, beforeEl){
+      if(!container) return;
+      let slot = container.querySelector('#tlp-adslot');
+      if(!need){ slot && slot.remove(); return; }
+      if(!slot){
+        slot = document.createElement('div');
+        slot.id='tlp-adslot'; slot.className='card'; slot.style.marginTop='12px';
+        slot.innerHTML = `
+          <div class="label">おすすめツール（広告）</div>
+          <div style="font-size:.95em;line-height:1.5">
+            調理器具・保存容器など業務に役立つ情報（後で差し替え可能）。
+            <ul style="margin:6px 0 0 16px">
+              <li>耐熱保存容器 60サイズ最適パック</li>
+              <li>ステンレス寸胴 20L</li>
+              <li>消耗品まとめ買いガイド</li>
+            </ul>
+          </div>`;
+      }
+      if(beforeEl){
+        if(slot.parentElement!==container || slot.nextElementSibling!==beforeEl){
+          container.insertBefore(slot, beforeEl);
+        }
+      }else{
+        if(!slot.parentElement) container.appendChild(slot);
+      }
+    }
+    // HOMEは末尾、INPUTは固定バー直前
+    mount(home, null);
+    const fixedBar = input?.querySelector('.fixed-bar') || null;
+    mount(input, fixedBar);
+  }
+
+  /* 3) プラン表示ピルを常に日本語ラベルへ（refreshHome後の上書き対策） */
+  function syncPill(){
+    const pill = $('#pillPlan'); if(!pill) return;
+    const p = getPlan(); pill.textContent = `プラン：${LABEL[p]||p}`;
+  }
+  // refreshHome実行後に文字列が戻るケースに備えて監視
+  const pill = document.getElementById('pillPlan');
+  if (pill){
+    new MutationObserver(()=> syncPill()).observe(pill,{childList:true});
+    syncPill();
+  }
+
+  // ルーティング時に再適用
+  window.addEventListener('hashchange', ()=>{ ensureAdPlacement(); syncPill(); });
+  // 初期
+  if (document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', ()=>{ setTimeout(()=>{ ensureAdPlacement(); syncPill(); },0); });
+  }else{
+    setTimeout(()=>{ ensureAdPlacement(); syncPill(); },0);
+  }
+})();
+</script>
 
 
 </body>
