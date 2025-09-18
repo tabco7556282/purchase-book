@@ -2021,181 +2021,189 @@ window.addEventListener('hashchange', ()=>{
 </script>
 <script>
 (()=>{'use strict';
-  // === 設定（後で変更可） ===
-  const META={free:{label:'無料',price:0}, middle:{label:'ミドル',price:700}, pro:{label:'プロ',price:1500}};
-  const LIM ={free:{supplierMax:5,perCardMax:10,totalProductsMax:50, export:'month', ads:true},
-              middle:{supplierMax:15,perCardMax:15,totalProductsMax:225,export:'all',  ads:false},
-              pro:{supplierMax:Infinity,perCardMax:Infinity,totalProductsMax:Infinity,export:'all',ads:false}};
-  const $=(s,el)=>(el||document).querySelector(s); const $$=(s,el)=>Array.from((el||document).querySelectorAll(s));
-  const TLP=(window.TLP=window.TLP||{});
-  const norm=p=>(p==='mid'?'middle':(['free','middle','pro'].includes(p)?p:'free'));
-  const getPlan=()=>norm(window.store?.settings?.plan||'free');
-  const setPlan=p=>{p=norm(p); if(window.store){store.settings.plan=p; window.DB?.save(store);}
-    try{window.refreshHome?.()}catch(_){} syncPill(); placeAds(); limitButtons();}
-  TLP.getPlan=getPlan; TLP.setPlan=setPlan;
+/* ===== Tabco Ledger Plus — Plan Safe Module v1.3 (drop-in) ===================
+   既存コードは触らず、ここを最後に「追加」するだけでOK
+   - Free: 仕入先5 / 1社10 / 商品合計50 / 当月出力 / 広告あり
+   - Middle: 仕入先15 / 1社15 / 商品合計225 / 年度出力（回数無制限）/ 広告なし
+   - Pro: 無制限 / 広告なし
+============================================================================= */
 
-  // === 出力範囲：free=当月固定 / middle,pro=選択可 ===
-  (function(){
-    const orig=window.getExportRange;
-    if(typeof orig==='function'){
-      window.getExportRange=function(key){
-        const allow=(getPlan()==='free')?'month':'all';
-        const k=(key==='month'||key==='6m'||key==='all')?key:'month';
-        const eff=(allow==='month'&&k!=='month')?'month':k; return orig(eff);
-      };
-    }
-    // ModalExport を安全に再定義（Plans書き換えはしない）
-    window.ModalExport=function(){
-      const plan=getPlan(), allow=(plan==='free')?'month':'all';
-      if(typeof window.openModalBase!=='function'){ alert('出力範囲を選択できません'); return; }
-      openModalBase('データ出力', `
-        <div class="grid">
-          <div class="label">出力範囲</div>
-          <label><input type="radio" name="exRange" value="month"> 当月</label>
-          <label><input type="radio" name="exRange" value="6m"> 過去6か月</label>
-          <label><input type="radio" name="exRange" value="all"> 全期間</label>
-          <div class="mini-meta">プラン：${META[plan]?.label||plan}</div>
-        </div>`);
-      $$('input[name="exRange"]').forEach(r=>{ if(allow==='month'&&r.value!=='month'){ r.disabled=true; r.parentElement.style.opacity='.5'; }});
-      const def=(allow==='month'?'month':'all'); const defEl=$$('input[name="exRange"]').find(r=>r.value===def); defEl&&(defEl.checked=true);
-      const ok=$('#modalOK'); if(ok){ ok.textContent='出力する'; ok.onclick=()=>{ const v=document.querySelector('input[name="exRange"]:checked')?.value||def; closeModal(); window.exportData?.(v); }; }
-      $('#modalDelete')?.classList.add('hidden');
-    };
-  })();
+// ---- 互換ポリフィル（古環境対策・安全） -----------------------------------
+if(!Element.prototype.replaceChildren){
+  Element.prototype.replaceChildren=function(...nodes){
+    this.innerHTML=''; for(const n of nodes){ this.append(n instanceof Node?n:document.createTextNode(String(n))); }
+  };
+}
 
-  // === 上限制御（モーダルのOKを後付けでフック） ===
-  function suppliersCount(){ return (store.suppliers||[]).filter(s=>!s.deleted).length; }
-  function productsTotal(){ return (store.products||[]).filter(p=>!p.deleted).length; }
-  function productsBySup(sid){ return (store.products||[]).filter(p=>!p.deleted&&p.supplier_id===sid).length; }
-  function openUpgrade(msg){
-    if(typeof openModalBase!=='function'){ alert(msg+'\n\n上位プランへのアップグレードをご検討ください。'); return; }
-    const p=getPlan();
-    openModalBase('上位プランのご案内', `
-      <div class="grid">
-        <div class="label">制限に達しました</div>
-        <div style="margin-bottom:8px">${msg}</div>
-        <div class="row" style="gap:8px;flex-wrap:wrap">
-          <button class="btn primary small" id="goMid">ミドル（¥${META.middle.price}）へ</button>
-          <button class="btn primary small" id="goPro">プロ（¥${META.pro.price}）へ</button>
-          <button class="btn ghost small"   id="goClose">閉じる</button>
-        </div>
-      </div>`);
-    $('#modalOK')?.classList.add('hidden'); $('#modalDelete')?.classList.add('hidden');
-    $('#goMid')?.addEventListener('click', ()=>{ setPlan('middle'); closeModal(); alert('ミドルに切り替えました（デモ）'); });
-    $('#goPro')?.addEventListener('click', ()=>{ setPlan('pro'); closeModal(); alert('プロに切り替えました（デモ）'); });
-    $('#goClose')?.addEventListener('click', ()=> closeModal());
-  }
-  function wrapSupplierModal(){
-    const orig=window.openSupplierModal; if(typeof orig!=='function') return;
-    window.openSupplierModal=function(s){ orig.apply(this,arguments);
-      const ok=$('#modalOK'); if(!ok) return; const prev=ok.onclick;
-      ok.onclick=function(ev){
-        if(s) return prev&&prev(ev); // 既存編集は許可
-        const lim=LIM[getPlan()]; if(suppliersCount()>=lim.supplierMax){ openUpgrade(`仕入れ先は ${lim.supplierMax} 社までです。`); return; }
-        prev&&prev(ev); setTimeout(limitButtons,0);
-      };
+// ---- 設定（一箇所で文言/価格を編集できます） --------------------------------
+const STR = {
+  label: { free:'無料', middle:'ミドル', pro:'プロ' },
+  price: { middle:700, pro:1500 },
+  exportModal: {
+    title:   'データ出力',
+    titleFY: 'データ出力（ミドル：年度）',
+    okExport:'出力する',        // ← Free/Pro のモーダルOKボタン文言はここで変更
+    okFY:    'この年度を出力'   // ← ミドル（年度）モーダルのOK文言はここで変更
+  },
+  adsTitle:'おすすめツール（広告）'
+};
+const LIM = {
+  free:   { supplierMax:5,  perCardMax:10, totalProductsMax:50,  ads:true  },
+  middle: { supplierMax:15, perCardMax:15, totalProductsMax:225, ads:false },
+  pro:    { supplierMax:Infinity, perCardMax:Infinity, totalProductsMax:Infinity, ads:false }
+};
+
+// ---- 便利関数 ---------------------------------------------------------------
+const $=(s,el=document)=>el.querySelector(s);
+const $$=(s,el=document)=>Array.from(el.querySelectorAll(s));
+const norm=p=>{ p=String(p||'free'); return p==='mid'?'middle':(['free','middle','pro'].includes(p)?p:'free'); };
+function getPlan(){ try{ return norm(window.store?.settings?.plan||'free'); }catch(_){ return 'free'; } }
+function setPlan(p){ p=norm(p); try{ if(window.store){ store.settings.plan=p; window.DB?.save(store); } }catch(_){}
+  syncPill(); placeAds(); limitButtons(); }
+window.TLP = Object.assign(window.TLP||{}, { getPlan, setPlan });
+
+function suppliersCount(){ return (window.store?.suppliers||[]).filter(s=>!s.deleted).length; }
+function productsTotal(){  return (window.store?.products ||[]).filter(p=>!p.deleted).length; }
+function productsBySup(sid){return (window.store?.products ||[]).filter(p=>!p.deleted && p.supplier_id===sid).length; }
+
+// ---- 上位プランの案内モーダル ----------------------------------------------
+function openUpgrade(msg){
+  const html = `
+    <div class="grid">
+      <div class="label">制限に達しました</div>
+      <div style="margin-bottom:8px">${msg}</div>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <button class="btn primary small" id="goMid">ミドル（¥${STR.price.middle}）へ</button>
+        <button class="btn primary small" id="goPro">プロ（¥${STR.price.pro}）へ</button>
+        <button class="btn ghost small"   id="goClose">閉じる</button>
+      </div>
+    </div>`;
+  if(typeof window.openModalBase!=='function'){ alert(msg); return; }
+  openModalBase('上位プランのご案内', html);
+  $('#modalOK')?.classList.add('hidden');
+  $('#modalDelete')?.classList.add('hidden');
+  $('#goMid')?.addEventListener('click', ()=>{ setPlan('middle'); closeModal(); alert('ミドルに切り替えました（デモ）'); });
+  $('#goPro')?.addEventListener('click', ()=>{ setPlan('pro'); closeModal(); alert('プロに切り替えました（デモ）'); });
+  $('#goClose')?.addEventListener('click', ()=> closeModal());
+}
+
+// ---- 追加モーダルのOKをフック（作成時のみチェック／二重押し防止） ----------
+function wrapSupplierModal(){
+  const orig = window.openSupplierModal; if(typeof orig!=='function') return;
+  window.openSupplierModal = function(s){ orig.apply(this, arguments);
+    const ok = $('#modalOK'); if(!ok) return; const prev = ok.onclick;
+    ok.onclick = function(ev){
+      if(ok.__used){ ev?.preventDefault?.(); return; } // ガード
+      if(!s){ // 新規作成のみチェック
+        const lim=LIM[getPlan()]; if(suppliersCount()>=lim.supplierMax){ openUpgrade(`このプランでは仕入れ先は ${lim.supplierMax} 社までです。`); return; }
+      }
+      ok.__used = true; try{ prev && prev(ev); } finally { setTimeout(()=>{ ok.__used=false; limitButtons(); },0); }
     };
-  }
-  function wrapProductModal(){
-    const orig=window.openProductModal; if(typeof orig!=='function') return;
-    window.openProductModal=function(p,defaultSid){ orig.apply(this,arguments);
-      const ok=$('#modalOK'); if(!ok) return; const prev=ok.onclick;
-      ok.onclick=function(ev){
-        if(p) return prev&&prev(ev);
+  };
+}
+function wrapProductModal(){
+  const orig = window.openProductModal; if(typeof orig!=='function') return;
+  window.openProductModal = function(p, defaultSid){ orig.apply(this, arguments);
+    const ok = $('#modalOK'); if(!ok) return; const prev = ok.onclick;
+    ok.onclick = function(ev){
+      if(ok.__used){ ev?.preventDefault?.(); return; } // ガード
+      if(!p){
         const lim=LIM[getPlan()];
-        if(productsTotal()>=lim.totalProductsMax){ openUpgrade(`商品 合計は ${lim.totalProductsMax} 品までです。`); return; }
+        if(productsTotal()>=lim.totalProductsMax){ openUpgrade(`このプランでは商品 合計 ${lim.totalProductsMax} 品までです。`); return; }
         const sid=String($('#mProdSup')?.value||defaultSid||'');
         if(sid && productsBySup(sid)>=lim.perCardMax){ openUpgrade(`この仕入れ先は ${lim.perCardMax} 品までです。`); return; }
-        prev&&prev(ev); setTimeout(limitButtons,0);
-      };
+      }
+      ok.__used = true; try{ prev && prev(ev); } finally { setTimeout(()=>{ ok.__used=false; limitButtons(); },0); }
+    };
+  };
+}
+
+// ---- 広告（Freeのみ／入力画面は固定バーの直前） -----------------------------
+function placeAds(){
+  const need = LIM[getPlan()].ads===true;
+  const home = $('#page-home'); const input=$('#page-input'); const bar=input?.querySelector('.fixed-bar');
+  function mount(host, before){
+    if(!host) return; let slot=host.querySelector('#tlp-adslot');
+    if(!need){ slot?.remove(); return; }
+    if(!slot){
+      slot=document.createElement('div'); slot.id='tlp-adslot'; slot.className='card'; slot.style.marginTop='12px';
+      slot.innerHTML = `<div class="label">${STR.adsTitle}</div>
+        <div style="font-size:.95em;line-height:1.5">
+          業務に役立つ情報（後で差し替え可）
+          <ul style="margin:6px 0 0 16px"><li>保存容器セット</li><li>ステンレス寸胴</li><li>消耗品まとめ買い</li></ul>
+        </div>`;
+    }
+    if(before){ if(slot.parentElement!==host||slot.nextElementSibling!==before) host.insertBefore(slot, before); }
+    else if(!slot.parentElement){ host.appendChild(slot); }
+  }
+  mount(home, null); mount(input, bar||null);
+}
+
+// ---- ボタン抑止とプラン表示ピル ---------------------------------------------
+function limitButtons(){
+  const lim=LIM[getPlan()];
+  const bSup=$('#btnAddSupplier'); if(bSup){ const ng=suppliersCount()>=lim.supplierMax; bSup.disabled=!!ng; bSup.title=ng?`このプランでは仕入れ先は最大 ${lim.supplierMax} 社です`:''; }
+  const bProd=$('#btnAddProduct'); if(bProd){ const ng=productsTotal()>=lim.totalProductsMax; bProd.disabled=!!ng; bProd.title=ng?`このプランでは商品 合計 ${lim.totalProductsMax} 品までです`:''; }
+}
+function syncPill(){ const el=$('#pillPlan'); if(el){ const p=getPlan(); el.textContent=`プラン：${STR.label[p]||p}`; } }
+
+// ---- 出力：Middleは「年度モーダル」／他は元のモーダルを利用 ---------------
+const origGet   = window.getExportRange;
+window.getExportRange = function(key){
+  const y = window.__TLP_FY_SELECTED;
+  if(getPlan()==='middle' && y){
+    const from=new Date(y,0,1), to=new Date(y,11,31,23,59,59,999);
+    return { from, to, label: `${y}-01〜${y}-12`, key:'fy' };
+  }
+  return typeof origGet==='function' ? origGet(key) : {from:null,to:null,label:'全期間',key:'all'};
+};
+
+const origModal = window.ModalExport;
+window.ModalExport = function(){
+  if(getPlan()!=='middle'){
+    // Free/Pro は既存モーダルを開いて、OK文言だけ上書き
+    if(origModal) origModal();
+    const ok=$('#modalOK'); if(ok) ok.textContent = STR.exportModal.okExport;  // ← ここでFree/ProのOKボタン文言を統一変更
+    return;
+  }
+  // Middle: 年度選択モーダル
+  const yearsSet = new Set((window.store?.entries||[]).map(e=>String(e?.date||'').slice(0,4)).filter(Boolean));
+  const cur = new Date().getFullYear(); yearsSet.add(String(cur));
+  const years = Array.from(yearsSet).map(Number).sort((a,b)=>b-a);
+  const opts = years.map(y=>`<option value="${y}" ${y===cur?'selected':''}>${y}年</option>`).join('');
+  if(typeof openModalBase!=='function'){ alert('モーダルが開けません'); return; }
+  openModalBase(STR.exportModal.titleFY, `
+    <div class="grid">
+      <div class="label">年度を選択（1月〜12月）</div>
+      <select id="tlpFySel">${opts}</select>
+      <div class="mini-meta">ミドルは年度単位で何度でも出力できます</div>
+    </div>`);
+  const ok=$('#modalOK');
+  if(ok){
+    ok.textContent = STR.exportModal.okFY; // ← ミドルのOKボタン文言
+    ok.onclick = ()=>{
+      const y = Number($('#tlpFySel').value)||cur;
+      window.__TLP_FY_SELECTED = y;
+      try{ window.exportData && window.exportData('all'); }
+      finally{ delete window.__TLP_FY_SELECTED; }
+      closeModal();
     };
   }
+  $('#modalDelete')?.classList.add('hidden');
+};
 
-  // === UI：広告（freeのみ／入力は固定バー直前）＆ボタン無効化＆ピル ===
-  function placeAds(){
-    const need = LIM[getPlan()].ads===true;
-    const home = $('#page-home'); const input=$('#page-input'); const bar=input?.querySelector('.fixed-bar');
-    function mount(host,before){
-      if(!host) return; let slot=host.querySelector('#tlp-adslot');
-      if(!need){ slot&&slot.remove(); return; }
-      if(!slot){ slot=document.createElement('div'); slot.id='tlp-adslot'; slot.className='card'; slot.style.marginTop='12px';
-        slot.innerHTML=`<div class="label">おすすめツール（広告）</div>
-          <div style="font-size:.95em;line-height:1.5">
-            業務に役立つ情報（後で差し替え可）
-            <ul style="margin:6px 0 0 16px"><li>保存容器セット</li><li>ステンレス寸胴</li><li>消耗品まとめ買い</li></ul>
-          </div>`;}
-      if(before){ if(slot.parentElement!==host||slot.nextElementSibling!==before) host.insertBefore(slot,before); }
-      else if(!slot.parentElement){ host.appendChild(slot); }
-    }
-    mount(home,null); mount(input,bar||null);
-  }
-  function limitButtons(){
-    const lim=LIM[getPlan()];
-    const bSup=$('#btnAddSupplier'); if(bSup){ const hit=suppliersCount()>=lim.supplierMax; bSup.disabled=!!hit; bSup.title=hit?`このプランでは仕入れ先は最大 ${lim.supplierMax} 社です`:''; }
-    const bProd=$('#btnAddProduct'); if(bProd){ const hit=productsTotal()>=lim.totalProductsMax; bProd.disabled=!!hit; bProd.title=hit?`このプランでは商品 合計 ${lim.totalProductsMax} 品までです`:''; }
-  }
-  function syncPill(){ const pill=$('#pillPlan'); if(pill){ const p=getPlan(); pill.textContent=`プラン：${META[p]?.label||p}`; } }
+// ---- ルーティング時の再適用 -------------------------------------------------
+window.addEventListener('hashchange', ()=>{ placeAds(); limitButtons(); syncPill(); });
 
-  // === ルーティング時に再適用 ===
-  window.addEventListener('hashchange', ()=>{ placeAds(); limitButtons(); syncPill(); });
+// ---- 起動（既存initのあとで実行される想定） --------------------------------
+function boot(){ try{
+  wrapSupplierModal(); wrapProductModal();
+  placeAds(); limitButtons(); syncPill();
+  console.log('[TLP Plan v1.3] ready (safe module + FY for middle)');
+}catch(e){ console.warn('[TLP Plan v1.3] init error', e); } }
+if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', ()=>setTimeout(boot,0)); }
+else{ setTimeout(boot,0); }
 
-  // === 起動（既存initの後で） ===
-  function boot(){ try{ wrapSupplierModal(); wrapProductModal(); placeAds(); limitButtons(); syncPill(); }catch(e){ console.warn('[TLP Plan v1.2]',e); } }
-  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', ()=>setTimeout(boot,0)); } else { setTimeout(boot,0); }
-})();
-</script>
-
-<script>
-(()=>{'use strict';
-  const getPlan=()=> (window.TLP?.getPlan?.() || 'free');
-  const origGet   = window.getExportRange;
-  const origModal = window.ModalExport;
-
-  function fyRange(y){
-    const from = new Date(y,0,1);
-    const to   = new Date(y,11,31,23,59,59,999);
-    return { from, to, label: `${y}-01〜${y}-12`, key: 'fy' };
-  }
-
-  // ミドル用：選択された年度があれば、exportData('all')でも年度範囲に丸める
-  window.getExportRange = function(key){
-    if (getPlan()==='middle' && window.__TLP_FY_SELECTED){
-      return fyRange(window.__TLP_FY_SELECTED);
-    }
-    return origGet ? origGet(key) : {from:null,to:null,label:'全期間',key:'all'};
-  };
-
-  // ミドルだけ “年度を選ぶモーダル” に差し替え（他プランは既存のモーダルを使用）
-  window.ModalExport = function(){
-    if (getPlan()!=='middle'){ return origModal ? origModal() : alert('出力モーダルを開けません'); }
-
-    const years = Array.from(new Set((window.store?.entries||[])
-      .map(e=>String(e?.date||'').slice(0,4)).filter(Boolean)))
-      .map(Number);
-    const cur = new Date().getFullYear();
-    if (!years.includes(cur)) years.push(cur);
-    years.sort((a,b)=>b-a);
-
-    if (typeof window.openModalBase!=='function'){ alert('モーダルが開けません'); return; }
-    openModalBase('データ出力（ミドル：年度）', `
-      <div class="grid">
-        <div class="label">年度を選択（1月〜12月）</div>
-        <select id="tlpFySel">${years.map(y=>`<option value="${y}" ${y===cur?'selected':''}>${y}年</option>`).join('')}</select>
-        <div class="mini-meta">ミドルは年度単位で何度でも出力できます</div>
-      </div>
-    `);
-    const ok = document.getElementById('modalOK');
-    if (ok){
-      ok.textContent='この年度を出力';
-      ok.onclick=()=>{
-        const y = Number(document.getElementById('tlpFySel').value)||cur;
-        window.__TLP_FY_SELECTED = y;
-        closeModal();
-        try{ window.exportData?.('all'); } finally { delete window.__TLP_FY_SELECTED; }
-      };
-    }
-    document.getElementById('modalDelete')?.classList.add('hidden');
-  };
 })();
 </script>
 
