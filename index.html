@@ -2145,6 +2145,59 @@ window.addEventListener('hashchange', ()=>{
 })();
 </script>
 
+<script>
+(()=>{'use strict';
+  const getPlan=()=> (window.TLP?.getPlan?.() || 'free');
+  const origGet   = window.getExportRange;
+  const origModal = window.ModalExport;
+
+  function fyRange(y){
+    const from = new Date(y,0,1);
+    const to   = new Date(y,11,31,23,59,59,999);
+    return { from, to, label: `${y}-01〜${y}-12`, key: 'fy' };
+  }
+
+  // ミドル用：選択された年度があれば、exportData('all')でも年度範囲に丸める
+  window.getExportRange = function(key){
+    if (getPlan()==='middle' && window.__TLP_FY_SELECTED){
+      return fyRange(window.__TLP_FY_SELECTED);
+    }
+    return origGet ? origGet(key) : {from:null,to:null,label:'全期間',key:'all'};
+  };
+
+  // ミドルだけ “年度を選ぶモーダル” に差し替え（他プランは既存のモーダルを使用）
+  window.ModalExport = function(){
+    if (getPlan()!=='middle'){ return origModal ? origModal() : alert('出力モーダルを開けません'); }
+
+    const years = Array.from(new Set((window.store?.entries||[])
+      .map(e=>String(e?.date||'').slice(0,4)).filter(Boolean)))
+      .map(Number);
+    const cur = new Date().getFullYear();
+    if (!years.includes(cur)) years.push(cur);
+    years.sort((a,b)=>b-a);
+
+    if (typeof window.openModalBase!=='function'){ alert('モーダルが開けません'); return; }
+    openModalBase('データ出力（ミドル：年度）', `
+      <div class="grid">
+        <div class="label">年度を選択（1月〜12月）</div>
+        <select id="tlpFySel">${years.map(y=>`<option value="${y}" ${y===cur?'selected':''}>${y}年</option>`).join('')}</select>
+        <div class="mini-meta">ミドルは年度単位で何度でも出力できます</div>
+      </div>
+    `);
+    const ok = document.getElementById('modalOK');
+    if (ok){
+      ok.textContent='この年度を出力';
+      ok.onclick=()=>{
+        const y = Number(document.getElementById('tlpFySel').value)||cur;
+        window.__TLP_FY_SELECTED = y;
+        closeModal();
+        try{ window.exportData?.('all'); } finally { delete window.__TLP_FY_SELECTED; }
+      };
+    }
+    document.getElementById('modalDelete')?.classList.add('hidden');
+  };
+})();
+</script>
 
 
 </body>
