@@ -433,6 +433,42 @@ function enableSelectOnFocus(){
     inp.addEventListener("click",sel);
   });
 }
+/* === Plans: 単一の真実（SOT） ============================= */
+/** プラン仕様（ここだけ直せば全体へ波及） */
+const PlanRules = {
+  free:   { exportMax: 'month',  supplierMax: 5,  productTotalMax: 50,  productPerSupplierMax: 10,  ads: true  },
+  middle: { exportMax: 'fiscal', supplierMax: 15, productTotalMax: 225, productPerSupplierMax: 15,  ads: false },
+  pro:    { exportMax: 'all',    supplierMax: Infinity, productTotalMax: Infinity, productPerSupplierMax: Infinity, ads: false }
+};
+
+/** 出力範囲キーの正規集合 */
+const EXPORT_KEYS = ['month','fiscal','all'];
+
+/** 要求された出力範囲を“プラン上限”で丸める（防御壁） */
+function clampExportKey(req, plan){
+  const rules = PlanRules[plan || 'free'] || PlanRules.free;
+  const key = EXPORT_KEYS.includes(req) ? req : 'month';
+  if (rules.exportMax === 'month') return 'month';
+  if (rules.exportMax === 'fiscal' && key === 'all') return 'fiscal';
+  return key;
+}
+
+/** 出力範囲の Date レンジを返す：month / fiscal / all */
+function getExportRange(key){
+  const now = new Date();
+  if (key === 'fiscal'){
+    const from = new Date(now.getFullYear(), 0, 1); // 1/1〜今
+    const to   = _endOfDay(new Date());
+    return { from, to, label: `${_ym(from)}〜${_ym(now)}`, key: 'fiscal' };
+  }
+  if (key === 'all'){
+    return { from: null, to: null, label: '全期間', key: 'all' };
+  }
+  // default: 当月
+  const from = _startOfMonth(now);
+  const to   = _endOfDay(new Date());
+  return { from, to, label: _ym(now), key: 'month' };
+}
 
 /* ===== Theme & Header ===== */
 function applyTheme(){
@@ -1168,22 +1204,26 @@ function _startOfMonth(d){ return new Date(d.getFullYear(), d.getMonth(), 1); }
 function _endOfDay(d){ const x=new Date(d); x.setHours(23,59,59,999); return x; }
 function _addMonths(d,n){ return new Date(d.getFullYear(), d.getMonth()+n, 1); }
 function getExportRange(key){
-  const now=new Date();
-  if(key==="year"){
-    const from=new Date(now.getFullYear(),0,1);
-    const to=_endOfDay(new Date());
-    return {from,to,label:`${now.getFullYear()}年`,key};
+  const now = new Date();
+
+  // Middle（ミドル）＝ 年度（1月〜今月）
+  if (key === "fiscal"){
+    const from = new Date(now.getFullYear(), 0, 1);
+    const to   = _endOfDay(new Date());
+    return { from, to, label: `${_ym(from)}〜${_ym(now)}`, key: "fiscal" };
   }
-  if(key==="6m"){ // 互換（未使用）
-    const from=_startOfMonth(_addMonths(now,-5));
-    const to=_endOfDay(new Date());
-    return {from,to,label:`${_ym(from)}〜${_ym(now)}`,key};
+
+  // Pro（プロ）＝ 全期間
+  if (key === "all"){
+    return { from: null, to: null, label: "全期間", key: "all" };
   }
-  if(key==="all"){ return {from:null,to:null,label:"全期間",key}; }
-  // default: 当月
-  const from=_startOfMonth(now), to=_endOfDay(new Date());
-  return {from,to,label:_ym(now),key:"month"};
+
+  // Free（無料）＝ 当月（デフォルト）
+  const from = _startOfMonth(now);
+  const to   = _endOfDay(new Date());
+  return { from, to, label: _ym(now), key: "month" };
 }
+
 function _inRange(ymd, range){
   if(!ymd) return false;
   const d=new Date(ymd+"T12:00:00");
