@@ -1194,32 +1194,43 @@ function _inRange(ymd, range){
 
 // === 出力本体（プラン制限＋期間選択） ===
 function exportData(rangeKey){
-  const plan = PLAN(); // 'free' | 'mid' | 'pro'
-  const maxKey = PlanRules[plan].exportMax; // 'month' | 'year' | 'all'
-  const key = (["month","year","all"].includes(rangeKey) ? rangeKey : "month");
+  // 1) プラン→上限キー
+  const plan = store.settings.plan || "free";            // 'free'|'middle'|'pro'
+  const maxKey = (plan==="pro") ? "all" : (plan==="middle" ? "6m" : "month"); // ← '6m' を使う
+
+  // 2) ユーザ指定×上限の突き合わせ（防御）
+  const key = (["month","6m","all"].includes(rangeKey) ? rangeKey : "month");
   const effectiveKey =
     (maxKey==="month" && key!=="month") ? "month" :
-    (maxKey==="year"  && key==="all")    ? "year"  : key;
+    (maxKey==="6m"    && key==="all")   ? "6m"    : key;
 
+  // 3) 範囲と抽出
   const range = getExportRange(effectiveKey);
+  const rows  = [["日付","仕入れ先","商品","数量","単価","税率","区分","税込額","メモ"]];
 
-  const rows = [["日付","仕入れ先","商品","数量","単価","税率","区分","税込額","メモ"]];
-  const hasAny = (store.entries||[]).some(e=>!e.deleted && (!range.from || _inRange(e.date, range)));
-  if(!hasAny){ alert("選択した期間にデータがありません。"); return; }
+  // ※ “一度 filter してから length 判定” に統一（早期 return の取りこぼし防止）
+  const entries = (store.entries||[]).filter(e =>
+    e && !e.deleted && (!range.from || _inRange(e.date, range))
+  );
+  if (entries.length === 0) {
+    alert("選択した期間にデータがありません。"); 
+    return;
+  }
 
-  store.entries.filter(e=>!e.deleted).forEach(e=>{
-    if(!range.from || _inRange(e.date, range)){
-      const s = supplierName(e.supplier_id) || e.supplier_name_fallback || "";
-      const p = prodName(e.product_id, e.product_name_fallback);
-      const g = (e.taxmode==="incl" ? e.price : e.price*(1+e.taxrate/100)) * e.qty;
-      rows.push([ e.date, s, p, e.qty, e.price, e.taxrate,
-        (e.taxmode==="incl"?"税込":"税別"), Math.round(g), e.memo||"" ]);
-    }
+  entries.forEach(e=>{
+    const s = supplierName(e.supplier_id) || e.supplier_name_fallback || "";
+    const p = prodName(e.product_id, e.product_name_fallback);
+    const g = (e.taxmode==="incl" ? e.price : e.price*(1+e.taxrate/100)) * e.qty;
+    rows.push([
+      e.date, s, p, e.qty, e.price, e.taxrate,
+      (e.taxmode==="incl" ? "税込" : "税別"),
+      Math.round(g), e.memo || ""
+    ]);
   });
 
+  // 4) 出力
   const base = effectiveKey==="month" ? range.label :
-               effectiveKey==="year"  ? `${range.label}` :
-               "全期間";
+               effectiveKey==="6m"    ? `過去6か月_${range.label}` : "全期間";
   saveExcelXML(`仕入れ記録_${base}.xml`, rows);
   alert("Excel XML（.xml）で出力しました。");
 }
