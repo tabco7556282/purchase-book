@@ -1226,42 +1226,38 @@ function exportData(rangeKey){
 
 // === 確認モーダル（期間選択＋プラン制限） ===
 function ModalExport(){
-  const plan = PLAN(); // 'free'|'mid'|'pro'
-  const allowed = PlanRules[plan].exportMax; // 'month'|'year'|'all'
+  const plan = store.settings.plan || "free"; // 'free' | 'middle' | 'pro'
+  const allowed = (plan==="pro") ? "all" : (plan==="middle" ? "6m" : "month");
 
   openModalBase("データ出力", `
-    <div id="ModalExport" class="grid">
+    <div class="grid" id="ModalExport">
       <div class="label">出力範囲</div>
-      <label><input type="radio" name="exRange" value="month"> 当月（直近1か月）</label>
-      <label><input type="radio" name="exRange" value="year"> 当年（1/1〜本日）</label>
+      <label><input type="radio" name="exRange" value="month"> 当月</label>
+      <label><input type="radio" name="exRange" value="6m"> 過去6か月</label>
       <label><input type="radio" name="exRange" value="all"> 全期間</label>
-      <div class="mini-meta">プラン：${planLabel(plan)}</div>
+      <div class="mini-meta">プラン：${plan}</div>
     </div>
   `);
 
-  const disallow = v => (allowed==="month" && v!=="month") || (allowed==="year" && v==="all");
-  $$('input[name="exRange"]').forEach(r=>{
-    if(disallow(r.value)){ r.disabled=true; r.parentElement.style.opacity=".5"; }
+  // ←← ここが重要：プラン別に無効化
+  const radios = Array.from(document.querySelectorAll('input[name="exRange"]'));
+  radios.forEach(r => {
+    r.disabled = false;
+    if (allowed === "month" && (r.value === "6m" || r.value === "all")) r.disabled = true;
+    if (allowed === "6m"    && (r.value === "all"))                  r.disabled = true;
   });
-  const def = allowed==="all" ? "all" : (allowed==="year" ? "year" : "month");
-  const defEl = $$('input[name="exRange"]').find(r=>r.value===def); if(defEl) defEl.checked=true;
+  // 既定選択
+  const def = allowed==="all" ? "all" : (allowed==="6m" ? "6m" : "month");
+  (radios.find(r=>r.value===def) || radios[0]).checked = true;
 
   const ok=$("#modalOK");
   ok.textContent="出力する";
   ok.onclick=()=>{
-    const chosen=document.querySelector('input[name="exRange"]:checked')?.value || def;
+    const chosen = document.querySelector('input[name="exRange"]:checked')?.value || def;
     closeModal();
-    exportData(chosen);
+    exportData(chosen); // ← モーダルで選んだ値をそのまま渡す
   };
 }
-
-// 出力ボタンは必ずモーダル経由
-document.addEventListener("click", (e)=>{
-  const btn = e.target.closest("#btnExport, #btnExport2");
-  if(!btn) return;
-  e.preventDefault();
-  ModalExport();
-});
 
 /* ===== Backup / Restore / Fiscal Archive ===== */
 function backupNow(){
@@ -1335,13 +1331,21 @@ document.addEventListener("click",(e)=>{
 
 /* ===== License mock ===== */
 function setPlan(p){
-  store.settings.plan=p;
+  // p: 'free' | 'middle' | 'pro'
+  store.settings.plan = p;
   DB.save(store);
+
+  // Homeのピル表示を即時更新（日本語ラベル）
+  const pill = document.getElementById('pillPlan');
+  if (pill) {
+    const label = p === 'free' ? '無料' : (p === 'middle' ? 'ミドル' : 'プロ');
+    pill.textContent = 'プラン：' + label;
+  }
+
   refreshHome();
-  // 追加・出力ボタンの活性再評価
-  renderSuppliers(); fillFilterSupplier(); renderProducts();
-  alert(`プランを ${p==='pro'?'Pro':p==='mid'?'Mid':'無料'} に更新しました（デモ）。`);
+  alert("プランが更新されました（デモ）");
 }
+
 document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyMid") setPlan("mid"); });
 document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyPro") setPlan("pro"); });
 
