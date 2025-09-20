@@ -429,6 +429,15 @@ function _inRange(ymd, range){
   if(range.to && d>range.to) return false;
   return true;
 }
+// === Plan Caps ===
+const PlanCap = {
+  free   : { suppliers: 5,  products: 50,  perSupplier: 10 },
+  middle : { suppliers: 15, products: 225, perSupplier: 15 },
+  pro    : { suppliers: Infinity, products: Infinity, perSupplier: Infinity }
+};
+const PLAN  = ()=> (store?.settings?.plan || 'free');  // 既にあればそのままでOK
+const CAPS  = ()=> PlanCap[PLAN()];
+const capLabel = (n, unit)=> (n===Infinity ? '無制限' : `${n}${unit}`);
 
 /* ===== Theme & Header ===== */
 function applyTheme(){
@@ -853,7 +862,13 @@ function openSupplierModal(s){
     const phone  =$("#mSupPhone").value.trim();
     const inv    =$("#mSupInv").value.trim();
     if(s){ s.name=name; s.contact=contact; s.phone=phone; s.invoice_number=inv; }
-    else { store.suppliers.push({id:uid(),name,contact,phone,invoice_number:inv}); }
+   else {  const cap = CAPS();const supCount = store.suppliers.filter(x=>!x.deleted).length;
+  　if (supCount >= cap.suppliers){
+    alert(`現在のプランでは仕入先は ${capLabel(cap.suppliers,'社')} までです。\nPlans からアップグレードをご検討ください。`);
+    return;
+  }
+  store.suppliers.push({id:uid(),name,contact,phone,invoice_number:inv});
+}
     DB.save(store); renderSuppliers(); refreshHome(); fillSupplierSelect($("#inSupplier")); closeModal();
   };
   $("#modalOK").onclick=onOK;
@@ -912,7 +927,18 @@ function openProductModal(p,defaultSid){
     const tax_mode=$("#mProdMode").value||"excl";
     const note=$("#mProdNote").value||"";
     if(p){ p.supplier_id=sid; p.name=name; p.default_price=price; p.tax_rate=tax_rate; p.tax_mode=tax_mode; p.note=note; }
-    else { store.products.push({id:uid(),supplier_id:sid,name,default_price:price,tax_rate:tax_rate,tax_mode:tax_mode,note}); }
+   else {const cap = CAPS(); const total = store.products.filter(x=>!x.deleted).length;
+　　if (total >= cap.products){
+     alert(`現在のプランでは商品合計は ${capLabel(cap.products,'品')} までです。\nPlans からアップグレードをご検討ください。`);
+     return;
+  }
+   const per = store.products.filter(x=>!x.deleted && x.supplier_id===sid).length;
+   if (per >= cap.perSupplier){
+     alert(`現在のプランではこの仕入先の登録は ${capLabel(cap.perSupplier,'品/カード')} までです。`);
+     return;
+  }
+   store.products.push({id:uid(),supplier_id:sid,name,default_price:price,tax_rate:tax_rate,tax_mode:tax_mode,note});
+ }
     DB.save(store); renderProducts();renderSuppliers(); renderProductSelect($("#inProduct"),$("#inSupplier").value,$("#prodSearch").value||""); closeModal();
   };
   $("#modalOK").onclick=onOK;
