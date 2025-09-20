@@ -405,6 +405,15 @@ function clampExportKey(req, plan){
   if (rules.exportMax === 'fiscal' && key === 'all') return 'fiscal';
   return key;
 }
+// === Plan Caps ===
+const PlanCap = {
+  free   : { suppliers: 5,  products: 50,  perSupplier: 10 },
+  middle : { suppliers: 15, products: 225, perSupplier: 15 },
+  pro    : { suppliers: Infinity, products: Infinity, perSupplier: Infinity }
+};
+const PLAN  = ()=> (store?.settings?.plan || 'free');  // 既にあればそのままでOK
+const CAPS  = ()=> PlanCap[PLAN()];
+const capLabel = (n, unit)=> (n===Infinity ? '無制限' : `${n}${unit}`);
 
 /* === 期間ユーティリティ === */
 function _ym(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
@@ -429,15 +438,6 @@ function _inRange(ymd, range){
   if(range.to && d>range.to) return false;
   return true;
 }
-// === Plan Caps ===
-const PlanCap = {
-  free   : { suppliers: 5,  products: 50,  perSupplier: 10 },
-  middle : { suppliers: 15, products: 225, perSupplier: 15 },
-  pro    : { suppliers: Infinity, products: Infinity, perSupplier: Infinity }
-};
-const PLAN  = ()=> (store?.settings?.plan || 'free');  // 既にあればそのままでOK
-const CAPS  = ()=> PlanCap[PLAN()];
-const capLabel = (n, unit)=> (n===Infinity ? '無制限' : `${n}${unit}`);
 
 /* ===== Theme & Header ===== */
 function applyTheme(){
