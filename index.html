@@ -399,12 +399,15 @@ const PlanRules = {
 };
 const EXPORT_KEYS = ['month','fiscal','all'];
 function clampExportKey(req, plan){
-  const rules = PlanRules[plan || 'free'] || PlanRules.free;
+  const p = (plan ?? PLAN());
+  const rules = PlanRules[p] || PlanRules.free;
   const key = EXPORT_KEYS.includes(req) ? req : 'month';
   if (rules.exportMax === 'month') return 'month';
   if (rules.exportMax === 'fiscal' && key === 'all') return 'fiscal';
   return key;
 }
+window.clampExportKey = clampExportKey; // コンソール診断用に公開（任意）
+
 // === Plan Caps ===
 const PlanCap = {
   free   : { suppliers: 5,  products: 50,  perSupplier: 10 },
@@ -412,8 +415,21 @@ const PlanCap = {
   pro    : { suppliers: Infinity, products: Infinity, perSupplier: Infinity }
 };
 const PLAN  = ()=> (store?.settings?.plan || 'free');  // 既にあればそのままでOK
-const CAPS  = ()=> PlanCap[PLAN()];
+const CAPS = (p = PLAN()) => {
+  const c = PlanCap[p] || PlanCap.free;
+  return {
+    suppliers: c.suppliers,
+    productsPerSupplier: c.perSupplier,
+    productsTotal: c.products,
+  };
+};
+window.CAPS = CAPS; // 診断用に公開（任意）
 const capLabel = (n, unit)=> (n===Infinity ? '無制限' : `${n}${unit}`);
+window.PlanRules = PlanRules;
+window.PlanCap   = PlanCap;
+window.PLAN      = PLAN;
+window.capLabel  = capLabel;
+
 
 /* === 期間ユーティリティ === */
 function _ym(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
