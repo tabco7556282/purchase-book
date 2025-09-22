@@ -242,9 +242,7 @@ textarea{min-height:84px;resize:vertical}
       </div><hr>
       <div class="row" style="gap:10px;align-items:center">
         <label class="row" style="gap:6px"><input type="checkbox" id="toggleAutoClear" checked> ＋明細追加後に入力欄をクリア</label>
-      </div>
-      <div class="mini-meta" style="margin-top:8px">※ プランは端末ごとです。バックアップには含まれません</div>
-      <hr>
+      </div><hr>
       <div class="row" style="gap:10px"><button class="btn primary" id="btnBackupNow" type="button">今すぐバックアップ</button><button class="btn ghost" id="btnRestore" type="button">バックアップから復元</button><input type="file" id="fileRestore" accept="application/json" class="hidden"></div>
     </div>
 
@@ -872,8 +870,7 @@ function openSupplierModal(s){
   const onOK=()=>{
     const name=$("#mSupName").value.trim(); if(!name){ alert("社名を入力してください"); return; }
     if(!s){
-      const cap = CAPS();
-      const limit = cap.suppliers;
+      const limit = PlanRules[store.settings.plan||'free'].supplierMax;
       const count = store.suppliers.filter(x=>!x.deleted).length;
       if(count >= limit){ alert(`このプランでは仕入れ先は ${limit} 社までです。Plans からアップグレードをご検討ください。`); return; }
     }
@@ -899,8 +896,7 @@ function openSupplierModal(s){
   }
 }
 function tryAddSupplier(){
-  const cap = CAPS();
-      const limit = cap.suppliers;
+  const limit = PlanRules[store.settings.plan||'free'].supplierMax;
   const count = store.suppliers.filter(x=>!x.deleted).length;
   if(count >= limit){ alert(`このプランでは仕入れ先は ${limit} 社までです。Plans からアップグレードをご検討ください。`); return; }
   openSupplierModal(null);
@@ -936,9 +932,9 @@ function openProductModal(p,defaultSid){
     }
     // プラン制限チェック
     if(!p){
-      const cap = CAPS();
+      const rules = PlanRules[store.settings.plan||'free'];
       const total = store.products.filter(x=>!x.deleted).length;
-      if(total >= cap.productsTotal){ alert(`このプランでは商品は合計 ${cap.productsTotal} 品までです。Plans からアップグレードをご検討ください。`); return; }
+      if(total >= rules.productTotalMax){ alert(`このプランでは商品は合計 ${rules.productTotalMax} 品までです。Plans からアップグレードをご検討ください。`); return; }
       const per = store.products.filter(x=>!x.deleted && x.supplier_id===sid).length;
       if(per >= rules.productPerSupplierMax){ alert(`このプランでは1社あたり ${rules.productPerSupplierMax} 品までです。別カードに同じ仕入先を追加して分割も可能です（ミドル以上）。`); return; }
     }
@@ -948,13 +944,13 @@ function openProductModal(p,defaultSid){
     const note=$("#mProdNote").value||"";
     if(p){ p.supplier_id=sid; p.name=name; p.default_price=price; p.tax_rate=tax_rate; p.tax_mode=tax_mode; p.note=note; }
    else {const cap = CAPS(); const total = store.products.filter(x=>!x.deleted).length;
-　　if (total >= cap.productsTotal){
-     alert(`現在のプランでは商品合計は ${capLabel(cap.productsTotal,'品')} までです。\nPlans からアップグレードをご検討ください。`);
+　　if (total >= cap.products){
+     alert(`現在のプランでは商品合計は ${capLabel(cap.products,'品')} までです。\nPlans からアップグレードをご検討ください。`);
      return;
   }
    const per = store.products.filter(x=>!x.deleted && x.supplier_id===sid).length;
-   if (per >= cap.productsPerSupplier){
-     alert(`現在のプランではこの仕入先の登録は ${capLabel(cap.productsPerSupplier,'品/カード')} までです。`);
+   if (per >= cap.perSupplier){
+     alert(`現在のプランではこの仕入先の登録は ${capLabel(cap.perSupplier,'品/カード')} までです。`);
      return;
   }
    store.products.push({id:uid(),supplier_id:sid,name,default_price:price,tax_rate:tax_rate,tax_mode:tax_mode,note});
@@ -970,9 +966,9 @@ function openProductModal(p,defaultSid){
   }
 }
 function tryAddProductStart(defaultSid){
-  const cap = CAPS();
+  const rules = PlanRules[store.settings.plan||'free'];
   const total = store.products.filter(x=>!x.deleted).length;
-  if(total >= cap.productsTotal){ alert(`このプランでは商品は合計 ${cap.productsTotal} 品までです。Plans からアップグレードをご検討ください。`); return; }
+  if(total >= rules.productTotalMax){ alert(`このプランでは商品は合計 ${rules.productTotalMax} 品までです。Plans からアップグレードをご検討ください。`); return; }
   openProductModal(null, defaultSid);
 }
 
@@ -1217,9 +1213,8 @@ document.addEventListener("click", (e)=>{ const btn = e.target.closest("#btnExpo
 
 /* ===== Backup / Restore / Fiscal Archive ===== */
 function backupNow(){
-  const { plan, ...settingsNoPlan } = (store.settings||{});
-  const payload={version:"1.1",exported_at:new Date().toISOString(),
-    tables:{suppliers:store.suppliers,products:store.products,entries:store.entries,priceHistory:store.priceHistory,settings:settingsNoPlan /* planは含めない */store.settings}};
+  const payload={version:"1.0",exported_at:new Date().toISOString(),
+    tables:{suppliers:store.suppliers,products:store.products,entries:store.entries,priceHistory:store.priceHistory,settings:store.settings}};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="tabco_backup_"+fmtYMD(new Date())+".json"; a.click(); URL.revokeObjectURL(a.href);
   store.settings.lastBackupAt=Date.now(); DB.save(store); refreshHome();
@@ -1239,16 +1234,10 @@ document.addEventListener("change",(e)=>{
       store.products=data.tables.products||[];
       store.entries=data.tables.entries||[];
       store.priceHistory=data.tables.priceHistory||{};
-            {
-        const localPlan = store.settings.plan;
-        const incoming = Object.assign({
-          theme:store.settings.theme, autoClear:true,
-          historyShowBoth:true, showTaxFlags:false,
-          recentProducts:store.settings.recentProducts||[], hisRangeDays:30
-        }, data.tables.settings||{});
-        delete incoming.plan; // 念のため
-        store.settings = Object.assign({}, store.settings, incoming, { plan: localPlan });
-      }
+      store.settings=Object.assign({
+        theme:store.settings.theme, plan:store.settings.plan, autoClear:true,
+        historyShowBoth:true, showTaxFlags:false, recentProducts:store.settings.recentProducts||[], hisRangeDays:30
+      }, data.tables.settings||{});
       DB.save(store);
       alert("復元しました");
       applyTheme(); refreshHome(); initInputPage(); renderSuppliers(); fillFilterSupplier(); renderProducts(); renderHistory();renderTodayList(); navigate("home"); enableSelectOnFocus();
