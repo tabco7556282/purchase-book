@@ -1212,14 +1212,52 @@ function ModalExport(){
 document.addEventListener("click", (e)=>{ const btn = e.target.closest("#btnExport, #btnExport2"); if(!btn) return; e.preventDefault(); ModalExport(); });
 
 /* ===== Backup / Restore / Fiscal Archive ===== */
+// ファイル先頭どこかに一度だけ（フラグは既にあれば不要）
+let __bkBusy = false;
+
 function backupNow(){
-  const payload={version:"1.0",exported_at:new Date().toISOString(),
-    tables:{suppliers:store.suppliers,products:store.products,entries:store.entries,priceHistory:store.priceHistory,settings:store.settings}};
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="tabco_backup_"+fmtYMD(new Date())+".json"; a.click(); URL.revokeObjectURL(a.href);
-  store.settings.lastBackupAt=Date.now(); DB.save(store); refreshHome();
-  const bk=$("#bkLast"); if(bk) bk.textContent=new Date(store.settings.lastBackupAt).toLocaleString("ja-JP");
+  if (__bkBusy) return;                 // 多重実行ガード（入っていればそのままでOK）
+  __bkBusy = true;
+  const btn = $("#btnBackupNow"); btn?.setAttribute("disabled","disabled");
+
+  try {
+    // ← ここがポイント：settingsから plan を除外して保存
+    const settingsForBackup = (()=> {
+      const s = Object.assign({}, store.settings);
+      try{ delete s.plan; }catch(_){}
+      return s;
+    })();
+
+    const payload = {
+      version: "1.1",                   // 1.0→1.1 に上げておく（復元時の判断に使える）
+      exported_at: new Date().toISOString(),
+      tables: {
+        suppliers: store.suppliers,
+        products: store.products,
+        entries: store.entries,
+        priceHistory: store.priceHistory,
+        settings: settingsForBackup     // ★ plan を含めない
+      }
+    };
+
+    const blob = new Blob([JSON.stringify(payload,null,2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "tabco_backup_" + fmtYMD(new Date()) + ".json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+
+    store.settings.lastBackupAt = Date.now();
+    DB.save(store);
+    refreshHome();
+    const bk = $("#bkLast");
+    if(bk) bk.textContent = new Date(store.settings.lastBackupAt).toLocaleString("ja-JP");
+  } finally {
+    __bkBusy = false;
+    btn?.removeAttribute("disabled");
+  }
 }
+
 document.addEventListener("click",(e)=>{ if(e.target.id==="btnBackupNow") backupNow(); });
 document.addEventListener("click",(e)=>{ if(e.target.id==="btnRestore") $("#fileRestore").click(); });
 document.addEventListener("change",(e)=>{
@@ -1227,22 +1265,44 @@ document.addEventListener("change",(e)=>{
   const f=e.target.files[0]; if(!f) return;
   if(!confirm("バックアップから復元します。現在のデータは置き換えられます。続行しますか？")) return;
   const r=new FileReader();
-  r.onload=()=>{
-    try{
-      const data=JSON.parse(r.result); if(!data.tables) throw 0;
-      store.suppliers=data.tables.suppliers||[];
-      store.products=data.tables.products||[];
-      store.entries=data.tables.entries||[];
-      store.priceHistory=data.tables.priceHistory||{};
-      store.settings=Object.assign({
-        theme:store.settings.theme, plan:store.settings.plan, autoClear:true,
-        historyShowBoth:true, showTaxFlags:false, recentProducts:store.settings.recentProducts||[], hisRangeDays:30
-      }, data.tables.settings||{});
-      DB.save(store);
-      alert("復元しました");
-      applyTheme(); refreshHome(); initInputPage(); renderSuppliers(); fillFilterSupplier(); renderProducts(); renderHistory();renderTodayList(); navigate("home"); enableSelectOnFocus();
-    }catch{ alert("復元に失敗しました。ファイルをご確認ください。"); }
-  };
+ r.onload = ()=>{
+  try{
+    const data = JSON.parse(r.result);
+    if(!data.tables) throw 0;
+
+    // 先に現在の plan を退避（端末の購入状態）
+    const keepPlan = store.settings.plan;
+
+    store.suppliers   = data.tables.suppliers || [];
+    store.products    = data.tables.products  || [];
+    store.entries     = data.tables.entries   || [];
+    store.priceHistory= data.tables.priceHistory || {};
+
+    // settings マージ：バックアップの plan は無視する
+    const incoming = data.tables.settings || {};
+    const { plan: _dropPlan, ...incomingSansPlan } = incoming;
+
+    store.settings = Object.assign({
+      theme: store.settings.theme,
+      autoClear: true,
+      historyShowBoth: true,
+      showTaxFlags: false,
+      recentProducts: store.settings.recentProducts || [],
+      hisRange: store.settings.hisRange || "30"
+    }, incomingSansPlan);
+
+    // ★ 端末の plan を必ず維持
+    store.settings.plan = keepPlan;
+
+    DB.save(store);
+    alert("復元しました（プラン設定はこの端末の状態を保持します）");
+    applyTheme(); refreshHome(); initInputPage(); renderSuppliers(); fillFilterSupplier(); renderProducts(); renderHistory(); renderTodayList(); navigate("home"); enableSelectOnFocus();
+
+  }catch{
+    alert("復元に失敗しました。ファイルをご確認ください。");
+  }
+};
+ 
   r.readAsText(f);
 });
 function refreshFiscalLabel(){
@@ -1286,8 +1346,11 @@ function syncLicenseButtons(){
   const p = store.settings.plan||'free';
   const btnFree = $('#btnUseFree'), btnMid = $('#mockBuyMid'), btnPro = $('#mockBuyPro');
   if(btnFree){ btnFree.disabled = (p==='free'); btnFree.textContent = (p==='free')?'使用中':'このプランを使う'; }
-  if(btnMid){ btnMid.disabled = (p==='middle'); btnMid.textContent = (p==='middle')?'使用中':'アップグレードする'; }
-  if(btnPro){ btnPro.disabled = (p==='pro'); btnPro.textContent = (p==='pro')?'使用中':'フル機能で使う'; }
+  <div class="mini-meta" style="margin-top:6px">※購入は端末ごと／データ共有はバックアップで移行できます。</div>
+if(btnMid){ btnMid.disabled = (p==='middle'); btnMid.textContent = (p==='middle')?'使用中':'アップグレードする'; }
+ <div class="mini-meta" style="margin-top:6px">※購入は端末ごと／データ共有はバックアップで移行できます。</div>
+ if(btnPro){ btnPro.disabled = (p==='pro'); btnPro.textContent = (p==='pro')?'使用中':'フル機能で使う'; }
+<div class="mini-meta" style="margin-top:6px">※購入は端末ごと／データ共有はバックアップで移行できます。</div>
 }
 document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyMid") setPlan("middle"); });
 document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyPro") setPlan("pro"); });
