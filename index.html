@@ -1,395 +1,193 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
-<title>仕入れ管理｜MVP v0.8.0</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tabco Ledger Plus</title>
 <style>
-:root{
-  --brand:#FFC107; --brand-ink:#1A1300;
-  --bg:#FFFBEA; --card:#FFFDF3;
-  --text:#111; --muted:#6B6B6B; --divider:#EEDB9A;
-  --danger:#D73C3C; --shadow:0 2px 10px rgba(0,0,0,.06);
-}
-[data-theme="dark"]{
-  --bg:#18191B; --text:#F5F5F5; --muted:#BABABA; --card:#222325; --divider:#2B2C2F;
-  --shadow:0 2px 10px rgba(0,0,0,.5);
-}
-/* === ダーク時の淡色カード対策 ================== */
-:root{ --card-bg-soft:#FFF8D6; --card-fg-soft:#2A1A00; }
-[data-theme="dark"]{ --card-bg-soft:#FFF2B8; --card-fg-soft:#2A1A00; }
-#todayList .list-item{ background:var(--card-bg-soft)!important; color:var(--card-fg-soft)!important; }
-#todayList .list-item b,#todayList .list-item u,#todayList .list-item .muted,#todayList .list-item .entry span{ color:var(--card-fg-soft)!important; opacity:1; }
-#btnAddLine{ background:var(--card-bg-soft)!important; color:var(--card-fg-soft)!important; border:2px solid rgba(0,0,0,.18); }
-[data-theme="dark"] #btnAddLine{ border-color: rgba(0,0,0,.26); }
-
-html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans JP",sans-serif}
-
-/* ヘッダー */
-.app-header{position:sticky;top:0;z-index:10;background:var(--brand);color:var(--brand-ink);
-  padding:10px 12px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;box-shadow:var(--shadow)}
-.app-header h1{margin:0;text-align:center;font-size:18px;letter-spacing:.04em}
-.hdr-left{justify-self:start}.hdr-right{justify-self:end;display:flex;gap:8px;align-items:center}
-#btnHome{font-size:12px;padding:4px 8px}
-.ver{background:#ffffff80;border:1px solid #ffffffa6;border-radius:999px;padding:2px 8px}
-#btnHome{background:#FFE082;color:#5A3A00;border:1px solid #FFFFFF99;box-shadow:0 1px 0 rgba(0,0,0,.06)}
-
-/* ベース */
-.container{padding:14px;max-width:960px;margin:0 auto}
-.nav-vertical{display:flex;flex-direction:column;gap:10px;margin:10px 0}
-.btn{appearance:none;border:none;border-radius:12px;padding:14px 16px;font-weight:700;letter-spacing:.02em;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
-.btn.primary{background:var(--brand);color:var(--brand-ink)}
-.btn.ghost{background:var(--card);border:1px solid var(--divider);color:var(--text)}
-.btn.danger{background:#fff;border:1px solid var(--danger);color:var(--danger)}
-.btn.small{padding:8px 12px;font-weight:600}
-.btn.square{width:100%;height:56px;padding:8px 10px;line-height:1.1;text-align:center;flex-direction:column}
-.btn.square .twoline{display:block;line-height:1.1}
-#btnAddLine{background:#FFF7CC;border:2px solid #E0B600}
-.btn.op{background:#FFF3B0;border:2px solid #E0B600;color:#5A3A00}
-.btn.op:active,#btnHome:active{transform:translateY(1px)}
-
-.label{font-size:13px;color:var(--muted);margin:0 0 6px 2px}
-.card{background:var(--card);border:1px solid var(--divider);border-radius:16px;padding:14px;box-shadow:var(--shadow)}
-.grid{display:grid;gap:10px}
-.grid.cols-2{grid-template-columns:1fr 1fr}
-input,select,textarea{width:100%;box-sizing:border-box;border-radius:10px;border:1px solid var(--divider);background:#fff;color:var(--text);padding:12px;font-size:16px}
-textarea{min-height:84px;resize:vertical}
-.row{display:flex;gap:10px;align-items:center}
-.row .grow{flex:1}
-.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#FFECB3;color:#5A3A00;font-size:12px}
-.section-title{font-weight:800;margin:6px 0 8px}
-.fixed-bar{position:sticky;bottom:0;display:flex;gap:10px;background:linear-gradient(180deg, rgba(0,0,0,0) 0%, var(--bg) 30%);padding:12px 14px}
-.fixed-bar .neg{flex:1}.fixed-bar .pos{flex:2}
-.list{display:flex;flex-direction:column;gap:8px}
-.list-item{padding:10px 12px;border:1px solid var(--divider);border-radius:12px;background:var(--card)}
-#todayList .list-item{background:#FFFDF8;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.list-item.supplier{display:grid;grid-template-columns:1fr 102px;gap:10px;min-height:120px}
-.ops-col{display:flex;flex-direction:column;gap:8px;align-items:stretch}
-
-/* テーマトグル */
-.theme-toggle{width:40px;height:28px;border-radius:20px;border:1px solid rgba(0,0,0,.15);background:rgba(255,255,255,.9);display:flex;align-items:center;padding:2px;cursor:pointer}
-.theme-toggle .knob{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#FFD54F;transition:transform .2s ease}
-[data-theme="dark"] .theme-toggle{background:#2C2C2E;border-color:#444}
-[data-theme="dark"] .theme-toggle .knob{background:#B0B3FF;transform:translateX(12px)}
-
-/* モーダル */
-.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:flex-end}
-.modal{width:100%;background:var(--card);border-radius:16px 16px 0 0;border:1px solid var(--divider);box-shadow:var(--shadow);padding:14px}
+:root{--bg:#0b0b0c;--fg:#f4f6f8;--mut:#b6bec9;--card:#15171a;--accent:#3ea6ff;--ok:#15b374;--warn:#ffb020;--bad:#ff5f5f;--line:#2a2d31}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,Noto Sans JP,Meiryo,sans-serif;background:var(--bg);color:var(--fg)}
+.hidden{display:none}
+.container{max-width:920px;margin:0 auto;padding:12px}
+.row{display:flex;gap:8px;align-items:center}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.section-title{font-weight:700;margin-bottom:8px}
+.label{color:var(--mut);font-size:12px}
+.input, input, select, textarea{width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:#0e1013;color:var(--fg)}
+button.btn{padding:10px 14px;border:none;border-radius:999px;cursor:pointer}
+.btn.primary{background:var(--accent);color:#000;font-weight:700}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--fg)}
+.btn.small{padding:6px 10px;font-size:12px}
+.btn.neg{border-color:var(--bad);color:var(--bad)}
+.btn.pos{border-color:var(--ok);color:var(--ok)}
+.fixed-bar{position:sticky;bottom:0;left:0;right:0;background:rgba(12,13,16,.9);backdrop-filter:saturate(120%) blur(6px);border-top:1px solid var(--line);padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;background:#0d1117;border:1px solid var(--line);border-radius:6px;padding:2px 6px}
+.list-item{padding:10px;border-bottom:1px solid var(--line)}
+.mini-meta{font-size:12px;color:var(--mut)}
+.pill{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--line);background:#0e1013;border-radius:999px;padding:4px 10px}
+.badge{position:fixed;right:10px;bottom:10px;border-radius:12px;background:#0d1117cc;border:1px solid var(--line);padding:6px 10px;color:var(--mut);backdrop-filter:blur(5px)}
+hr{border:none;border-top:1px solid var(--line);margin:8px 0}
+.modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0007;z-index:10000}
+.modal .sheet{width:min(560px,92vw);background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
+.modal .row{gap:10px}
+.modal .grid{grid-template-columns:1fr 1fr}
+.modal input[type=radio]{transform:translateY(1px)}
+.modal .label{font-size:12px;color:var(--mut)}
 .modal h3{margin:2px 0 8px}
-.modal .actions{display:flex;gap:10px;justify-content:flex-end;align-items:center;margin-top:12px;flex-wrap:nowrap}
-.modal .actions .btn{height:44px}
-.modal .actions .btn--save{flex:0 0 45%}
-.modal .actions .btn--cancel{flex:0 0 30%}
-.modal .actions .btn--delete{flex:0 0 18%}
-@media (min-width:560px){
-  .modal .actions .btn--save{flex-basis:38%}
-  .modal .actions .btn--cancel{flex-basis:24%}
-  .modal .actions .btn--delete{flex-basis:16%}
-}
-.sheet{max-width:560px;margin:0 auto}
-.hidden{display:none!important}
-.mini-meta{font-size:.85em;opacity:.7}
-[data-theme="dark"] select,[data-theme="dark"] input,[data-theme="dark"] textarea{background:var(--card);color:var(--text);border-color:#3a3b3f}
-[data-theme="dark"] select option{background:#2a2b2e;color:#f5f5f5}
-[data-theme="dark"] input::placeholder,[data-theme="dark"] textarea::placeholder{color:rgba(245,245,245,.6)}
-[data-theme="dark"] .label{color:#ddd}
-[data-theme="dark"] #hisRange{background:var(--card)!important;color:var(--text)!important;border-color:#3a3b3f!important}
-
-/* 広告（Freeのみ） */
-#adSlot{ display:none; }
-#adSlot.visible{ display:block; }
-#adSlot .ad{ display:flex; gap:10px; align-items:center; border:1px dashed #e0b600; padding:10px; border-radius:12px; background:#fffef5; }
-[data-theme="dark"] #adSlot .ad{ background:#2a2a1f; border-color:#8a7b1b; }
-#adSlot small{ color:var(--muted); }
+.modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
 </style>
 </head>
 <body>
-<header class="app-header">
-  <div class="hdr-left"><button id="btnHome" class="btn ghost small hidden" type="button">HOME</button></div>
-  <h1 id="pageTitle">仕入れ管理</h1>
-  <div class="hdr-right">
-    <button id="themeBtn" class="theme-toggle" aria-label="テーマ切替"><div class="knob"><span id="themeIcon">☀</span></div></button>
-  </div>
-</header>
+  <header class="container" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+    <div class="row" style="gap:10px">
+      <div class="pill"><span>Tabco Ledger Plus</span><span id="pillPlan" class="mini-meta">free</span></div>
+    </div>
+    <nav class="row" style="gap:6px">
+      <a href="#home" class="btn ghost small">ホーム</a>
+      <a href="#input" class="btn ghost small">入力</a>
+      <a href="#suppliers" class="btn ghost small">仕入先</a>
+      <a href="#products" class="btn ghost small">商品</a>
+      <a href="#backup" class="btn ghost small">バックアップ</a>
+    </nav>
+  </header>
 
-<main class="container">
-  <!-- HOME -->
-  <section id="page-home">
-    <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap">
-      <span class="pill" id="pillBackup">最終バックアップ：未実施</span>
-      <span class="pill" id="pillPlan">プラン：無料</span>
-    </div>
-    <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
-      <div class="card"><div class="label">今週の仕入れ合計（税込）</div><div id="kpiWeek" style="font-weight:800;font-size:20px">¥0</div></div>
-      <div class="card"><div class="label">今月の仕入れ合計（税込）</div><div id="kpiMonth" style="font-weight:800;font-size:20px">¥0</div></div>
-    </div>
-    <div class="nav-vertical" style="margin-top:12px">
-      <button class="btn primary" data-goto="input" type="button">仕入入力</button>
-      <button class="btn ghost" data-goto="history" type="button">履歴・集計</button>
-      <button class="btn ghost" data-goto="suppliers" type="button">仕入れ先マスタ</button>
-      <button class="btn ghost" data-goto="products" type="button">商品マスタ</button>
-      <button class="btn ghost" id="btnExport" type="button">データ出力</button>
-      <button class="btn ghost" data-goto="backup" type="button">バックアップ設定</button>
-      <button class="btn ghost" data-goto="license" type="button">Plans</button>
-      <button class="btn ghost" data-goto="rights" type="button">Licenses＆Notices</button>
-　    <button class="btn danger" id="btnFactoryReset" type="button">データ初期化</button>
-      <div class="label">※初期化の前にバックアップを取ってください。</div>
+  <main class="container">
+    <div id="page-home" class="card">
+      <div class="section-title">今日の入力</div>
+      <div id="todayList"></div>
+      <div class="mini-meta" id="bkLast"></div>
+      <div class="row" style="gap:6px;margin-top:8px">
+        <button id="btnExport2" class="btn primary">データ出力</button>
+        <button id="btnGoInput" class="btn ghost">入力へ</button>
+      </div>
     </div>
 
-    <!-- 広告スロット（Freeのみ表示） -->
-    <div id="adSlot" class="card" style="margin-top:8px">
-      <div class="ad">
-        <div style="font-weight:800">スポンサー</div>
-        <div class="grow">
-          <div>飲食店に役立つ備品のご案内（保存容器・調理器具ほか）</div>
-          <small>※ 広告は入力を邪魔しない位置にのみ表示されます</small>
+    <div id="page-input" class="card hidden">
+      <div class="section-title">仕入れ入力</div>
+      <div class="grid">
+        <div>
+          <div class="label">日付</div>
+          <input id="inDate" type="date">
         </div>
-        <a class="btn small ghost" href="#" onclick="alert('広告のリンク（ダミー）');return false;">詳しく</a>
-      </div>
-    </div>
-  </section>
-
-  <!-- INPUT -->
-  <section id="page-input" class="hidden" data-title="仕入入力">
-    <div class="card grid">
-      <div class="grid cols-2">
-        <div><div class="label">日付</div><input type="date" id="inDate"></div>
-        <div><div class="label">仕入れ先</div><select id="inSupplier"></select></div>
-      </div>
-      <div>
-        <div class="row" style="justify-content:space-between;align-items:center">
-          <div class="label">商品（仕入れ先で絞込）</div>
-          <label class="row" style="gap:6px"><input type="checkbox" id="chkFree"> 未登録で入力</label>
+        <div>
+          <div class="label">仕入先</div>
+          <select id="inSupplier"></select>
         </div>
-        <input id="prodSearch" type="text" placeholder="商品名で検索（部分一致）" class="grow" />
-        <select id="inProduct" style="margin-top:6px"></select>
-        <div id="freeFields" class="grid cols-2 hidden" style="margin-top:8px">
-          <div><div class="label">仕入れ先名（未登録）</div><input id="freeSupplier" type="text"></div>
-          <div><div class="label">商品名（未登録）</div><input id="freeProduct" type="text"></div>
+        <div>
+          <div class="label">商品</div>
+          <select id="inProduct"></select>
         </div>
-      </div>
-      <div class="grid cols-2">
-        <div><div class="label">価格</div><input type="number" id="inPrice" inputmode="numeric" pattern="[0-9]*"></div>
-        <div><div class="label">数量</div><input type="number" id="inQty" value="1" inputmode="numeric" pattern="[0-9]*"></div>
-      </div>
-      <div class="row">
-        <div class="row" style="gap:16px">
-          <label><input type="radio" name="taxmode" value="incl"> 税込</label>
-          <label><input type="radio" name="taxmode" value="excl" checked> 税別</label>
+        <div>
+          <div class="label">数量</div>
+          <input id="inQty" type="number" step="1" inputmode="numeric">
         </div>
-        <div class="row" style="gap:10px;margin-left:auto">
-          <span class="label">税率</span>
-          <label><input type="radio" name="taxrate" value="10">10%</label>
-          <label><input type="radio" name="taxrate" value="8" checked>8%</label>
-          <label><input type="radio" name="taxrate" value="0">非課税</label>
+        <div>
+          <div class="label">単価</div>
+          <input id="inPrice" type="number" step="1" inputmode="numeric">
+        </div>
+        <div>
+          <div class="label">税率</div>
+          <div class="row">
+            <label class="row" style="gap:6px"><input type="radio" name="taxrate" value="0" checked> 0%</label>
+            <label class="row" style="gap:6px"><input type="radio" name="taxrate" value="8"> 8%</label>
+            <label class="row" style="gap:6px"><input type="radio" name="taxrate" value="10"> 10%</label>
+          </div>
+        </div>
+        <div>
+          <div class="label">税区分</div>
+          <div class="row">
+            <label class="row" style="gap:6px"><input type="radio" name="taxmode" value="excl" checked> 税別</label>
+            <label class="row" style="gap:6px"><input type="radio" name="taxmode" value="incl"> 税込</label>
+          </div>
+        </div>
+        <div>
+          <div class="label">メモ</div>
+          <input id="inMemo" type="text">
         </div>
       </div>
-      <div><div class="label">価格履歴（直近）</div><div id="priceHistory" class="row" style="flex-wrap:wrap"></div></div>
-      <div><div class="label">メモ（任意）</div><input id="inMemo"></div>
-      <button class="btn ghost" id="btnAddLine" type="button">＋ 明細を追加</button>
-    </div>
-    <div class="card" style="margin-top:12px">
-      <div class="section-title">本日の明細（仕入れ先で自動グループ）</div>
-      <div id="todayList" class="list"></div>
-    </div>
-   <div class="fixed-bar">
-  <button class="btn ghost small neg" id="btnClear" type="button">クリア</button>
-  <button class="btn primary pos" id="btnSave" type="button" title="入力が残っていると確認が出ます">完了（ホームへ）</button>
-</div>
-  </section>
-
-  <!-- SUPPLIERS -->
-  <section id="page-suppliers" class="hidden" data-title="仕入れ先マスタ">
-    <div class="row" style="justify-content:space-between;align-items:center">
-      <div class="section-title">仕入れ先一覧</div>
-      <button class="btn primary small" id="btnAddSupplier" type="button">＋ 追加</button>
-    </div>
-    <div id="supplierList" class="list"></div>
-  </section>
-
-  <!-- PRODUCTS -->
-  <section id="page-products" class="hidden" data-title="商品マスタ">
-    <div class="row" style="gap:8px;align-items:center">
-      <div class="grow"><div class="label">仕入れ先で絞込</div><select id="filterProdSupplier"></select></div>
-      <button class="btn primary small" id="btnAddProduct" type="button">＋ 追加</button>
-    </div>
-    <div id="productList" class="list" style="margin-top:8px"></div>
-  </section>
-
-  <!-- HISTORY -->
-  <section id="page-history" class="hidden" data-title="履歴・集計">
-    <div class="row" style="gap:10px;align-items:flex-end;flex-wrap:wrap">
-      <div><div class="label">期間</div><select id="hisRange"><option value="7">1週間</option><option value="30" selected>1ヶ月</option><option value="fiscal">年度（1月〜今月）</option></select></div>
-      <div class="row" style="gap:16px;align-items:center">
-        <label class="row" style="gap:6px"><input type="checkbox" id="toggleGross" checked> 税別小計＋税込表示</label>
-        <label class="row" style="gap:6px"><input type="checkbox" id="showDetail"> 明細の詳細（単価・税情報）</label>
+      <div class="fixed-bar">
+        <button id="btnClear" class="btn ghost small neg" type="button">クリア</button>
+        <button id="btnSave" class="btn primary pos" type="button">完了（ホームへ）</button>
       </div>
     </div>
-    <div id="historyList" class="list" style="margin-top:10px"></div>
-    <div class="fixed-bar"><button class="btn ghost neg" id="btnExport2" type="button">データ出力</button><button class="btn primary pos" data-goto="home" type="button">ホームへ</button></div>
-  </section>
 
-  <!-- BACKUP -->
-  <section id="page-backup" class="hidden" data-title="バックアップ設定">
-    <div class="card">
-      <div class="label">最終バックアップ</div><div id="bkLast">未実施</div><hr>
-      <div class="label">自動バックアップ（将来拡張）</div>
-      <div class="row" style="gap:16px">
-        <label><input type="radio" name="bksched" value="daily" checked> 毎日22:00</label>
-        <label><input type="radio" name="bksched" value="weekly"> 毎週 月曜</label>
-        <label><input type="radio" name="bksched" value="manual"> 手動のみ</label>
-      </div><hr>
+    <div id="page-suppliers" class="card hidden">
+      <div class="section-title">仕入先</div>
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <div class="row" style="gap:6px">
+          <button id="btnAddSupplier" class="btn ghost small">＋仕入先</button>
+        </div>
+        <div class="row" style="gap:6px">
+          <input id="filterSup" class="input" placeholder="検索…">
+        </div>
+      </div>
+      <div id="supplierList" style="margin-top:8px"></div>
+    </div>
+
+    <div id="page-products" class="card hidden">
+      <div class="section-title">商品</div>
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <div class="row" style="gap:6px">
+          <button id="btnAddProduct" class="btn ghost small">＋商品</button>
+          <select id="filterProdSupplier"></select>
+        </div>
+        <div class="row" style="gap:6px">
+          <input id="filterProd" class="input" placeholder="検索…">
+        </div>
+      </div>
+      <div id="productList" style="margin-top:8px"></div>
+    </div>
+
+    <div id="page-backup" class="card hidden">
+      <div class="section-title">バックアップ</div>
+      <div class="row" style="gap:10px;align-items:center">
+        <button id="btnBackupNow" class="btn primary">今すぐバックアップ</button>
+        <button id="btnRestore" class="btn ghost">復元</button>
+        <input id="fileRestore" type="file" accept="application/json" class="hidden">
+      </div>
       <div class="row" style="gap:10px;align-items:center">
         <label class="row" style="gap:6px"><input type="checkbox" id="toggleAutoClear" checked> ＋明細追加後に入力欄をクリア</label>
-      </div><hr>
-      <div class="row" style="gap:10px"><button class="btn primary" id="btnBackupNow" type="button">今すぐバックアップ</button><button class="btn ghost" id="btnRestore" type="button">バックアップから復元</button><input type="file" id="fileRestore" accept="application/json" class="hidden"></div>
+      </div>
+      <hr>
+      <div class="row" style="gap:8px">
+        <label class="row" style="gap:6px"><input type="radio" name="bksched" value="daily"> 毎日</label>
+        <label class="row" style="gap:6px"><input type="radio" name="bksched" value="weekly" id="bksched"> 毎週 月曜</label>
+        <label class="row" style="gap:6px"><input type="radio" name="bksched" value="manual"> 手動のみ</label>
+      </div>
+      <div class="mini-meta" style="margin-top:8px">※ プランは端末ごとです。バックアップには含まれません</div>
     </div>
 
     <div class="card" style="margin-top:12px">
       <div class="section-title">年度アーカイブ</div>
       <div class="row" style="justify-content:space-between;align-items:center;gap:6px">
-        <div>
-          <div class="label">対象年度（個人事業主：1月〜12月）</div>
-          <div id="fiscalLabel" style="font-weight:800">-</div>
+        <div class="row" style="gap:6px"><input id="inFiscalYear" type="number" inputmode="numeric" class="input" style="width:120px"></div>
+        <div class="row" style="gap:6px">
+          <button id="btnArchiveFiscal" class="btn ghost">年度アーカイブ作成＆リセット</button>
         </div>
-        <button class="btn primary small" id="btnArchiveYear" type="button">この年度をアーカイブ</button>
-      </div>
-      <div class="label" style="margin-top:8px">※ 仕入先・商品マスタは消えません。対象年度の明細のみリセットします。</div>
-    </div>
-  </section>
-
-  <!-- LICENSE -->
-  <section id="page-license" class="hidden" data-title="ライセンス">
-    <div class="grid" style="grid-template-columns:1fr;gap:12px">
-      <div class="card">
-        <h3>無料版</h3>
-        <ul>
-          <li>広告あり（控えめ表示）</li>
-          <li>仕入れ先 <b>5社</b>まで／商品 <b>合計50品</b>まで（1社10品目安）</li>
-          <li>出力範囲：<b>当月のみ</b></li>
-        </ul>
-        <button class="btn ghost small" id="btnUseFree" type="button">このプランを使う</button>
-      </div>
-
-      <div class="card">
-        <h3>ミドル（¥700）</h3>
-        <ul>
-          <li>広告なし</li>
-          <li>仕入れ先 <b>15社</b>まで／1社<b>15品</b>（合計225品）</li>
-          <li>出力範囲：<b>年度（1月〜今月）</b></li>
-        </ul>
-        <button class="btn primary small" id="mockBuyMid" type="button">アップグレードする</button>
-      </div>
-
-      <div class="card">
-        <h3>プロ（¥1,500）</h3>
-        <ul>
-          <li>広告なし</li>
-          <li>上限なし</li>
-          <li>出力範囲：<b>無制限</b></li>
-        </ul>
-        <button class="btn primary small" id="mockBuyPro" type="button">フル機能で使う</button>
       </div>
     </div>
-  </section>
+  </main>
 
-  <!-- RIGHTS（省略せず既存どおり） -->
-  <section id="page-rights" class="hidden" data-title="Licenses & Notices">
-    <div class="card">
-      <h3>Licenses & Notices</h3>
-      <section><h4>App & Version</h4><p>Tabco Ledger Plus v0.8.0</p></section>
-      <section><h4>Copyright</h4><p>© 2025 Tabco. All rights reserved.</p></section>
-      <section><h4>Trademark Notice</h4><p>“Tabco Ledger Plus” and related logos are trademarks of Tabco.</p></section>
-      <section><h4>EULA（使用許諾）</h4><p>本アプリのご利用によりEULA（使用許諾契約）に同意したものとみなされます。 <a href="#" id="open-eula">EULAを開く</a></p></section>
-      <section><h4>データとプライバシー</h4><p>データは基本的にお使いの端末に保存されます。クラウドバックアップを選んだ場合は、お客様自身のアカウントへ保存されます。</p></section>
-      <section>
-        <h4>エクスポート（Excel XML）</h4>
-        <p>Excelで直接開ける <b>XML Spreadsheet 2003 形式（.xml）</b>で出力します。</p>
-        <ul>
-          <li>Excel：ダブルクリック or <em>ファイル → 開く</em> で読み込み可。</li>
-          <li>Googleスプレッドシート：<em>直接は開けません</em>。PCのExcelで <code>.xlsx</code> に保存してからアップロードしてください。</li>
-        </ul>
-      </section>
-      <section><h4>サードパーティ表記</h4><p>本アプリにはオープンソースコンポーネントが含まれる場合があり、そのライセンスを記載します。</p></section>
-      <section><h4>お問い合わせ</h4><p>ご不明点は info@example.com までご連絡ください。</p></section>
-      <div id="tlp-rights-badge-host" aria-hidden="true"></div>
-    </div>
-  </section>
-</main>
-
-<!-- モーダル（共通） -->
-<div id="modalHost" class="modal-backdrop hidden" aria-hidden="true">
-  <div class="modal sheet" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <h3 id="modalTitle">タイトル</h3>
-    <div id="modalBody"></div>
-    <div class="actions">
-      <button class="btn danger small btn--delete delbtn hidden" id="modalDelete">削除</button>
-      <button class="btn ghost small btn--cancel" id="modalCancel">キャンセル</button>
-      <button class="btn primary btn--save" id="modalOK">保存</button>
-    </div>
-  </div>
-</div>
+  <div class="badge">Tabco Ledger Plus — v0.8.0</div>
 
 <script>
-/* ===== Storage ===== */
-const DB = {
-  load(){
-    const defaults = {
-      suppliers: [], products: [], entries: [], priceHistory: {},
-      settings: {
-        theme: "light", lastBackupAt: null, plan: "free",
-        autoClear: true, historyShowBoth: true, showTaxFlags: false,
-        recentProducts: [],
-        hisRange: "30",      // 新キー
-        hisRangeDays: 30     // 互換用（読みはしない）
-      }
-    };
+"use strict";
 
-    // 破損対策付きパース
-    let raw = {};
-    try{
-      const s = localStorage.getItem("tabco-store");
-      raw = s ? JSON.parse(s) : {};
-    }catch(e){
-      console.warn("[DB] parse error, fallback to defaults", e);
-      try{
-        localStorage.setItem("tabco-store_corrupt", localStorage.getItem("tabco-store") || "");
-      }catch(_){}
-      raw = {};
-    }
+/* ===== 小ユーティリティ ===== */
+const $ = (q,el=document)=>el.querySelector(q);
+const $$ = (q,el=document)=>Array.from(el.querySelectorAll(q));
+const YMD = (d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+function uid(){ return Math.random().toString(36).slice(2)+Date.now().toString(36) }
+function planJp(p){ return p==='free'?'Free（無料）':p==='middle'?'Middle（ミドル）':p==='pro'?'Pro（プロ）':String(p) }
 
-    // 深いマージ（settingsだけ個別にマージ）
-    const out = {
-      suppliers: Array.isArray(raw.suppliers) ? raw.suppliers : defaults.suppliers,
-      products:  Array.isArray(raw.products)  ? raw.products  : defaults.products,
-      entries:   Array.isArray(raw.entries)   ? raw.entries   : defaults.entries,
-      priceHistory: (raw.priceHistory && typeof raw.priceHistory === "object") ? raw.priceHistory : {},
-      settings: Object.assign({}, defaults.settings, (raw.settings || {}))
-    };
-    return out;
-  },
-  save(d){
-    try{ localStorage.setItem("tabco-store", JSON.stringify(d)); }
-    catch(e){ console.error("[DB] save error", e); }
-  }
+/* ===== データ永続化（擬似DB） ===== */
+const DB={
+  load(){ try{ return JSON.parse(localStorage.getItem("tlp_store")||"null")||{settings:{plan:'free',theme:'dark',autoClear:true,historyShowBoth:true,showTaxFlags:false,recentProducts:[],hisRangeDays:30},suppliers:[],products:[],entries:[],priceHistory:{}} }catch{return{settings:{plan:'free'},suppliers:[],products:[],entries:[],priceHistory:{}}} },
+  save(s){ localStorage.setItem("tlp_store",JSON.stringify(s)); }
 };
-let store = DB.load();
-
-/* ===== Utils ===== */
-const $  = (s,el)=>(el||document).querySelector(s);
-const $$ = (s,el)=>Array.from((el||document).querySelectorAll(s));
-const yen=n=>"¥"+(Math.round(n||0)).toLocaleString();
-const uid=()=>Math.random().toString(36).slice(2,10);
-const fmtYMD=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-const todayStr=()=>fmtYMD(new Date());
-function enableSelectOnFocus(){
-  $$('input[type="number"], input[type="text"]').forEach(inp=>{
-    const sel=()=>inp.select&&inp.select();
-    inp.addEventListener("focus",sel);
-    inp.addEventListener("click",sel);
-  });
-}
+let store=DB.load();
 
 /* === Plans: 単一の真実（SOT） ============================= */
 const PlanRules = {
@@ -401,7 +199,7 @@ const EXPORT_KEYS = ['month','fiscal','all'];
 function clampExportKey(req, plan){
   const p = (plan ?? PLAN());
   const rules = PlanRules[p] || PlanRules.free;
-  const key = EXPORT_KEYS.includes(req) ? req : 'month';
+  const key = (EXPORT_KEYS.includes(req)? req : 'month');
   if (rules.exportMax === 'month') return 'month';
   if (rules.exportMax === 'fiscal' && key === 'all') return 'fiscal';
   return key;
@@ -410,19 +208,12 @@ window.clampExportKey = clampExportKey; // コンソール診断用に公開（�
 
 // === Plan Caps ===
 const PlanCap = {
-  free   : { suppliers: 5,  products: 50,  perSupplier: 10 },
-  middle : { suppliers: 15, products: 225, perSupplier: 15 },
-  pro    : { suppliers: Infinity, products: Infinity, perSupplier: Infinity }
+  free   : { suppliers: 5,  productsPerSupplier: 10,  productsTotal: 50  },
+  middle : { suppliers: 15, productsPerSupplier: 15,  productsTotal: 225 },
+  pro    : { suppliers: Infinity, productsPerSupplier: Infinity, productsTotal: Infinity }
 };
 const PLAN  = ()=> (store?.settings?.plan || 'free');  // 既にあればそのままでOK
-const CAPS = (p = PLAN()) => {
-  const c = PlanCap[p] || PlanCap.free;
-  return {
-    suppliers: c.suppliers,
-    productsPerSupplier: c.perSupplier,
-    productsTotal: c.products,
-  };
-};
+const CAPS = (p = PLAN()) => (PlanCap[p] || PlanCap.free);
 window.CAPS = CAPS; // 診断用に公開（任意）
 const capLabel = (n, unit)=> (n===Infinity ? '無制限' : `${n}${unit}`);
 window.PlanRules = PlanRules;
@@ -437,12 +228,8 @@ function _startOfMonth(d){ return new Date(d.getFullYear(), d.getMonth(), 1); }
 function _endOfDay(d){ const x=new Date(d); x.setHours(23,59,59,999); return x; }
 function getExportRange(key){
   const now=new Date();
-  if(key==="fiscal"){
-    const from=new Date(now.getFullYear(),0,1);
-    const to=_endOfDay(new Date());
-    return {from,to,label:`${_ym(from)}〜${_ym(now)}`,key:"fiscal"};
-  }
-  if(key==="all"){ return {from:null,to:null,label:"全期間",key:"all"}; }
+  if(key==="all") return {from:null,to:null,label:"全期間",key:"all"};
+  if(key==="fiscal"){ const from=new Date(now.getFullYear(),0,1); const to=_endOfDay(new Date()); return {from,to,label:`${now.getFullYear()}年1月〜${_ym(now)}`,key:"fiscal"}; }
   // default: 当月
   const from=_startOfMonth(now), to=_endOfDay(new Date());
   return {from,to,label:_ym(now),key:"month"};
@@ -457,518 +244,173 @@ function _inRange(ymd, range){
 
 /* ===== Theme & Header ===== */
 function applyTheme(){
-  document.documentElement.setAttribute("data-theme", store.settings.theme==="dark" ? "dark" : "light");
-  const ic = $("#themeIcon"); if(ic) ic.textContent = store.settings.theme==="dark" ? "☾" : "☀";
-}
-document.addEventListener("click",(e)=>{
-  if(e.target.closest("#themeBtn")){
-    store.settings.theme = store.settings.theme==="dark" ? "light" : "dark";
-    DB.save(store); applyTheme();
-  }
-});
-function planJp(p){ return p==="pro" ? "プロ" : (p==="middle" ? "ミドル" : "無料"); }
-function setHeaderTitleByPage(id){
-  const map = {
-    home:"仕入れ管理",
-    input:"仕入入力",
-    suppliers:"仕入れ先マスタ",
-    products:"商品マスタ",
-    history:"履歴・集計",
-    backup:"バックアップ設定",
-    license:"Plans",
-    rights:"Licenses & Notices",
-  };
-  const el=$("#pageTitle"); if(el) el.textContent = map[id] || "";
+  document.documentElement.dataset.theme=store.settings.theme||'dark';
+  $('#pillPlan').textContent = planJp(store.settings.plan||'free');
 }
 
-/* ===== History Controls（一本化） ===== */
-window.HistoryUI = (function(){
-  let bound = false;
-
-  function sync(){
-    if (store.settings.hisRange == null) {
-      const d = store.settings.hisRangeDays;
-      store.settings.hisRange = (d === 7 || d === 30) ? String(d) : "30";
-      DB.save(store);
-    }
-    const cbGross = $("#toggleGross"); if (cbGross) cbGross.checked = !!store.settings.historyShowBoth;
-    const cbDet = $("#showDetail"); if (cbDet) cbDet.checked = !!store.settings.showTaxFlags;
-    const sel = $("#hisRange"); if (sel) sel.value = String(store.settings.hisRange ?? "30");
-  }
-
-  function bindOnce(){
-    if (bound) return;
-    document.addEventListener("change", (e) => {
-      const t = e.target; if (!t) return;
-      if (t.id === "toggleGross") { store.settings.historyShowBoth = !!t.checked; DB.save(store); renderHistory(); }
-      if (t.id === "showDetail")  { store.settings.showTaxFlags  = !!t.checked; DB.save(store); renderHistory(); }
-      if (t.id === "hisRange")    { store.settings.hisRange = String(t.value || "30"); DB.save(store); renderHistory(); }
-    });
-    bound = true;
-  }
-  return { sync, bindOnce };
-})();
-
-/* ===== Router ===== */
-let internalNav=false;
-function showPage(id){
-  $$("main section").forEach(s=>s.classList.add("hidden"));
-  const page=$("#page-"+id); if(page) page.classList.remove("hidden");
-  if(id==="home"){
-    $("#btnHome")?.classList.add("hidden");
-    $("#pageTitle").textContent="仕入れ管理";
-  }else{
-    $("#btnHome")?.classList.remove("hidden");
-    setHeaderTitleByPage(id);
-  }
-  if(id==="history"){ HistoryUI.sync(); HistoryUI.bindOnce(); try{ renderHistory(); }catch(err){ console.error("renderHistory failed:", err); } }
-  if(id==="license"){ syncLicenseButtons(); }
-  window.scrollTo(0,0);
+/* ===== ルーター（ハッシュ） ===== */
+function navigate(page){ location.hash = page; }
+function onRoute(){
+  const page=(location.hash||'#home').replace('#','');
+  $$('#page-home,#page-input,#page-suppliers,#page-products,#page-backup').forEach(el=>el.classList.add('hidden'));
+  const el=$(`#page-${page}`); if(el) el.classList.remove('hidden');
 }
-function navigate(id){ internalNav=true; location.hash=id; showPage(id); internalNav=false; }
-window.addEventListener("hashchange",()=>{ if(internalNav) return; showPage(location.hash.replace("#","")||"home"); });
-document.addEventListener("click",(e)=>{ const b=e.target.closest("[data-goto]"); if(!b) return; e.preventDefault(); navigate(b.getAttribute("data-goto")); });
-document.addEventListener("click",(e)=>{ if(e.target.closest("#btnHome")) navigate("home"); });
+window.addEventListener('hashchange', onRoute);
 
-/* ===== Home KPIs / Ads ===== */
-function calcTotals(days){
-  const now=new Date(), from=new Date(now.getTime()-days*86400000);
-  return store.entries.reduce((sum,e)=>{
-    if(e.deleted) return sum;
-    const t=new Date(e.date+"T00:00:00");
-    if(t>=from&&t<=now){
-      const base = e.taxmode==="incl" ? e.price : e.price*(1+e.taxrate/100);
-      sum+=base*e.qty;
-    }
-    return sum;
-  },0);
-}
-function refreshAds(){
-  const slot = $("#adSlot");
-  if(!slot) return;
-  const on = (store.settings.plan||"free")==="free";
-  slot.classList.toggle("visible", on);
-}
+/* ===== 初期化 ===== */
 function refreshHome(){
-  $("#kpiWeek").textContent = yen(calcTotals(7));
-  $("#kpiMonth").textContent = yen(calcTotals(30));
-  const p=store.settings.plan||"free";
-  $("#pillPlan").textContent  = "プラン："+planJp(p);
-  const bk=store.settings.lastBackupAt?new Date(store.settings.lastBackupAt):null;
-  $("#pillBackup").textContent = bk?("最終バックアップ："+bk.toLocaleString("ja-JP")):"最終バックアップ：未実施";
-  refreshAds();
+  const list=$('#todayList'); if(!list) return;
+  const today=YMD(new Date());
+  const entries=(store.entries||[]).filter(e=>!e.deleted && e.date===today);
+  list.innerHTML='';
+  entries.forEach(e=>{
+    const sName = (store.suppliers.find(s=>s.id===e.supplier_id)?.name)||'-';
+    const pName = (store.products.find(p=>p.id===e.product_id)?.name)||'-';
+    const row=document.createElement('div'); row.className='list-item';
+    row.innerHTML = `<div class="row" style="justify-content:space-between"><div><b>${e.date}</b> ${sName} / ${pName} ×${e.qty}</div><div class="mini-meta">¥${e.incl||e.excl||0}</div></div>`;
+    list.appendChild(row);
+  });
 }
 
-/* ===== Input ===== */
-function fillSupplierSelect(sel){
-  sel.innerHTML="";
-  store.suppliers.filter(s=>!s.deleted).forEach(s=>{
-    const o=document.createElement("option"); o.value=s.id; o.textContent=s.name; sel.appendChild(o);
-  });
-}
-function buildProductOptionsForSupplier(supplierId, searchText=""){
-  const recents=(store.settings.recentProducts||[]).slice(0,20);
-  const list=store.products.filter(p=>!p.deleted&&(!supplierId||p.supplier_id===supplierId));
-  const mru=list.filter(p=>recents.includes(p.id));
-  const others=list.filter(p=>!recents.includes(p.id));
-  const needle=(searchText||"").trim().toLowerCase();
-  const match=p=>!needle||p.name.toLowerCase().includes(needle);
-  return [...mru.filter(match), ...others.filter(match)]; // ★ 修正：スプレッド
-}
-function renderProductSelect(sel,supplierId,searchText=""){
-  const items=buildProductOptionsForSupplier(supplierId,searchText);
-  const prev=sel.value;
-  sel.innerHTML='<option value="">（選択してください）</option>';
-  items.forEach(p=>{const o=document.createElement("option");o.value=p.id;o.textContent=p.name;sel.appendChild(o)});
-  if(items.some(p=>p.id===prev)) sel.value=prev;
-  $("#inPrice").value=""; $("#inQty").value=1;
-  $$('input[name=taxrate]').forEach(r=>r.checked=(r.value==="8"));
-  $$('input[name=taxmode]').forEach(r=>r.checked=(r.value==="excl"));
-  $("#priceHistory").innerHTML="";
-}
-function fillProductSelect(sel,supplierId){ renderProductSelect(sel,supplierId,$("#prodSearch").value||""); }
-function renderPriceHistory(pid){
-  const w=$("#priceHistory"); w.innerHTML="";
-  (store.priceHistory[pid]||[]).slice(-3).reverse().forEach(v=>{
-    const b=document.createElement("button");
-    b.className="btn ghost small"; b.type="button"; b.textContent="¥"+v.price;
-    b.onclick=()=>$("#inPrice").value=v.price; w.appendChild(b);
-  });
-}
-const supplierName=id=>(store.suppliers.find(x=>x.id===id)||{}).name||null;
-const prodName=(id,fb)=>(store.products.find(x=>x.id===id)||{}).name||(fb||"未登録");
-function toggleFreeInput(){
-  const on=$("#chkFree").checked;
-  $("#freeFields").classList.toggle("hidden",!on);
-  $("#inSupplier").disabled=on; $("#inProduct").disabled=on; $("#prodSearch").disabled=on;
-}
 function initInputPage(){
-  $("#inDate").value=todayStr();
-  fillSupplierSelect($("#inSupplier"));
-  const sid=$("#inSupplier").value;
-  renderProductSelect($("#inProduct"),sid,"");
-  $("#prodSearch").value=""; $("#inQty").value=1; $("#inPrice").value=""; $("#inMemo").value="";
-  toggleFreeInput();
-}
-document.addEventListener("change",(e)=>{ if(e.target.id==="chkFree") toggleFreeInput(); });
-document.addEventListener("change",(e)=>{ if(e.target.id==="inSupplier") renderProductSelect($("#inProduct"),e.target.value,$("#prodSearch").value||""); });
-document.addEventListener("input",(e)=>{ if(e.target.id==="prodSearch") renderProductSelect($("#inProduct"),$("#inSupplier").value,e.target.value); });
-document.addEventListener("change",(e)=>{
-  if(e.target.id==="inProduct"){
-    const p=store.products.find(x=>x.id===e.target.value);
-    if(p){
-      $("#inPrice").value=p.default_price||"";
-      $$('input[name=taxrate]').forEach(r=>r.checked=String(p.tax_rate)===r.value);
-      $$('input[name=taxmode]').forEach(r=>r.checked=(p.tax_mode||"excl")===r.value);
-      renderPriceHistory(p.id);
-    }else{
-      $("#priceHistory").innerHTML="";
-    }
-  }
-});
-document.addEventListener("click",(e)=>{ if(e.target.id==="btnAddSupplier") tryAddSupplier(); });
-document.addEventListener("click",(e)=>{ if(e.target.id==="btnAddProduct"){ const sid = $("#filterProdSupplier")?.value || (store.suppliers[0]?.id || ""); tryAddProductStart(sid); }});
-function calcLineTotal(e){
-  const p=Number(e.price)||0, q=Number(e.qty)||0, r=Number(e.taxrate)||0;
-  const base = p*q;
-  if(e.taxmode==="incl"){ const excl = Math.round(base/(1+r/100)); return {excl, incl: base}; }
-  else if(e.taxmode==="excl"){ const incl = Math.round(base*(1+r/100)); return {excl: base, incl}; }
-  else { return {excl: base, incl: base}; }
-}
-function bumpRecentProduct(pid){
-  if(!pid) return;
-  const arr = store.settings.recentProducts || [];
-  const i = arr.indexOf(pid);
-  if(i>=0) arr.splice(i,1);
-  arr.unshift(pid);
-  store.settings.recentProducts = arr.slice(0,20);
-}
-document.addEventListener("click",(e)=>{ if(e.target.id==="btnAddLine") addLine(); });
-function addLine(){
-  const date=$("#inDate").value||todayStr();
-  const free=$("#chkFree").checked;
-  const supplier_id=free?null:($("#inSupplier").value||null);
-  const product_id=free?null:($("#inProduct").value||null);
-  const supplier_name_fallback=free?($("#freeSupplier").value||"未登録"):(supplierName(supplier_id)||"未登録");
-  const product_name_fallback=free?($("#freeProduct").value||"未登録"):null;
-  const qty=Number($("#inQty").value||1);
-  const price=Number($("#inPrice").value||0);
-  const taxrate=Number(document.querySelector('input[name=taxrate]:checked').value);
-  const taxmode=document.querySelector('input[name=taxmode]:checked').value;
-  if(!price||!qty){alert("価格と数量を入力してください");return}
-  store.entries.push({id:uid(),date,supplier_id,product_id,supplier_name_fallback,product_name_fallback,qty,price,taxrate,taxmode,memo:$("#inMemo").value||""});
-  if(product_id){
-    const arr=store.priceHistory[product_id]||[];
-    arr.push({price,ts:Date.now(),taxrate,taxmode});
-    store.priceHistory[product_id]=arr.slice(-5);
-  }
-  bumpRecentProduct(product_id);
-  DB.save(store); renderTodayList(); refreshHome();
-  if(store.settings.autoClear){
-    $("#inProduct").value=""; $("#inPrice").value=""; $("#inQty").value=1; $("#inMemo").value=""; $("#priceHistory").innerHTML="";
-  }
-}
-/* ==== 完了（ホームへ） ==== */
-function _val(sel){ const el=document.querySelector(sel); return (el && 'value' in el) ? el.value : ''; }
-function _checked(sel){ const el=document.querySelector(sel); return !!(el && el.checked); }
-window.hasPendingInput = function(){
-  const free=_checked('#chkFree');
-  const price=Number(_val('#inPrice')||0);
-  const qty=Number(_val('#inQty')||1);
-  if(price>0) return true;
-  if(qty!==1) return true;
-  if((_val('#inMemo')||'').trim()) return true;
-  return free ? ((_val('#freeSupplier').trim() || _val('#freeProduct').trim()).length>0)
-              : !!_val('#inProduct');
-};
-window.confirmLeaveFromInput = function(){
-  if (typeof openModalBase !== "function"){
-    if (confirm("未追加があります。追加して戻りますか？\nキャンセルで編集を続けます。")) {
-      const before=(store.entries||[]).length; addLine();
-      if ((store.entries||[]).length > before){ navigate("home"); refreshHome(); }
-    }
-    return;
-  }
-  openModalBase("未追加の入力があります", `
-    <div style="margin-top:4px">どうしますか？</div>
-    <ul style="margin:8px 0 0 16px">
-      <li><b>追加して戻る</b>：明細に追加してホームへ</li>
-      <li><b>破棄</b>：入力中の内容は捨ててホームへ</li>
-    </ul>
-  `);
-  const ok = $('#modalOK'), del=$('#modalDelete'), cancel=$('#modalCancel');
-  ok.textContent="追加して戻る"; del.textContent="破棄"; del.classList.remove("hidden"); del.classList.add("danger","small");
-  ok.onclick = ()=>{ const b=(store.entries||[]).length; addLine(); const s=(store.entries||[]).length>b; closeModal(); if (s){ navigate("home"); refreshHome(); } };
-  del.onclick = ()=>{ closeModal(); navigate("home"); refreshHome(); };
-  cancel.onclick = closeModal;
-  setTimeout(()=> ok && ok.focus(), 0);
-};
-(function(){
-  if (window.__boundBtnSave) return;
-  document.addEventListener("click", (e) => {
-    const btn = e.target.closest("#btnSave");
-    if (!btn) return;
-    e.preventDefault();
-    try{
-      if (window.hasPendingInput && window.hasPendingInput()){
-        window.confirmLeaveFromInput ? window.confirmLeaveFromInput()
-                                     : (confirm("未追加があります。破棄して戻りますか？") && (navigate("home"), refreshHome()));
-      } else {
-        navigate("home"); refreshHome();
-      }
-    }catch(err){
-      console.error("btnSave handler error:", err);
-      navigate("home"); refreshHome();
-    }
-  });
-  window.__boundBtnSave = true;
-})();
-
-document.addEventListener("click",(e)=>{ if(e.target.id==="btnClear"){ $("#inQty").value=1;$("#inPrice").value="";$("#inMemo").value="";$("#inProduct").value="";$("#priceHistory").innerHTML=""; }});
-
-/* 商品編集委譲 */
-document.addEventListener("click",(e)=>{
-  const btn = e.target.closest("#productList .edit");
-  if(!btn) return;
-  const pid = btn.getAttribute("data-id");
-  if(!pid){ alert("商品IDが見つかりません"); return; }
-  const p = store.products.find(x=>!x.deleted && x.id===pid);
-  if(!p){ alert("商品が見つかりません"); return; }
-  openProductModal(p);
-});
-
-/* Today list */
-function renderTodayList(){
-  const cont=$("#todayList"); if(!cont) return;
-  cont.innerHTML="";
-  const d=todayStr(); const group={};
-  store.entries.filter(x=>!x.deleted && x.date===d).forEach(e=>{
-    const key=e.supplier_id||e.supplier_name_fallback||"未指定";
-    (group[key]=group[key]||[]).push(e);
-  });
-  Object.keys(group).forEach(k=>{
-    const sup=supplierName(k)||k;
-    const div=document.createElement("div"); div.className="list-item";
-    let net=0,gross=0; group[k].forEach(e=>{const t=calcLineTotal(e); net+=t.excl; gross+=t.incl;});
-    let html=`<b>${sup}</b><div class="muted">税別 ${yen(net)}｜税込 ${yen(gross)}</div>`;
-    html+=group[k].map(e=>{
-      const t=calcLineTotal(e);
-      const txLabel=e.taxmode==="incl"?"税込":(e.taxrate===0?"非課税":"税別");
-      const show=(e.taxmode==="incl")?t.incl:t.excl;
-      const meta = store.settings.showTaxFlags ? `<br><span class="mini-meta">単価 ${yen(e.price)} / ${e.taxrate}% / ${txLabel}</span>` : "";
-      return `<div class="row entry" data-id="${e.id}" style="justify-content:space-between;cursor:pointer">
-        <span>・${prodName(e.product_id,e.product_name_fallback)} ×${e.qty}${meta}</span>
-        <span>${yen(show)}</span>
-      </div>`;
-    }).join("");
-    div.innerHTML=html; cont.appendChild(div);
-  });
+  const selSup=$('#inSupplier'); const selProd=$('#inProduct'); if(!selSup||!selProd) return;
+  selSup.innerHTML = `<option value="">-</option>` + (store.suppliers||[]).filter(s=>!s.deleted).map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  const supId=selSup.value||store.suppliers[0]?.id||'';
+  selProd.innerHTML = (store.products||[]).filter(p=>!p.deleted && (!supId||p.supplier_id===supId)).map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
 }
 
-/* ===== Supplier/Product ===== */
 function renderSuppliers(){
-  const list=$("#supplierList"); if(!list) return;
-  list.innerHTML="";
-  store.suppliers.filter(s=>!s.deleted).forEach(s=>{
-    const prodCount=store.products.filter(p=>!p.deleted&&p.supplier_id===s.id).length;
-    const item=document.createElement("div"); item.className="list-item supplier";
-    item.innerHTML=`
-      <div class="tapzone">
-        <b>${s.name}</b>
-        <div class="muted">担当:${s.contact||"-"}　TEL:${s.phone||"-"}　INV:${s.invoice_number||"-"}</div>
-        <div class="muted">｜商品${prodCount}件</div>
-      </div>
-      <div class="ops-col">
-        <button class="btn op small square addp" type="button"><span class="twoline">＋<br>商品追加</span></button>
-        <button class="btn op small square edit" type="button">編集</button>
-      </div>`;
-    list.appendChild(item);
+  const list=$('#supplierList'); if(!list) return; const q=($('#filterSup').value||'').toLowerCase();
+  const items=(store.suppliers||[]).filter(s=>!s.deleted && (!q || s.name.toLowerCase().includes(q)));
+  list.innerHTML='';
+  items.forEach(s=>{
+    const el=document.createElement('div'); el.className='list-item';
+    el.innerHTML=`<div class="row" style="justify-content:space-between;align-items:center"><div><b>${s.name}</b><div class="mini-meta">${s.contact||''} ${s.phone||''}</div></div><div class="row"><button class="btn small ghost" data-edit-sup="${s.id}">編集</button></div></div>`;
+    list.appendChild(el);
   });
 }
-function fillFilterSupplier(){
-  const sel=$("#filterProdSupplier"); if(!sel) return;
-  const cur=sel.value;
-  sel.innerHTML='<option value="">すべて</option>';
-  store.suppliers.filter(s=>!s.deleted).forEach(s=>{
-    const o=document.createElement("option"); o.value=s.id; o.textContent=s.name; sel.appendChild(o);
-  });
-  if(cur && [...sel.options].some(o=>o.value===cur)) sel.value=cur;
-}
-document.addEventListener("click",(e)=>{
-  const addp=e.target.closest("#supplierList .addp");
-  const edit=e.target.closest("#supplierList .edit");
-  const tap =e.target.closest("#supplierList .tapzone");
-  if(addp){
-    const item=addp.closest(".list-item");
-    const name=item.querySelector("b").textContent;
-    const sup=store.suppliers.find(s=>s.name===name);
-    if(sup){ tryAddProductStart(sup.id); }
-  }else if(edit){
-    const item=edit.closest(".list-item");
-    const name=item.querySelector("b").textContent;
-    const sup=store.suppliers.find(s=>s.name===name);
-    if(sup){ openSupplierModal(sup); }
-  }else if(tap){
-    const item=tap.closest(".list-item");
-    const name=item.querySelector("b").textContent;
-    const sup=store.suppliers.find(s=>s.name===name);
-    if(sup){ navigate("products"); $("#filterProdSupplier").value=sup.id; renderProducts(); }
-  }
-});
+
 function renderProducts(){
-  const list=$("#productList"); if(!list) return;
-  const sid=$("#filterProdSupplier").value;
+  const list=$('#productList'); if(!list) return;
+  const sid=$('#filterProdSupplier').value;
   const items=store.products.filter(p=>!p.deleted&&(!sid||p.supplier_id===sid));
-  list.innerHTML="";
+  list.innerHTML='';
   items.forEach(p=>{
     const sName=supplierName(p.supplier_id)||"-";
     const item=document.createElement("div"); item.className="list-item";
     item.innerHTML=`
       <div class="row" style="justify-content:space-between;align-items:center">
         <div><b>${p.name}</b>
-          <div class="muted">${sName}｜既定価格 ${yen(p.default_price||0)}｜${p.tax_rate}%｜${p.tax_mode==="incl"?"税込":"税別"}</div>
-          ${p.note?(`<div class="muted">メモ：${p.note}</div>`):""}
+          <div class="mini-meta">${sName} / ¥${p.default_price||0} / 税${p.tax_rate||0}% ${p.tax_mode||'excl'}</div>
         </div>
-        <div style="width:102px">
-          <button class="btn op small square edit" type="button" data-id="${p.id}">編集</button>
-        </div>
+        <div class="row"><button class="btn small ghost" data-edit-product="${p.id}">編集</button></div>
       </div>`;
     list.appendChild(item);
   });
 }
-document.addEventListener("change",(e)=>{ if(e.target.id==="filterProdSupplier") renderProducts(); });
 
-/* ===== モーダル基盤 ===== */
-function closeModal(){ $("#modalHost").classList.add("hidden"); $("#modalHost").setAttribute("aria-hidden","true"); }
-function openModalBase(title,bodyHTML){
-  $("#modalTitle").textContent=title;
-  $("#modalBody").innerHTML=bodyHTML;
-  const host=$("#modalHost");
-  const ok=$("#modalOK"), cancel=$("#modalCancel"), del=$("#modalDelete");
-  ok.textContent="保存"; cancel.textContent="キャンセル"; del.textContent="削除";
-  ok.onclick=null; del.onclick=null; cancel.onclick=closeModal;
-  del.classList.add("hidden");
-  ok.classList.add("btn--save"); cancel.classList.add("btn--cancel"); del.classList.add("btn--delete");
-  host.classList.remove("hidden"); host.setAttribute("aria-hidden","false");
+function supplierName(id){ return (store.suppliers.find(s=>s.id===id)?.name)||null }
+
+function enableSelectOnFocus(){
+  $$('#page-input input[type="number"]').forEach(inp=>{
+    const sel=()=>inp.select();
+    inp.addEventListener("focus",sel);
+    inp.addEventListener("click",sel);
+  });
 }
-(function(){
-  const host=$("#modalHost"); if(!host||host.__bound) return;
-  host.addEventListener("click",e=>{ if(e.target===host) closeModal(); });
-  document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !host.classList.contains("hidden")) closeModal(); });
-  host.__bound=true;
-})();
 
-/* ===== 仕入先 / 商品モーダル ===== */
+/* ====== 仕入先 / 商品モーダル ====== */
 function openSupplierModal(s){
-  openModalBase(s?"仕入れ先を編集":"仕入れ先を追加",`
-    <div class="grid cols-2">
+  openModalBase(s?"仕入先を編集":"仕入先を追加", `
+    <div class="grid" style="grid-template-columns:1fr 1fr">
       <div><div class="label">社名</div><input id="mSupName" type="text" value="${s?.name||""}"></div>
-      <div><div class="label">担当者</div><input id="mSupContact" type="text" value="${s?.contact||""}"></div>
-      <div><div class="label">電話</div><input id="mSupPhone" type="text" value="${s?.phone||""}" inputmode="tel"></div>
+      <div><div class="label">担当</div><input id="mSupContact" type="text" value="${s?.contact||""}"></div>
+      <div><div class="label">電話</div><input id="mSupPhone" type="tel" value="${s?.phone||""}" inputmode="tel"></div>
       <div><div class="label">インボイス番号</div><input id="mSupInv" type="text" value="${s?.invoice_number||""}"></div>
     </div>`);
   const onOK=()=>{
     const name=$("#mSupName").value.trim(); if(!name){ alert("社名を入力してください"); return; }
     if(!s){
-      const limit = PlanRules[store.settings.plan||'free'].supplierMax;
+      const cap = CAPS();
       const count = store.suppliers.filter(x=>!x.deleted).length;
-      if(count >= limit){ alert(`このプランでは仕入れ先は ${limit} 社までです。Plans からアップグレードをご検討ください。`); return; }
+      if(count >= cap.suppliers){ alert(`現在のプランでは仕入先は ${capLabel(cap.suppliers,'社')} までです。\nPlans からアップグレードをご検討ください。`); return; }
     }
     const contact=$("#mSupContact").value.trim();
-    const phone  =$("#mSupPhone").value.trim();
-    const inv    =$("#mSupInv").value.trim();
+    const phone  =$(`#mSupPhone`).value.trim();
+    const inv    =$(`#mSupInv`).value.trim();
     if(s){ s.name=name; s.contact=contact; s.phone=phone; s.invoice_number=inv; }
-   else {  const cap = CAPS();const supCount = store.suppliers.filter(x=>!x.deleted).length;
-  　if (supCount >= cap.suppliers){
+    else{ store.suppliers.push({id:uid(),name,contact,phone,invoice_number:inv}); }
+    DB.save(store); renderSuppliers(); closeModal();
+  };
+  const delBtn=document.createElement('button'); delBtn.className='btn small neg ghost'; delBtn.textContent='削除'; delBtn.onclick=()=>{ if(confirm('削除しますか？')){ s.deleted=true; DB.save(store); renderSuppliers(); closeModal(); } };
+  const ok=$('#modalOK'); ok.onclick=onOK; $('.actions').insertBefore(delBtn, $('#modalCancel'));
+}
+
+function tryAddSupplier(){
+  const cap = CAPS();
+  const count = store.suppliers.filter(x=>!x.deleted).length;
+  if(count >= cap.suppliers){
     alert(`現在のプランでは仕入先は ${capLabel(cap.suppliers,'社')} までです。\nPlans からアップグレードをご検討ください。`);
     return;
   }
-  store.suppliers.push({id:uid(),name,contact,phone,invoice_number:inv});
-}
-    DB.save(store); renderSuppliers(); refreshHome(); fillSupplierSelect($("#inSupplier")); closeModal();
-  };
-  $("#modalOK").onclick=onOK;
-
-  if(s){
-    const delBtn=$("#modalDelete"); delBtn.classList.remove("hidden");
-    delBtn.onclick=()=>{ if(confirm("削除しますか？")){ s.deleted=true; DB.save(store); renderSuppliers(); refreshHome(); closeModal(); } };
-    $(".actions").insertBefore(delBtn, $("#modalCancel"));
-  }
-}
-function tryAddSupplier(){
-  const limit = PlanRules[store.settings.plan||'free'].supplierMax;
-  const count = store.suppliers.filter(x=>!x.deleted).length;
-  if(count >= limit){ alert(`このプランでは仕入れ先は ${limit} 社までです。Plans からアップグレードをご検討ください。`); return; }
   openSupplierModal(null);
 }
 
 function openProductModal(p,defaultSid){
-  const supOpts=store.suppliers.filter(s=>!s.deleted).map(s=>`<option value="${s.id}" ${(p?.supplier_id||defaultSid)===s.id?"selected":""}>${s.name}</option>`).join("");
-  openModalBase(p?"商品を編集":"商品を追加",`
-    <div class="grid cols-2">
-      <div><div class="label">仕入れ先</div><select id="mProdSup">${supOpts}</select></div>
+  const supOpts=store.suppliers.filter(s=>!s.deleted).map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  openModalBase(p?"商品を編集":"商品を追加", `
+    <div class="grid" style="grid-template-columns:1fr 1fr">
       <div><div class="label">商品名</div><input id="mProdName" type="text" value="${p?.name||""}"></div>
-      <div><div class="label">既定価格</div><input id="mProdPrice" type="number" inputmode="numeric" value="${p?.default_price??""}"></div>
-      <div><div class="label">税率</div><select id="mProdRate">
-        <option value="10" ${p?.tax_rate===10?"selected":""}>10%</option>
-        <option value="8" ${p?.tax_rate===8||p==null?"selected":""}>8%</option>
-        <option value="0" ${p?.tax_rate===0?"selected":""}>非課税</option>
-      </select></div>
-      <div><div class="label">区分</div><select id="mProdMode">
-        <option value="excl" ${(p?.tax_mode||"excl")==="excl"?"selected":""}>税別</option>
-        <option value="incl" ${(p?.tax_mode||"excl")==="incl"?"selected":""}>税込</option>
-      </select></div>
-      <div style="grid-column:1/-1">
-        <div class="label">商品メモ（任意）</div>
-        <textarea id="mProdNote" placeholder="例：入数24・リードタイム2日など">${p?.note||""}</textarea>
+      <div><div class="label">仕入先</div><select id="mProdSup">${supOpts}</select></div>
+      <div><div class="label">標準単価</div><input id="mProdPrice" type="number" inputmode="numeric" value="${p?.default_price||""}"></div>
+      <div>
+        <div class="label">税</div>
+        <div class="row">
+          <label class="row" style="gap:6px"><input type="radio" name="mTaxrate" value="0" ${String(p?.tax_rate||0)==='0'?'checked':''}> 0%</label>
+          <label class="row" style="gap:6px"><input type="radio" name="mTaxrate" value="8" ${String(p?.tax_rate||8)==='8'?'checked':''}> 8%</label>
+          <label class="row" style="gap:6px"><input type="radio" name="mTaxrate" value="10" ${String(p?.tax_rate||10)==='10'?'checked':''}> 10%</label>
+        </div>
+      </div>
+      <div>
+        <div class="label">税区分</div>
+        <div class="row">
+          <label class="row" style="gap:6px"><input type="radio" name="mTaxmode" value="excl" ${(p?.tax_mode||'excl')==='excl'?'checked':''}> 税別</label>
+          <label class="row" style="gap:6px"><input type="radio" name="mTaxmode" value="incl" ${(p?.tax_mode||'excl')==='incl'?'checked':''}> 税込</label>
+        </div>
       </div>
     </div>`);
+  if(!p){ $('#mProdSup').value = (defaultSid||store.suppliers[0]?.id||''); }
   const onOK=()=>{
-    const sid=$("#mProdSup").value;
-    const name=$("#mProdName").value.trim();
-    if(!sid||!name){ alert("仕入れ先と商品名を入力してください"); return; }
-    if(!p && store.products.some(x=>!x.deleted&&x.supplier_id===sid&&x.name===name)){
-      if(!confirm("同一仕入れ先に同名の商品があります。登録しますか？")) return;
-    }
-    // プラン制限チェック
+    const name=$('#mProdName').value.trim(); if(!name){ alert('商品名を入力してください'); return; }
+    const sid=$('#mProdSup').value; if(!sid){ alert('仕入先を選択してください'); return; }
     if(!p){
-      const rules = PlanRules[store.settings.plan||'free'];
+      const cap = CAPS();
       const total = store.products.filter(x=>!x.deleted).length;
-      if(total >= rules.productTotalMax){ alert(`このプランでは商品は合計 ${rules.productTotalMax} 品までです。Plans からアップグレードをご検討ください。`); return; }
+      if (total >= cap.productsTotal){
+        alert(`現在のプランでは商品合計は ${capLabel(cap.productsTotal,'品')} までです。\nPlans からアップグレードをご検討ください。`);
+        return;
+      }
       const per = store.products.filter(x=>!x.deleted && x.supplier_id===sid).length;
-      if(per >= rules.productPerSupplierMax){ alert(`このプランでは1社あたり ${rules.productPerSupplierMax} 品までです。別カードに同じ仕入先を追加して分割も可能です（ミドル以上）。`); return; }
+      if (per >= cap.productsPerSupplier){
+        alert(`現在のプランではこの仕入先の登録は ${capLabel(cap.productsPerSupplier,'品/カード')} までです。`);
+        return;
+      }
+      store.products.push({id:uid(),supplier_id:sid,name,default_price:Number($('#mProdPrice').value||0),tax_rate:Number(document.querySelector('input[name="mTaxrate"]:checked').value),tax_mode:document.querySelector('input[name="mTaxmode"]:checked').value});
+    }else{
+      p.name=name; p.supplier_id=sid; p.default_price=Number($('#mProdPrice').value||0); p.tax_rate=Number(document.querySelector('input[name="mTaxrate"]:checked').value); p.tax_mode=document.querySelector('input[name="mTaxmode"]:checked').value;
     }
-    const price=Number($("#mProdPrice").value||0);
-    const tax_rate=Number($("#mProdRate").value||8);
-    const tax_mode=$("#mProdMode").value||"excl";
-    const note=$("#mProdNote").value||"";
-    if(p){ p.supplier_id=sid; p.name=name; p.default_price=price; p.tax_rate=tax_rate; p.tax_mode=tax_mode; p.note=note; }
-   else {const cap = CAPS(); const total = store.products.filter(x=>!x.deleted).length;
-　　if (total >= cap.products){
-     alert(`現在のプランでは商品合計は ${capLabel(cap.products,'品')} までです。\nPlans からアップグレードをご検討ください。`);
-     return;
-  }
-   const per = store.products.filter(x=>!x.deleted && x.supplier_id===sid).length;
-   if (per >= cap.perSupplier){
-     alert(`現在のプランではこの仕入先の登録は ${capLabel(cap.perSupplier,'品/カード')} までです。`);
-     return;
-  }
-   store.products.push({id:uid(),supplier_id:sid,name,default_price:price,tax_rate:tax_rate,tax_mode:tax_mode,note});
- }
-    DB.save(store); renderProducts();renderSuppliers(); renderProductSelect($("#inProduct"),$("#inSupplier").value,$("#prodSearch").value||""); closeModal();
+    DB.save(store); renderProducts(); closeModal();
   };
-  $("#modalOK").onclick=onOK;
-
-  if(p){
-    const delBtn=$("#modalDelete"); delBtn.classList.remove("hidden");
-    delBtn.onclick=()=>{ if(confirm("削除しますか？")){ p.deleted=true; DB.save(store); renderProducts(); renderSuppliers();closeModal(); } };
-    $(".actions").insertBefore(delBtn, $("#modalCancel"));
-  }
+  $('#modalOK').onclick=onOK;
 }
+
 function tryAddProductStart(defaultSid){
-  const rules = PlanRules[store.settings.plan||'free'];
+  const cap = CAPS();
   const total = store.products.filter(x=>!x.deleted).length;
-  if(total >= rules.productTotalMax){ alert(`このプランでは商品は合計 ${rules.productTotalMax} 品までです。Plans からアップグレードをご検討ください。`); return; }
+  if(total >= cap.productsTotal){
+    alert(`このプランでは商品は合計 ${capLabel(cap.productsTotal,'品')} までです。Plans からアップグレードをご検討ください。`);
+    return;
+  }
   openProductModal(null, defaultSid);
 }
 
@@ -980,184 +422,61 @@ function _findEntryById(id){
 function _pushPriceHistoryIfNeeded(e){
   try{
     if(!e || !e.product_id) return;
-    const arr = store.priceHistory[e.product_id] || [];
-    arr.push({ price: Number(e.price)||0, ts: Date.now(), taxrate: Number(e.taxrate)||0, taxmode: e.taxmode||"excl" });
-    store.priceHistory[e.product_id] = arr.slice(-5);
-  }catch(_){}
-}
-function openEntryEditModalLite(entry){
-  if(!entry){ alert("明細が見つかりません"); return; }
-  const pname = (store.products.find(p=>p.id===entry.product_id)||{}).name || (entry.product_name_fallback || "未登録");
-  const sName = (store.suppliers.find(s=>s.id===entry.supplier_id)||{}).name || (entry.supplier_name_fallback || "未指定");
-  const modeLabel = entry.taxmode==="incl" ? "税込" : "税別";
-  openModalBase("明細を編集", `
-    <div class="grid cols-2">
-      <div style="grid-column:1/-1"><div class="label">仕入れ先</div><input type="text" value="${sName}" disabled></div>
-      <div style="grid-column:1/-1"><div class="label">商品</div><input type="text" value="${pname}" disabled></div>
-      <div><div class="label">数量</div><input id="mLiteQty" type="number" inputmode="numeric" min="0" step="1" value="${entry.qty}"></div>
-      <div><div class="label">単価</div><input id="mLitePrice" type="number" inputmode="numeric" min="0" step="1" value="${entry.price}"></div>
-      <div><div class="label">税率</div>
-        <select id="mLiteRate">
-          <option value="10" ${entry.taxrate===10?"selected":""}>10%</option>
-          <option value="8"  ${entry.taxrate===8 ?"selected":""}>8%</option>
-          <option value="0"  ${entry.taxrate===0 ?"selected":""}>非課税</option>
-        </select>
-      </div>
-      <div><div class="label">区分（参照）</div><input type="text" value="${modeLabel}" disabled></div>
-      <div style="grid-column:1/-1" class="mini-meta">※ この画面では <b>数量・単価・税率</b>のみ変更できます。区分とメモは編集対象外です。</div>
-    </div>
-  `);
-  const ok = $("#modalOK"); const del = $("#modalDelete");
-  del.classList.add("hidden");
-  ok.textContent="更新";
-  ok.onclick = ()=>{
-    const q = Number($("#mLiteQty").value || 0);
-    const p = Number($("#mLitePrice").value || 0);
-    const r = Number($("#mLiteRate").value || entry.taxrate || 8);
-    if(!Number.isFinite(q) || q<=0){ alert("数量を正しく入力してください"); return; }
-    if(!Number.isFinite(p) || p< 0){ alert("単価を正しく入力してください"); return; }
-    if(![0,8,10].includes(r)){ alert("税率を選択してください"); return; }
-    entry.qty=q; entry.price=p; entry.taxrate=r;
-    _pushPriceHistoryIfNeeded(entry);
-    DB.save(store);
-    try{ renderTodayList(); }catch(_){}
-    try{ renderHistory(); }catch(_){}
-    try{ refreshHome(); }catch(_){}
-    closeModal();
-  };
-}
-document.addEventListener("click", (e)=>{
-  const row = e.target.closest("#historyList .entry, #todayList .entry");
-  if(!row) return;
-  const id = row.getAttribute("data-id");
-  const entry = _findEntryById(id);
-  if(!entry){ alert("編集対象が見つかりません"); return; }
-  e.preventDefault();
-  openEntryEditModalLite(entry);
-});
-
-/* ===== HISTORY（描画） ===== */
-function renderHistory(){
-  const list = $("#historyList"); if(!list) return;
-  const rangeKey = String(store.settings.hisRange || "30"); // "7"|"30"|"fiscal"
-  const showBoth = !!store.settings.historyShowBoth;
-  const showDetail = !!store.settings.showTaxFlags;
-  const now = new Date(); now.setHours(23,59,59,999);
-  let from;
-  if (rangeKey === "fiscal") {
-    from = new Date(now.getFullYear(), 0, 1);
-  } else {
-    let days = Number(rangeKey); if(!Number.isFinite(days)||days<=0) days = 30;
-    from = new Date(now.getTime() - (days-1)*86400000); from.setHours(0,0,0,0);
-  }
-  list.innerHTML = "";
-  const entries = (store.entries||[]).filter(e=>{
-    if(!e || e.deleted || !e.date) return false;
-    const d = new Date(e.date+"T12:00:00");
-    return d >= from && d <= now;
-  });
-  if(!entries.length){ list.innerHTML = `<div class="muted">対象期間の履歴はありません。</div>`; return; }
-
-  if (rangeKey === "fiscal"){
-    const byMonth = {};
-    for (const e of entries){
-      const d = new Date(e.date+"T12:00:00");
-      const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-      (byMonth[ym] = byMonth[ym] || []).push(e);
-    }
-    const months = Object.keys(byMonth).sort().reverse();
-    for (const ym of months){
-      const sec = document.createElement("div"); sec.className = "card";
-      let html = `<b>${ym}</b>`;
-      const group = {};
-      for (const e of byMonth[ym]){ const sk = e.supplier_id || e.supplier_name_fallback || "未指定"; (group[sk] = group[sk] || []).push(e); }
-      for (const sk of Object.keys(group)){
-        const name = supplierName(sk) || sk;
-        let net=0,gross=0; for (const e of group[sk]){ const t=calcLineTotal(e); net+=t.excl; gross+=t.incl; }
-        const head = showBoth ? `税別 ${yen(net)}｜税込 ${yen(gross)}` : `税込 ${yen(gross)}`;
-        html += `<div style="margin-top:6px"><u>${name}</u>　<span class="muted">${head}</span>`;
-        html += group[sk].map(e=>{
-          const t=calcLineTotal(e);
-          const show=(e.taxmode==="incl")?t.incl:t.excl;
-          const txLabel=(e.taxmode==="incl")?"税込":(e.taxrate===0?"非課税":"税別");
-          const meta = showDetail ? `<br><span class="mini-meta">単価 ${yen(e.price)} / ${e.taxrate||0}% / ${txLabel}</span>` : "";
-          return `<div class="row entry" data-id="${e.id}" style="justify-content:space-between;cursor:pointer">
-            <span>・${e.date} ${prodName(e.product_id,e.product_name_fallback)} ×${e.qty}${meta}</span>
-            <span>${yen(show)}</span>
-          </div>`;
-        }).join("");
-        html += `</div>`;
-      }
-      sec.innerHTML = html; list.appendChild(sec);
-    }
-    return;
-  }
-
-  const byDate = {};
-  for (const e of entries){ (byDate[e.date] = byDate[e.date] || []).push(e); }
-  const dates = Object.keys(byDate).sort().reverse();
-
-  for (const dkey of dates){
-    const sec=document.createElement("div"); sec.className="card";
-    let html = `<b>${new Date(dkey+"T12:00:00").toLocaleDateString("ja-JP",{year:"numeric",month:"long",day:"numeric",weekday:"short"})}</b>`;
-    const group={};
-    for (const e of byDate[dkey]){ const sk=e.supplier_id||e.supplier_name_fallback||"未指定"; (group[sk]=group[sk]||[]).push(e); }
-    for (const sk of Object.keys(group)){
-      const name=supplierName(sk)||sk;
-      let net=0,gross=0; for(const e of group[sk]){ const t=calcLineTotal(e); net+=t.excl; gross+=t.incl; }
-      const head = showBoth ? `税別 ${yen(net)}｜税込 ${yen(gross)}` : `税込 ${yen(gross)}`;
-      html += `<div style="margin-top:6px"><u>${name}</u>　<span class="muted">${head}</span>`;
-      html += group[sk].map(e=>{
-        const t=calcLineTotal(e);
-        const show=(e.taxmode==="incl")?t.incl:t.excl;
-        const txLabel=(e.taxmode==="incl")?"税込":(e.taxrate===0?"非課税":"税別");
-        const meta = showDetail ? `<br><span class="mini-meta">単価 ${yen(e.price)} / ${e.taxrate||0}% / ${txLabel}</span>` : "";
-        return `<div class="row entry" data-id="${e.id}" style="justify-content:space-between;cursor:pointer">
-          <span>・${prodName(e.product_id,e.product_name_fallback)} ×${e.qty}${meta}</span>
-          <span>${yen(show)}</span>
-        </div>`;
-      }).join("");
-      html += `</div>`;
-    }
-    sec.innerHTML=html; list.appendChild(sec);
-  }
+    const arr = store.priceHistory[e.product_id] || (store.priceHistory[e.product_id] = []);
+    const key = `${e.qty||1}×${e.tax_rate||0}%/${e.tax_mode||'excl'}`;
+    const exists = arr.some(x => x && !x.deleted && x.unit_price===e.price && x.key===key);
+    if(!exists){ arr.unshift({id:uid(),unit_price:e.price||0,key,created_at:Date.now()}); arr.splice(0,50); }
+  }catch{}
 }
 
-/* ===== Export（Excel XML一本化） ===== */
-function saveExcelXML(name, rows2d){
-  const esc = s => String(s ?? "")
-    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-  const toCell = (val, isHeader) => {
-    if (!isHeader && typeof val === "number" && Number.isFinite(val)) {
-      return `<Cell ss:StyleID="s1"><Data ss:Type="Number">${val}</Data></Cell>`;
-    }
-    return `<Cell ss:StyleID="s1"><Data ss:Type="String">${esc(val)}</Data></Cell>`;
-  };
-  const rowsXml = rows2d.map((row, i)=>"<Row>"+row.map(v=>toCell(v, i===0)).join("")+"</Row>").join("");
-  const xml =
-`<?xml version="1.0"?>
-<?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
-          xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-  <Styles>
-    <Style ss:ID="s1">
-      <Borders>
-        <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
-        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
-        <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
-        <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
-      </Borders>
-    </Style>
-  </Styles>
-  <Worksheet ss:Name="Sheet1">
-    <Table>${rowsXml}</Table>
-  </Worksheet>
-</Workbook>`;
+/* ===== 入力画面：行追加 ===== */
+function addLine(){
+  const date=$('#inDate').value||YMD(new Date());
+  const sid=$('#inSupplier').value||store.suppliers[0]?.id||'';
+  const pid=$('#inProduct').value||store.products.find(p=>p.supplier_id===sid)?.id||'';
+  const qty=Number($('#inQty').value||1);
+  const price=Number($('#inPrice').value||0);
+  const taxrate=Number(document.querySelector('input[name="taxrate"]:checked').value);
+  const taxmode=document.querySelector('input[name="taxmode"]:checked').value;
+  const memo=$('#inMemo').value.trim();
+  const e={id:uid(),date,supplier_id:sid,product_id:pid,qty,price,tax_rate:taxrate,tax_mode:taxmode,memo};
+  const {excl,incl} = calcLineTotal(e); e.excl=excl; e.incl=incl;
+  store.entries.unshift(e); DB.save(store);
+  if(store.settings.autoClear){ $('#inQty').value=''; $('#inPrice').value=''; $('#inMemo').value=''; }
+  renderTodayList();
+}
+
+function calcLineTotal(e){
+  const p=Number(e.price)||0, q=Number(e.qty)||0, r=Number(e.tax_rate)||0;
+  const base = p*q;
+  if(e.tax_mode==="incl"||e.taxmode==="incl"){ const excl = Math.round(base/(1+r/100)); return {excl, incl: base}; }
+  else if(e.tax_mode==="excl"||e.taxmode==="excl"){ const incl = Math.round(base*(1+r/100)); return {excl: base, incl}; }
+  else { return {excl: base, incl: base}; }
+}
+
+function bumpRecentProduct(pid){
+  if(!pid) return;
+  const arr = store.settings.recentProducts || [];
+  const i = arr.indexOf(pid);
+  if(i>=0) arr.splice(i,1);
+  arr.unshift(pid);
+  store.settings.recentProducts = arr.slice(0,20);
+}
+
+/* === 出力処理（Excel XML） === */
+function exportXml(rows, name){
+  const esc = (s)=>String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+  const xmlHeader = `<?xml version="1.0"?>\n<?mso-application progid="Excel.Sheet"?>`;
+  const wbOpen = `<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">`;
+  const wbClose = `</Workbook>`;
+  const shOpen = `<Worksheet ss:Name="export"><Table>`;
+  const shClose = `</Table></Worksheet>`;
+  const rowsXml = rows.map(r=>`<Row>`+r.map(c=>`<Cell><Data ss:Type="String">${esc(c)}</Data></Cell>`).join('')+`</Row>`).join('');
+  const xml = [xmlHeader, wbOpen, shOpen, rowsXml, shClose, wbClose].join('');
   const blob = new Blob([xml], { type: "application/vnd.ms-excel" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = (name || `tlp_export_${Date.now()}.xml`).replace(/\.\w+$/,'') + ".xml";
+  a.download = (name || `tlp_export_${Date.now()}.xml`).replace(/\.\n\w+$/, '') + ".xml";
   document.body.appendChild(a);
   a.click();
   setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
@@ -1170,19 +489,12 @@ function exportData(rangeKey){
 
   const rows = [["日付","仕入れ先","商品","数量","単価","税率","区分","税込額","メモ"]];
   const entries = (store.entries||[]).filter(e => e && !e.deleted && (!range.from || _inRange(e.date, range)));
-  if (!entries.length){ alert("選択した期間にデータがありません。"); return; }
-
   entries.forEach(e=>{
-    const s = supplierName(e.supplier_id) || e.supplier_name_fallback || "";
-    const p = prodName(e.product_id, e.product_name_fallback);
-    const g = (e.taxmode==="incl" ? e.price : e.price*(1+e.taxrate/100)) * e.qty;
-    rows.push([ e.date, s, p, e.qty, e.price, e.taxrate,
-      (e.taxmode==="incl"?"税込":"税別"), Math.round(g), e.memo||"" ]);
+    const sName = supplierName(e.supplier_id)||'-';
+    const pName = (store.products.find(p=>p.id===e.product_id)?.name) || '-';
+    rows.push([e.date, sName, pName, e.qty, e.price, `${e.tax_rate||0}%`, e.tax_mode||e.taxmode||'excl', e.incl||e.excl||0, e.memo||'']);
   });
-
-  const base = key==='month' ? range.label : (key==='fiscal' ? `年度_${range.label}` : "全期間");
-  saveExcelXML(`仕入れ記録_${base}.xml`, rows);
-  alert("Excel XML（.xml）で出力しました。");
+  exportXml(rows, `tlp_${key}_${YMD(new Date())}.xml`);
 }
 
 /* === 出力モーダル（プラン連動） === */
@@ -1199,9 +511,10 @@ function ModalExport(){
   `);
   const radios = Array.from(document.querySelectorAll('input[name="exRange"]'));
   radios.forEach(r => { r.disabled = (clampExportKey(r.value, plan) !== r.value); });
-  const def = PlanRules[plan].exportMax;
-  (radios.find(r=>r.value===def) || radios[0]).checked = true;
-  const ok=$("#modalOK");
+  const def = clampExportKey('all', plan);
+  const defRadio = document.querySelector(`input[name="exRange"][value="${def}"]`);
+  if(defRadio) defRadio.checked = true;
+  const ok=$('#modalOK');
   ok.textContent="出力する";
   ok.onclick=()=>{
     const chosen = document.querySelector('input[name="exRange"]:checked')?.value || def;
@@ -1209,17 +522,29 @@ function ModalExport(){
     exportData(chosen);
   };
 }
-document.addEventListener("click", (e)=>{ const btn = e.target.closest("#btnExport, #btnExport2"); if(!btn) return; e.preventDefault(); ModalExport(); });
+
+document.addEventListener("click", (e)=>{ const btn = e.target.closest("#btnExport2"); if(!btn) return; e.preventDefault(); ModalExport(); });
 
 /* ===== Backup / Restore / Fiscal Archive ===== */
 function backupNow(){
-  const payload={version:"1.0",exported_at:new Date().toISOString(),
-    tables:{suppliers:store.suppliers,products:store.products,entries:store.entries,priceHistory:store.priceHistory,settings:store.settings}};
+  const { plan, ...settingsNoPlan } = (store.settings||{});
+  const payload = {
+    version: "1.1",
+    exported_at: new Date().toISOString(),
+    tables: {
+      suppliers: store.suppliers,
+      products: store.products,
+      entries: store.entries,
+      priceHistory: store.priceHistory,
+      settings: settingsNoPlan
+    }
+  };
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="tabco_backup_"+fmtYMD(new Date())+".json"; a.click(); URL.revokeObjectURL(a.href);
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="tlp_backup_"+YMD(new Date())+".json"; a.click(); URL.revokeObjectURL(a.href);
   store.settings.lastBackupAt=Date.now(); DB.save(store); refreshHome();
   const bk=$("#bkLast"); if(bk) bk.textContent=new Date(store.settings.lastBackupAt).toLocaleString("ja-JP");
 }
+
 document.addEventListener("click",(e)=>{ if(e.target.id==="btnBackupNow") backupNow(); });
 document.addEventListener("click",(e)=>{ if(e.target.id==="btnRestore") $("#fileRestore").click(); });
 document.addEventListener("change",(e)=>{
@@ -1234,386 +559,87 @@ document.addEventListener("change",(e)=>{
       store.products=data.tables.products||[];
       store.entries=data.tables.entries||[];
       store.priceHistory=data.tables.priceHistory||{};
-      store.settings=Object.assign({
-        theme:store.settings.theme, plan:store.settings.plan, autoClear:true,
-        historyShowBoth:true, showTaxFlags:false, recentProducts:store.settings.recentProducts||[], hisRangeDays:30
+      {
+      const localPlan = store.settings.plan;
+      const incoming = Object.assign({
+        theme:store.settings.theme, autoClear:true,
+        historyShowBoth:true, showTaxFlags:false,
+        recentProducts:store.settings.recentProducts||[], hisRangeDays:30
       }, data.tables.settings||{});
+      delete incoming.plan;
+      store.settings = Object.assign({}, store.settings, incoming, { plan: localPlan });
+    }
       DB.save(store);
       alert("復元しました");
-      applyTheme(); refreshHome(); initInputPage(); renderSuppliers(); fillFilterSupplier(); renderProducts(); renderHistory();renderTodayList(); navigate("home"); enableSelectOnFocus();
+      applyTheme(); refreshHome(); initInputPage(); renderSuppliers(); renderProducts(); renderTodayList(); navigate("home"); enableSelectOnFocus();
     }catch{ alert("復元に失敗しました。ファイルをご確認ください。"); }
   };
   r.readAsText(f);
 });
+
 function refreshFiscalLabel(){
-  const y=new Date().getFullYear();
-  const el=$("#fiscalLabel"); if(el) el.textContent=`対象：${y}年（1月〜12月）`;
+  // 省略（必要なら年度アーカイブのラベル更新を実装）
 }
+
 document.addEventListener("click",(e)=>{
-  if(e.target.id!=="btnArchiveYear") return;
-  const year=new Date().getFullYear();
-  if(!confirm(`${year}年の仕入明細をアーカイブしてリセットします。\n先にバックアップ（JSON）を保存します。よろしいですか？`)) return;
+  if(e.target.id!=="btnArchiveFiscal") return;
+  const year = Number($('#inFiscalYear').value||new Date().getFullYear());
+  if(!year) return;
+  if(!confirm(`${year}年の明細をアーカイブし、当年の明細をリセットします。よろしいですか？`)) return;
   backupNow();
   const target=store.entries.filter(e=>e.date && e.date.startsWith(String(year)+"-"));
   const archivePayload={version:"1.0",fiscal_year:year,exported_at:new Date().toISOString(),tables:{entries:target}};
   const blob2=new Blob([JSON.stringify(archivePayload,null,2)],{type:"application/json"});
-  const a2=document.createElement("a"); a2.href=URL.createObjectURL(blob2); a2.download=`tabco_archive_${year}年度.json`; a2.click(); URL.revokeObjectURL(a2.href);
+  const a2=document.createElement("a"); a2.href=URL.createObjectURL(blob2); a2.download=`tlp_archive_${year}年度.json`; a2.click(); URL.revokeObjectURL(a2.href);
   store.entries = store.entries.filter(e=>!(e.date && e.date.startsWith(String(year)+"-")));
   DB.save(store);
   alert(`${year}年の明細をリセットしました（仕入先・商品は残しています）`);
   renderTodayList(); renderHistory(); refreshHome();
 });
 
-/* ===== Factory Reset ===== */
+/* ===== 工場出荷状態に戻す（初期化） ===== */
 document.addEventListener("click",(e)=>{
   if(e.target.id!=="btnFactoryReset") return;
-  if(!confirm("バックアップは取得済みですか？\n\n未取得の場合は「キャンセル」でバックアップ設定へ移動します。")){ navigate("backup"); return; }
-  if(!confirm("本当に全データを削除しますか？\nこの操作は取り消せません。")) return;
-  const keep={
-    theme:store.settings.theme, plan:store.settings.plan, autoClear:store.settings.autoClear,
-    lastBackupAt:store.settings.lastBackupAt, historyShowBoth:store.settings.historyShowBoth,
-    showTaxFlags:store.settings.showTaxFlags, recentProducts:store.settings.recentProducts||[], hisRangeDays:store.settings.hisRangeDays||30
-  };
-  store={suppliers:[],products:[],entries:[],priceHistory:{},settings:keep};
-  DB.save(store);
-  alert("データを初期化しました。");
-  applyTheme(); refreshHome(); initInputPage(); renderSuppliers(); fillFilterSupplier(); renderProducts(); renderHistory();renderTodayList(); navigate("home");
+  if(!confirm("バックアップは取得済みですか？\n\n未取得の場合は「キャンセル」でバックアップ設定へ移動します。")){ navigate('backup'); return; }
+  if(!confirm("本当に初期化しますか？")) return;
+  localStorage.removeItem('tlp_store'); store=DB.load(); DB.save(store);
+  applyTheme(); refreshHome(); initInputPage(); renderSuppliers(); renderProducts(); enableSelectOnFocus();
+  alert("初期化しました");
 });
 
-/* ===== License mock & UI sync ===== */
-function setPlan(p){ store.settings.plan=p; DB.save(store); refreshHome(); alert("プランが更新されました（デモ）"); syncLicenseButtons(); }
-function syncLicenseButtons(){
-  const p = store.settings.plan||'free';
-  const btnFree = $('#btnUseFree'), btnMid = $('#mockBuyMid'), btnPro = $('#mockBuyPro');
-  if(btnFree){ btnFree.disabled = (p==='free'); btnFree.textContent = (p==='free')?'使用中':'このプランを使う'; }
-  if(btnMid){ btnMid.disabled = (p==='middle'); btnMid.textContent = (p==='middle')?'使用中':'アップグレードする'; }
-  if(btnPro){ btnPro.disabled = (p==='pro'); btnPro.textContent = (p==='pro')?'使用中':'フル機能で使う'; }
+/* ===== モーダル基盤 ===== */
+function openModalBase(title, html){
+  const wrap=document.createElement('div'); wrap.className='modal'; wrap.innerHTML=`
+    <div class="sheet">
+      <h3>${title}</h3>
+      <div class="body">${html}</div>
+      <div class="actions">
+        <button id="modalCancel" class="btn ghost">キャンセル</button>
+        <button id="modalOK" class="btn primary">OK</button>
+      </div>
+    </div>`;
+  document.body.appendChild(wrap);
+  setTimeout(()=>$('#modalOK').focus(), 0);
+  $('#modalCancel').onclick=closeModal;
 }
-document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyMid") setPlan("middle"); });
-document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyPro") setPlan("pro"); });
-document.addEventListener("click",(e)=>{ if(e.target.id==="btnUseFree") setPlan("free"); });
+function closeModal(){ const m=$('.modal'); if(m) m.remove(); }
 
-/* ===== Init ===== */
-function init(){
-  try{
-    applyTheme();
-    refreshHome();
-    initInputPage();
-    renderTodayList();
-    enableSelectOnFocus();
-    renderSuppliers();
-    fillFilterSupplier();
-    renderProducts();
-    refreshFiscalLabel();
-    showPage(location.hash.replace("#","")||"home");
-    if ((location.hash||"") === "#history") { try{ renderHistory(); }catch(e){ console.error(e); } }
-    syncLicenseButtons();
-  }catch(err){
-    console.error("init failed:", err);
-    alert("初期化中に問題が発生しました。ページを再読み込みしてください。");
-  }
-}
-init();
-</script>
-
-<!-- ===== TLP EULA Modal (既存どおり) ===== -->
-<div id="tlpEula" class="tlp-eula-overlay" aria-hidden="true">
-  <div class="tlp-eula-dialog" role="dialog" aria-modal="true" aria-labelledby="tlp-eula-title">
-    <header class="tlp-eula-header">
-      <h2 id="tlp-eula-title">エンドユーザー使用許諾契約（EULA）</h2>
-      <button id="tlpEulaClose" type="button" class="tlp-eula-close" aria-label="閉じる">×</button>
-    </header>
-    <section class="tlp-eula-body">
-      <p><strong>App:</strong> Tabco Ledger Plus / <strong>Version:</strong> 0.8.0 /
-         <strong>EULA Ver:</strong> <span id="tlp-eula-ver-label">2025-09-08</span></p>
-      <ol>
-        <li><b>ライセンス付与：</b>非独占・譲渡不可。再配布/逆コンパイル禁止。</li>
-        <li><b>データとプライバシー：</b>出力データの管理は利用者の責任。</li>
-        <li><b>知的財産：</b>本ソフト/名称/ロゴ等は開発者に帰属。</li>
-        <li><b>保証の否認：</b>現状有姿。損害・逸失利益等は免責。</li>
-        <li><b>準拠法・裁判管轄：</b>日本法・京都地方裁判所。</li>
-      </ol>
-      <p class="tlp-muted">※本番文面は後で差し替え可能</p>
-    </section>
-    <footer class="tlp-eula-footer">
-      <button id="tlpEulaDecline" type="button" class="btn btn-outline">同意しない</button>
-      <button id="tlpEulaAccept" type="button" class="btn btn-primary">同意する</button>
-    </footer>
-  </div>
-</div>
-
-<style>
-:root{ color-scheme: light dark; --tlp-footer-h: 0px; }
-.tlp-eula-overlay{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background: rgba(15,23,42,.60); z-index: 2147483647; padding:16px; }
-.tlp-eula-overlay.is-open{ display:flex; }
-.tlp-eula-dialog{ width:100%; max-width:720px; border-radius:16px; overflow:hidden; background:#fff; color:#111; border:1px solid #e5e7eb; box-shadow:0 16px 64px rgba(0,0,0,.35); box-sizing:border-box; }
-:root{ --z-eula: 2147483647; --z-modal: 3000; --z-actions: 2000; --z-floating: 1000; }
-.tlp-eula-overlay{ z-index: var(--z-eula) !important; }
-:where([role="dialog"],[aria-modal="true"],.modal,.dialog,.popup,.confirm,.sheet,.drawer){ z-index: var(--z-modal) !important; }
-:where(.tlp-form-actions,.form-actions,.footer-actions,.actions,.btn-row){ z-index: var(--z-actions) !important; }
-.tlp-eula-header, .tlp-eula-footer{ display:flex; align-items:center; gap:8px; padding:12px 16px; background:#f9fafb; border-bottom:1px solid #e5e7eb; }
-.tlp-eula-footer{ justify-content:flex-end; border-top:1px solid #e5e7eb; border-bottom:none; }
-.tlp-eula-header h2{ margin:0; font-size:1.05rem; }
-.tlp-eula-close{ margin-left:auto; border:1px solid #e5e7eb; border-radius:10px; background:#fff; padding:6px 10px; cursor:pointer; }
-.tlp-eula-body{ max-height:60vh; overflow:auto; padding:16px 18px; }
-.tlp-muted{ opacity:.7; }
-.btn{ padding:10px 14px; border-radius:10px; border:1px solid #e5e7eb; cursor:pointer; }
-.btn-outline{ background:#fff; color:#111; }
-.btn-primary{ background:#111; color:#fff; }
-@media (prefers-color-scheme: dark){
-  .tlp-eula-overlay{ background: rgba(0,0,0,.5); }
-  .tlp-eula-dialog{ background:#121212; color:#f5f5f5; border-color:#2a2a2a; box-shadow:0 20px 70px rgba(0,0,0,.6); }
-  .tlp-eula-header, .tlp-eula-footer{ background:#171717; border-color:#2a2a2a; }
-  .tlp-eula-close{ background:#1f1f1f; color:#f5f5f5; border-color:#2a2a2a; }
-  .btn-outline{ background:#1f1f1f; color:#f5f5f5; border-color:#2a2a2a; }
-  .btn-primary{ background:#f5f5f5; color:#121212; border-color:#d4d4d4; }
-  a{ color:#4da3ff; }
-}
-</style>
-
-<script>
-(function(){
-  const overlay = document.getElementById('tlpEula');
-  const btnAccept = document.getElementById('tlpEulaAccept');
-  const btnDecline = document.getElementById('tlpEulaDecline');
-  const btnClose = document.getElementById('tlpEulaClose');
-  const verLabel = document.getElementById('tlp-eula-ver-label');
-  const LOCK_MODE = false;
-  const REQUIRED_EULA_VERSION =
-    (window.__tlp_meta && __tlp_meta.eulaVersion) ||
-    (verLabel ? verLabel.textContent.trim() : '1.0');
-  if (verLabel) verLabel.textContent = REQUIRED_EULA_VERSION;
-
-  function isOpen(){ return overlay.classList.contains('is-open'); }
-  function open(){
-    overlay.classList.add('is-open');
-    overlay.setAttribute('aria-hidden','false');
-    document.body.classList.add('tlp-modal-open');
-    setTimeout(()=>{ (btnAccept || btnClose)?.focus(); }, 0);
-  }
-  function close(){
-    if (LOCK_MODE) return;
-    overlay.classList.remove('is-open');
-    overlay.setAttribute('aria-hidden','true');
-    document.body.classList.remove('tlp-modal-open');
-  }
-  overlay.addEventListener('click', (e)=>{ if (!LOCK_MODE && e.target === overlay) close(); });
-  document.addEventListener('keydown', (e)=>{ if (!LOCK_MODE && e.key === 'Escape' && isOpen()) close(); });
-  btnClose?.addEventListener('click', close);
-  btnDecline?.addEventListener('click', ()=>{ close(); document.dispatchEvent(new CustomEvent('tlp:eula-declined')); });
-  btnAccept?.addEventListener('click', ()=>{
-    try {
-      localStorage.setItem('tlp_eula_version', REQUIRED_EULA_VERSION);
-      localStorage.setItem('tlp_eula_version_accepted', REQUIRED_EULA_VERSION);
-      localStorage.setItem('tlp_eula_accepted_at', new Date().toISOString());
-    } catch(_) {}
-    document.dispatchEvent(new CustomEvent('tlp:eula-accepted', { detail:{ version: REQUIRED_EULA_VERSION }}));
-    close();
-  });
-  try {
-    const saved = localStorage.getItem('tlp_eula_version');
-    if (saved !== REQUIRED_EULA_VERSION) open();
-  } catch(_){ open(); }
-  window.tlpOpenEula = open;
-  window.tlpCloseEula = close;
-})();
-</script>
-
-<script>
-(()=>{ 'use strict';
-  const TLP = (window.TLP = window.TLP || {});
-  const meta = (window.__tlp_meta || {});
-  const REQUIRED_EULA_VERSION = String(meta.eulaVersion || '2025-09-08');
-  TLP.APP = Object.assign({ NAME:'Tabco Ledger Plus', VERSION:'0.8.0', EULA_VERSION: REQUIRED_EULA_VERSION }, TLP.APP || {});
-  const LS = window.localStorage;
-  const KEYS = { EULA_VER_NEW:'tlp_eula_version', EULA_VER_OLD:'tlp_eula_version_accepted', EULA_AT:'tlp_eula_accepted_at', LICENSE:'tlp_license_status' };
-  TLP.keys = KEYS;
-  TLP.license = {
-    get status(){ try{ return LS.getItem(KEYS.LICENSE) || 'trial'; }catch(_){ return 'trial'; } },
-    set status(v){ try{ LS.setItem(KEYS.LICENSE, v); }catch(_){} },
-    isTrial(){ return this.status !== 'licensed'; },
-    set(v){ this.status = v; }
-  };
-  TLP.eula = {
-    needs(){ let a=null,b=null; try { a = LS.getItem(KEYS.EULA_VER_NEW); b = LS.getItem(KEYS.EULA_VER_OLD); } catch(_){}
-      return (a !== REQUIRED_EULA_VERSION) && (b !== REQUIRED_EULA_VERSION); },
-    accept(){ try{
-        LS.setItem(KEYS.EULA_VER_NEW, REQUIRED_EULA_VERSION);
-        LS.setItem(KEYS.EULA_VER_OLD, REQUIRED_EULA_VERSION);
-        LS.setItem(KEYS.EULA_AT, new Date().toISOString());
-      }catch(_){} TLP.license.set('licensed');
-    }
-  };
-  TLP.showEula = function(){
-    if (typeof window.tlpOpenEula === 'function'){ window.tlpOpenEula(); return; }
-    const r = document.getElementById('tlpEula');
-    if (r){
-      r.style.display = 'flex';
-      r.setAttribute('aria-hidden','false');
-      document.body.classList.add('tlp-modal-open');
-    }
-  };
-  document.addEventListener('tlp:eula-accepted', ()=>{ TLP.eula.accept(); });
-  document.addEventListener('tlp:eula-declined', ()=>{ TLP.license.set('trial'); });
-  document.addEventListener('DOMContentLoaded', ()=>{ if (TLP.eula.needs()) TLP.showEula(); });
-})();
-</script>
-
-<script>
-(()=>{ // 共有メタ（権利ページ用バッジだけ使用）
-  window.__tlp_meta = Object.assign({
-    app: "Tabco Ledger Plus",
-    brand: "Tabco Ledger Plus",
-    version: (window.TLP && TLP.APP && TLP.APP.VERSION) || "0.8.0",
-    eulaVersion: (window.TLP && TLP.APP && TLP.APP.EULA_VERSION) || "2025-09-08",
-    build: "v0.8.0-20250908",
-    site: "cafetabco.com"
-  }, window.__tlp_meta || {});
-})();
-</script>
-
-<style id="rights-css">
-#page-rights h3 { margin: 0 0 8px; }
-#page-rights h4 { margin: 14px 0 6px; font-size: 0.98rem; }
-#page-rights p  { margin: 0 0 8px; }
-
-/* 権利ページ専用バッジ */
-#tlp-brand-badge-rights{
-  position: fixed; right: 12px; bottom: 12px; z-index: 7000;
-  display: inline-flex; align-items: center; gap: 8px; padding: 8px 10px;
-  border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.12); background: #fff; font-size: 12px; white-space: nowrap;
-}
-@media print {
-  nav, header, footer, .actions, .btn-row, .toolbar { display: none !important; }
-  .modal, .dialog, .backdrop, #modalHost, #eula-modal, .modal-backdrop { display: none !important; }
-  #tlp-brand-badge-rights { display: none !important; }
-}
-#tlp-brand-badge-rights{ background:#fff; color:#111; border:1px solid #e5e7eb; }
-[data-theme="dark"] #tlp-brand-badge-rights{
-  background:#121212; color:#f5f5f5; border-color:#2a2a2a; box-shadow:0 3px 12px rgba(0,0,0,.6);
-}
-</style>
-<script id="rights-js">
-(() => {
-  try {
-    window.__tlp_meta = window.__tlp_meta || {};
-    if (!window.__tlp_meta.eulaVersion) window.__tlp_meta.eulaVersion = '2025-09-08';
-  } catch(e){}
-
-  function buildRightsBadge(){
-    const el = document.createElement('div');
-    el.id = 'tlp-brand-badge-rights';
-    el.setAttribute('role','note');
-    el.textContent = 'Tabco Ledger Plus\u2122 v0.8.0';
-    return el;
-  }
-  function mountRightsBadge(){
-    const host = document.getElementById('tlp-rights-badge-host');
-    if (!host) return;
-    if (document.getElementById('tlp-brand-badge-rights')) return;
-    host.appendChild(buildRightsBadge());
-  }
-  function wireEulaOpen(){
-    const a = document.getElementById('open-eula');
-    if (!a) return;
-    a.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (typeof window.tlpOpenEula === 'function')       window.tlpOpenEula();
-      else if (window.TLP && typeof TLP.showEula==='function') TLP.showEula();
-      else console.warn('EULA open handler not found.');
-    });
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { mountRightsBadge(); wireEulaOpen(); });
-  } else {
-    mountRightsBadge(); wireEulaOpen();
-  }
-})();
-</script>
-
-<script>
-(()=>{try{
-  const meta = window.__tlp_meta || {};
-  const eulaVer = meta.eulaVersion || "2025-09-08";
-  console.log("[TLP] diag boot v0.8.0 (minimal)");
-  window.addEventListener("keydown", (e)=>{
-    if(e.altKey && e.key.toLowerCase()==="e"){
-      e.preventDefault();
-      if (typeof window.tlpOpenEula === "function") window.tlpOpenEula();
-      else if (window.TLP && typeof TLP.showEula === "function") TLP.showEula();
-      else console.warn("EULA open handler not found");
-    }
-  });
-  window.addEventListener("tlp:eula-accepted", ()=>{ try{ localStorage.setItem("tlpEulaAcceptedVersion", eulaVer); }catch(_){}
-    console.log("[TLP] EULA accepted:", eulaVer); });
-  window.addEventListener("tlp:eula-declined", ()=>{ console.warn("[TLP] EULA declined"); });
-  window.tlpDiag = {
-    check(){ console.table({ eulaVersion: eulaVer, eulaOpenFn: typeof window.tlpOpenEula === "function" ? "OK" : "fallback" }); },
-    openEula(){ if (typeof window.tlpOpenEula === "function") window.tlpOpenEula();
-                else if (window.TLP && typeof TLP.showEula === "function") TLP.showEula();
-                else console.warn("EULA open handler not found"); }
-  };
-  console.log("[TLP] Ready. Try: tlpDiag.check(), tlpDiag.openEula()");
-}catch(e){console.error("[TLP] diag init error", e);}})();
-</script>
-
-<style id="tlp-export-align">
-#ModalExport label:has(> input[type="radio"]),
-.modal.sheet label:has(> input[type="radio"]) {
-  display: grid; grid-template-columns: 2.25em 1fr; align-items: center; column-gap: 12px;
-  min-height: 36px; text-align: left; white-space: nowrap; padding: 10px 12px; margin: 8px 0;
-  border: 1px dashed rgba(0,128,255,.35); border-radius: 8px; box-sizing: border-box; cursor: pointer;
-}
-#ModalExport label:has(> input[type="radio"]) > input[type="radio"]{ grid-column: 1; justify-self: center; margin:0; }
-#ModalExport label:has(> input[type="radio"]) > :not(input){ grid-column: 2; margin:0; }
-#ModalExport label:has(> input[type="radio"]:checked){ border-style: solid; border-color: rgba(0,128,255,.6); background: rgba(0,128,255,.06); }
-#ModalExport label:has(> input[type="radio"]):hover{ background: rgba(0,0,0,.03); }
-</style>
-
-<script id="rights-autofill">
-(()=>{ 'use strict';
-  const meta  = (window.__tlp_meta||{});
-  const app   = (window.TLP && TLP.APP) || {};
-  const page  = document.querySelector('#page-rights .card');
-  if(!page) return;
-  const APP_NAME   = String(app.NAME || meta.app || 'Tabco Ledger Plus');
-  const VERSION    = String(app.VERSION || meta.version || '0.0.0');
-  const BUILD      = String(meta.build || VERSION);
-  const EULA_VER   = String(app.EULA_VERSION || meta.eulaVersion || '-');
-  const SITE_URL   = meta.site ? `https://${meta.site}` : 'https://cafetabco.com';
-  const SUPPORT_MAIL= meta.supportEmail || 'info@cafetabco.com';
-  const PUBLISHER  = meta.publisher || 'Tabco';
-  const CURRENT_Y  = new Date().getFullYear();
-  const ensure = (id, html) => {
-    if (page.querySelector('#'+id)) return;
-    const wrap = document.createElement('section');
-    wrap.id = id; wrap.innerHTML = html.trim(); page.appendChild(wrap);
-  };
-  ensure('rights-appinfo', `<h4>アプリ情報</h4><p><b>App:</b> ${APP_NAME} / <b>Version:</b> ${VERSION} / <b>Build:</b> ${BUILD}</p><p><b>EULA:</b> ${EULA_VER} / <b>© ${CURRENT_Y} ${PUBLISHER}. All rights reserved.</b></p>`);
-  ensure('rights-privacy', `<h4>プライバシーポリシー</h4><p>本アプリは入力データを<b>端末ローカル</b>に保存します。バックアップ機能利用時のみ、利用者自身のクラウドに保存されます。</p><p>詳細は <a href="${SITE_URL}/privacy" target="_blank" rel="noopener">プライバシーポリシー</a> をご覧ください。</p>`);
-  ensure('rights-eula-note', `<h4>使用許諾（EULA）</h4><p>本アプリの利用により、<a href="#" id="rights-open-eula">EULA（使用許諾契約）</a>に同意したものとみなされます。</p>`);
-  page.addEventListener('click', (e)=>{ const a = e.target.closest('#rights-open-eula'); if(!a) return; e.preventDefault(); if (typeof window.tlpOpenEula === 'function') window.tlpOpenEula(); else if (window.TLP && typeof TLP.showEula === 'function') TLP.showEula(); else alert('EULAを表示できませんでした。'); });
-  ensure('rights-support', `<h4>サポート</h4><p>Email: <a href="mailto:${SUPPORT_MAIL}">${SUPPORT_MAIL}</a><br>Web: <a href="${SITE_URL}" target="_blank" rel="noopener">${SITE_URL}</a></p>`);
-  ensure('rights-trademark', `<h4>商標について</h4><p>“${APP_NAME}” および関連ロゴは ${PUBLISHER} の商標です。記載の会社名・製品名は各社の商標または登録商標です。</p>`);
-  ensure('rights-oss', `<h4>オープンソースコンポーネント</h4><p>本アプリは主に HTML/CSS/JavaScript で構築されています。必要に応じてライセンス情報を追記します。</p><ul id="oss-list" style="margin-top:4px"></ul>`);
-  const css = `#page-rights section + section { margin-top: 12px; } #page-rights a { text-decoration: underline; } #page-rights p { line-height: 1.6; }`;
-  const styleTag = document.createElement('style'); styleTag.textContent = css; page.appendChild(styleTag);
-  page.querySelectorAll('a[href^="http"]').forEach(a=>{ a.setAttribute('target','_blank'); a.setAttribute('rel','noopener'); });
-})();
-</script>
-
-<script>
-window.addEventListener('hashchange', ()=>{ if (((location.hash||'').slice(1) || 'home') !== 'rights'){ document.getElementById('tlp-brand-badge-rights')?.remove(); }});
-</script>
-
-<script>
-/* ==== 入力時にワンタップ全選択（動的要素にも効く） ==== */
-document.addEventListener("focusin", (e)=>{
-  const inp = e.target?.closest('input[type="number"], input[type="text"]');
-  if(!inp || inp.readOnly || inp.disabled) return;
-  try{ inp.select && inp.select(); }catch(_){}
-  setTimeout(()=>{ try{ inp.select && inp.select(); }catch(_){} }, 0);
+document.addEventListener('click',(e)=>{
+  const t=e.target.closest('[data-edit-sup]'); if(!t) return; const id=t.getAttribute('data-edit-sup'); const s=store.suppliers.find(x=>x.id===id); openSupplierModal(s);
 });
+
+document.addEventListener('click',(e)=>{
+  const t=e.target.closest('[data-edit-product]'); if(!t) return; const id=t.getAttribute('data-edit-product'); const p=store.products.find(x=>x.id===id); openProductModal(p,p?.supplier_id);
+});
+
+document.addEventListener('click',(e)=>{ if(e.target.id==='btnAddSupplier') tryAddSupplier(); });
+document.addEventListener('click',(e)=>{ if(e.target.id==='btnAddProduct') { const sid=$('#filterProdSupplier').value || (store.suppliers[0]?.id || ""); tryAddProductStart(sid); }});
+
+document.addEventListener('click',(e)=>{ if(e.target.id==='btnAddLine') addLine(); });
+
+/* ===== 初回描画 ===== */
+applyTheme(); onRoute(); refreshHome(); initInputPage(); renderSuppliers(); renderProducts(); enableSelectOnFocus();
+
 </script>
 </body>
 </html>
