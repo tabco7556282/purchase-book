@@ -523,7 +523,13 @@ function showPage(id){
   }
   if(id==="history"){ HistoryUI.sync(); HistoryUI.bindOnce(); try{ renderHistory(); }catch(err){ console.error("renderHistory failed:", err); } }
   if(id==="license"){ syncLicenseButtons(); }
-  if (pageId === 'rights') setTimeout(()=> (window.populateRights||window.renderRights||window.fillRights||(()=>{}))(), 0);
+  if (id === "rights" || id === "license") {
+  syncLicenseButtons?.();
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    (window.populateRights || window.renderRights || window.populateLicense || window.renderLicense || (()=>{}))();
+  }));
+}
+
 window.scrollTo(0,0);
 }
 function navigate(id){ internalNav=true; location.hash=id; showPage(id); internalNav=false; }
