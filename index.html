@@ -1213,11 +1213,10 @@ document.addEventListener("click", (e)=>{ const btn = e.target.closest("#btnExpo
 
 /* ===== Backup / Restore / Fiscal Archive ===== */
 function backupNow(){
-  const { plan: __discard, ...settingsNoPlan } = (store.settings||{});
-  const payload={version:"1.1",exported_at:new Date().toISOString(),
-    tables:{suppliers:store.suppliers,products:store.products,entries:store.entries,priceHistory:store.priceHistory,settings:settingsNoPlan}};
+  const payload={version:"1.0",exported_at:new Date().toISOString(),
+    tables:{suppliers:store.suppliers,products:store.products,entries:store.entries,priceHistory:store.priceHistory,settings:store.settings}};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="tlp-backup-"+fmtYMD(new Date())+"-v1.1.json"; a.click(); URL.revokeObjectURL(a.href);
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="tabco_backup_"+fmtYMD(new Date())+".json"; a.click(); URL.revokeObjectURL(a.href);
   store.settings.lastBackupAt=Date.now(); DB.save(store); refreshHome();
   const bk=$("#bkLast"); if(bk) bk.textContent=new Date(store.settings.lastBackupAt).toLocaleString("ja-JP");
 }
@@ -1235,11 +1234,10 @@ document.addEventListener("change",(e)=>{
       store.products=data.tables.products||[];
       store.entries=data.tables.entries||[];
       store.priceHistory=data.tables.priceHistory||{};
-      const __inSettings = Object.assign({}, data.tables.settings||{}); if("plan" in __inSettings) delete __inSettings.plan;
       store.settings=Object.assign({
         theme:store.settings.theme, plan:store.settings.plan, autoClear:true,
         historyShowBoth:true, showTaxFlags:false, recentProducts:store.settings.recentProducts||[], hisRangeDays:30
-      }, __inSettings);
+      }, data.tables.settings||{});
       DB.save(store);
       alert("復元しました");
       applyTheme(); refreshHome(); initInputPage(); renderSuppliers(); fillFilterSupplier(); renderProducts(); renderHistory();renderTodayList(); navigate("home"); enableSelectOnFocus();
