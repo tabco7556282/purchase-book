@@ -523,7 +523,8 @@ function showPage(id){
   }
   if(id==="history"){ HistoryUI.sync(); HistoryUI.bindOnce(); try{ renderHistory(); }catch(err){ console.error("renderHistory failed:", err); } }
   if(id==="license"){ syncLicenseButtons(); }
-  window.scrollTo(0,0);
+  if (pageId === 'rights') setTimeout(()=> (window.populateRights||window.renderRights||window.fillRights||(()=>{}))(), 0);
+window.scrollTo(0,0);
 }
 function navigate(id){ internalNav=true; location.hash=id; showPage(id); internalNav=false; }
 window.addEventListener("hashchange",()=>{ if(internalNav) return; showPage(location.hash.replace("#","")||"home"); });
