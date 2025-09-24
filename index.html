@@ -513,7 +513,15 @@ window.HistoryUI = (function(){
 /* ===== Router ===== */
 let internalNav=false;
 function showPage(id){
- $$("main > section").forEach(s=>s.classList.add("hidden")); // 子ページだけ隠す
+ $$("main > section").forEach(s=>{
+  s.classList.add("hidden");
+  s.hidden = true;
+});
+const page = $("#page-"+id) || $("#"+id);
+if (page) {
+  page.classList.remove("hidden");
+  page.hidden = false;
+}
 
   const page=$("#page-"+id)||$("#"+id); if(page){ page.classList.remove("hidden"); page.hidden=false; page.style.removeProperty("display"); }
   if(id==="home"){
