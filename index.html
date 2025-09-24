@@ -233,7 +233,8 @@ textarea{min-height:84px;resize:vertical}
   <!-- BACKUP -->
   <section id="page-backup" class="hidden" data-title="バックアップ設定">
     <div class="card">
-      <div class="label">最終バックアップ</div><div id="bkLast">未実施</div><hr>
+      <div class="label">最終バックアップ</div><div id="bkLast">未実施</div>
+      <p id="bkMemo" class="muted" style="font-size:12px;margin:4px 0 0">プラン情報は端末ごとに保持され、バックアップには含まれません。</p><hr>
       <div class="label">自動バックアップ（将来拡張）</div>
       <div class="row" style="gap:16px">
         <label><input type="radio" name="bksched" value="daily" checked> 毎日22:00</label>
@@ -513,7 +514,7 @@ window.HistoryUI = (function(){
 let internalNav=false;
 function showPage(id){
   $$("main section").forEach(s=>s.classList.add("hidden"));
-   const page=$("#page-"+id) || $("#"+id); if(page) page.classList.remove("hidden");
+  const page=$("#page-"+id)||$("#"+id); if(page){ page.classList.remove("hidden"); page.hidden=false; page.style.removeProperty("display"); }
   if(id==="home"){
     $("#btnHome")?.classList.add("hidden");
     $("#pageTitle").textContent="仕入れ管理";
@@ -522,7 +523,7 @@ function showPage(id){
     setHeaderTitleByPage(id);
   }
   if(id==="history"){ HistoryUI.sync(); HistoryUI.bindOnce(); try{ renderHistory(); }catch(err){ console.error("renderHistory failed:", err); } }
-  if(id==="license"){ syncLicenseButtons(); }
+  if(id==="rights" || id==="license"){ try{ syncLicenseButtons?.(); }catch(e){} try{ renderRights?.(); }catch(e){} }
   window.scrollTo(0,0);
 }
 function navigate(id){ internalNav=true; location.hash=id; showPage(id); internalNav=false; }
@@ -1213,11 +1214,11 @@ document.addEventListener("click", (e)=>{ const btn = e.target.closest("#btnExpo
 
 /* ===== Backup / Restore / Fiscal Archive ===== */
 function backupNow(){
-  const { plan: __discard, ...settingsNoPlan } = (store.settings||{});
   const payload={version:"1.1",exported_at:new Date().toISOString(),
-    tables:{suppliers:store.suppliers,products:store.products,entries:store.entries,priceHistory:store.priceHistory,settings:settingsNoPlan}};
+    tables:{suppliers:store.suppliers,products:store.products,entries:store.entries,priceHistory:store.priceHistory,settings:store.settings}};
+    try{ if (payload && payload.tables && payload.tables.settings) delete payload.tables.settings.plan; }catch(e){}
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="tlp-backup-"+fmtYMD(new Date())+"-v1.1.json"; a.click(); URL.revokeObjectURL(a.href);
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="tabco_backup_"+fmtYMD(new Date())+".json"; a.click(); URL.revokeObjectURL(a.href);
   store.settings.lastBackupAt=Date.now(); DB.save(store); refreshHome();
   const bk=$("#bkLast"); if(bk) bk.textContent=new Date(store.settings.lastBackupAt).toLocaleString("ja-JP");
 }
@@ -1235,11 +1236,10 @@ document.addEventListener("change",(e)=>{
       store.products=data.tables.products||[];
       store.entries=data.tables.entries||[];
       store.priceHistory=data.tables.priceHistory||{};
-      const __inSettings = Object.assign({}, data.tables.settings||{}); if("plan" in __inSettings) delete __inSettings.plan;
       store.settings=Object.assign({
         theme:store.settings.theme, plan:store.settings.plan, autoClear:true,
         historyShowBoth:true, showTaxFlags:false, recentProducts:store.settings.recentProducts||[], hisRangeDays:30
-      }, __inSettings);
+      }, data.tables.settings||{});
       DB.save(store);
       alert("復元しました");
       applyTheme(); refreshHome(); initInputPage(); renderSuppliers(); fillFilterSupplier(); renderProducts(); renderHistory();renderTodayList(); navigate("home"); enableSelectOnFocus();
@@ -1284,6 +1284,20 @@ document.addEventListener("click",(e)=>{
 
 /* ===== License mock & UI sync ===== */
 function setPlan(p){ store.settings.plan=p; DB.save(store); refreshHome(); alert("プランが更新されました（デモ）"); syncLicenseButtons(); }
+
+function renderRights(){
+  try{
+    const sec = document.getElementById('page-rights');
+    if(!sec) return;
+    sec.classList.remove('hidden');
+    sec.hidden = false;
+    sec.style.removeProperty('display');
+    // ensure inner .card exists and basic sections present (no-op if already there)
+    // add mini memo about plan & backup if note element present
+    const memoHost = document.getElementById('bkMemo');
+    if(memoHost) memoHost.textContent = 'プラン情報は端末ごとに保持され、バックアップには含まれません。';
+  }catch(e){ console.warn('renderRights skipped:', e); }
+}
 function syncLicenseButtons(){
   const p = store.settings.plan||'free';
   const btnFree = $('#btnUseFree'), btnMid = $('#mockBuyMid'), btnPro = $('#mockBuyPro');
