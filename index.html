@@ -528,20 +528,30 @@ function showPage(id){
    if(id==="license"){ const r=document.getElementById("page-rights");  if(r){ r.classList.add("hidden"); r.hidden=true; } }
   if(id==="rights"){  const l=document.getElementById("page-license"); if(l){ l.classList.add("hidden"); l.hidden=true; } }
 
-  if (id === "rights") {
+  // --- Badge control: keep & toggle (no remove) ---
+if (id === "rights") {
   const host = document.getElementById("tlp-rights-badge-host");
-  let b = document.getElementById("tlpBadge") || document.querySelector(".tlp-badge");
-  if (!b) { // 無ければその場で生成
-    b = document.createElement("div");
-    b.id = "tlpBadge";
-    b.className = "tlp-badge";
-    b.setAttribute("aria-hidden", "true");
-    b.textContent = "Tabco Ledger Plus";
+  let badge = document.getElementById("tlpBadge") || document.querySelector(".tlp-badge");
+
+  // 無ければ生成関数を呼んで用意（あれば何もしない）
+  if (!badge) {
+    (window.renderRightsBadge || window.renderBadge || (()=>{}))();
+    badge = document.getElementById("tlpBadge") || document.querySelector(".tlp-badge");
   }
-  if (host && b) host.appendChild(b); // rights内へ必ず配置
+
+  if (host && badge) {
+    host.appendChild(badge);                 // rights内へ移動
+    badge.style.removeProperty("display");   // 再表示
+    badge.style.pointerEvents = "auto";
+    badge.removeAttribute("aria-hidden");
+  }
 } else {
-  document.getElementById("tlpBadge")?.remove();
-  document.querySelector(".tlp-badge")?.remove();
+  const badge = document.getElementById("tlpBadge") || document.querySelector(".tlp-badge");
+  if (badge) {
+    badge.setAttribute("aria-hidden","true"); // 他ページでは非表示にするだけ
+    badge.style.display = "none";
+    badge.style.pointerEvents = "none";
+  }
 }
   window.scrollTo(0,0);
 }
