@@ -513,7 +513,7 @@ window.HistoryUI = (function(){
 let internalNav=false;
 function showPage(id){
   $$("main section").forEach(s=>s.classList.add("hidden"));
-  const page=$("#page-"+id); if(page) page.classList.remove("hidden");
+   const page=$("#page-"+id) || $("#"+id); if(page) page.classList.remove("hidden");
   if(id==="home"){
     $("#btnHome")?.classList.add("hidden");
     $("#pageTitle").textContent="仕入れ管理";
