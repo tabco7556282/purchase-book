@@ -525,6 +525,17 @@ function showPage(id){
   }
   if(id==="history"){ HistoryUI.sync(); HistoryUI.bindOnce(); try{ renderHistory(); }catch(err){ console.error("renderHistory failed:", err); } }
   if(id==="rights" || id==="license"){ try{ syncLicenseButtons?.(); }catch(e){} try{ renderRights?.(); }catch(e){} }
+   if(id==="license"){ const r=document.getElementById("page-rights");  if(r){ r.classList.add("hidden"); r.hidden=true; } }
+  if(id==="rights"){  const l=document.getElementById("page-license"); if(l){ l.classList.add("hidden"); l.hidden=true; } }
+
+  if(id==="rights"){
+    const host=document.getElementById("tlp-rights-badge-host");
+    const b=document.getElementById("tlpBadge")||document.querySelector(".tlp-badge");
+    if(host && b) host.appendChild(b);        // rights内へ移動
+  }else{
+    document.getElementById("tlpBadge")?.remove();      // 他ページでは消す
+    document.querySelector(".tlp-badge")?.remove();
+  }
   window.scrollTo(0,0);
 }
 function navigate(id){ internalNav=true; location.hash=id; showPage(id); internalNav=false; }
