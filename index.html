@@ -513,17 +513,15 @@ window.HistoryUI = (function(){
 /* ===== Router ===== */
 let internalNav=false;
 function showPage(id){
- $$("main > section").forEach(s=>{
+$$("main > section").forEach(s=>{
   s.classList.add("hidden");
   s.hidden = true;
-  s.style.display = "none";
 });
 const page = $("#page-"+id) || $("#"+id);
 if (page) {
   page.classList.remove("hidden");
   page.hidden = false;
-  page.style.removeProperty("display");
-}
+ }
 
   const page=$("#page-"+id)||$("#"+id); if(page){ page.classList.remove("hidden"); page.hidden=false; page.style.removeProperty("display"); }
   if(id==="home"){
