@@ -510,55 +510,27 @@ window.HistoryUI = (function(){
   return { sync, bindOnce };
 })();
 
-/* ===== Router (stable) ===== */
-let internalNav = false;
-
+/* ===== Router ===== */
+let internalNav=false;
 function showPage(id){
-  // 残存EULAオーバーレイを除去（クリックブロック対策）
-  document.querySelectorAll('#tlpEula,.tlp-eula-overlay').forEach(el=>el.remove());
+ $$("main > section").forEach(s=>s.classList.add("hidden")); // 子ページだけ隠す
 
-  id = id || 'home';
-
-  // 子ページだけを隠す（入れ子<section>は触らない）
-  $$('main > section').forEach(s => { s.classList.add('hidden'); s.hidden = true; });
-
-  // 対象ページを表示
-  const page = $("#page-" + id) || $("#" + id);
-  if (page) { page.classList.remove('hidden'); page.hidden = false; }
-
-  // Plans と Rights は常に相互排他
-  if (id === 'license') { $("#page-rights")?.classList.add('hidden'); if ($("#page-rights")) $("#page-rights").hidden = true; }
-  if (id === 'rights')  { $("#page-license")?.classList.add('hidden'); if ($("#page-license")) $("#page-license").hidden = true; }
-
-  // ヘッダ表示
-  if (id === 'home') {
-    $("#btnHome")?.classList.add('hidden');
-    $("#pageTitle").textContent = "仕入れ管理";
-  } else {
-    $("#btnHome")?.classList.remove('hidden');
-    setHeaderTitleByPage?.(id);
+  const page=$("#page-"+id)||$("#"+id); if(page){ page.classList.remove("hidden"); page.hidden=false; page.style.removeProperty("display"); }
+  if(id==="home"){
+    $("#btnHome")?.classList.add("hidden");
+    $("#pageTitle").textContent="仕入れ管理";
+  }else{
+    $("#btnHome")?.classList.remove("hidden");
+    setHeaderTitleByPage(id);
   }
-
-  // ページ別フック
-  if (id === 'history') {
-    try { HistoryUI.sync?.(); HistoryUI.bindOnce?.(); renderHistory?.(); } 
-    catch (err) { console.error('renderHistory failed:', err); }
-  }
-  if (id === 'license' || id === 'rights') {
-    try {
-      syncLicenseButtons?.();
-      requestAnimationFrame(()=> (window.renderRights||window.populateRights||window.renderLicense||window.populateLicense||(()=>{}))());
-    } catch (err) { console.warn('rights render skipped:', err); }
-  }
-
+  if(id==="history"){ HistoryUI.sync(); HistoryUI.bindOnce(); try{ renderHistory(); }catch(err){ console.error("renderHistory failed:", err); } }
+  if(id==="rights" || id==="license"){ try{ syncLicenseButtons?.(); }catch(e){} try{ renderRights?.(); }catch(e){} }
   window.scrollTo(0,0);
-  return id;
 }
-
-function navigate(id){ internalNav = true; location.hash = id; showPage(id); internalNav = false; }
-window.addEventListener('hashchange', ()=>{ if (internalNav) return; showPage(location.hash.replace('#','') || 'home'); });
-document.addEventListener('click', e => { const b = e.target.closest('[data-goto]'); if (!b) return; e.preventDefault(); navigate(b.getAttribute('data-goto')); });
-document.addEventListener('click', e => { if (e.target.closest('#btnHome')) navigate('home'); });
+function navigate(id){ internalNav=true; location.hash=id; showPage(id); internalNav=false; }
+window.addEventListener("hashchange",()=>{ if(internalNav) return; showPage(location.hash.replace("#","")||"home"); });
+document.addEventListener("click",(e)=>{ const b=e.target.closest("[data-goto]"); if(!b) return; e.preventDefault(); navigate(b.getAttribute("data-goto")); });
+document.addEventListener("click",(e)=>{ if(e.target.closest("#btnHome")) navigate("home"); });
 
 /* ===== Home KPIs / Ads ===== */
 function calcTotals(days){
