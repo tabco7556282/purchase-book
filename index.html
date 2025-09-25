@@ -1612,7 +1612,7 @@ init();
     wrap.id = id; wrap.innerHTML = html.trim(); page.appendChild(wrap);
   };
   ensure('rights-appinfo', `<h4>アプリ情報</h4><p><b>App:</b> ${APP_NAME} / <b>Version:</b> ${VERSION} / <b>Build:</b> ${BUILD}</p><p><b>EULA:</b> ${EULA_VER} / <b>© ${CURRENT_Y} ${PUBLISHER}. All rights reserved.</b></p>`);
-  ensure('rights-privacy', `<h4>プライバシーポリシー</h4><p>本アプリは入力データを<b>端末ローカル</b>に保存します。バックアップ機能利用時のみ、利用者自身のクラウドに保存されます。</p><p>詳細は <a href="${SITE_URL}/privacy" target="_blank" rel="noopener">プライバシーポリシー</a> をご覧ください。</p>`);
+  ensure('rights-privacy', `<h4>プライバシーポリシー</h4><p>本アプリは入力データを<b>端末ローカル</b>に保存します。バックアップ機能利用時のみ、利用者自身のクラウドに保存されます。</p><p>詳細は <a href="https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/" target="_blank" rel="noopener">プライバシーポリシー</a> をご覧ください。</p>`);
   ensure('rights-eula-note', `<h4>使用許諾（EULA）</h4><p>本アプリの利用により、<a href="#" id="rights-open-eula">EULA（使用許諾契約）</a>に同意したものとみなされます。</p>`);
   page.addEventListener('click', (e)=>{ const a = e.target.closest('#rights-open-eula'); if(!a) return; e.preventDefault(); if (typeof window.tlpOpenEula === 'function') window.tlpOpenEula(); else if (window.TLP && typeof TLP.showEula === 'function') TLP.showEula(); else alert('EULAを表示できませんでした。'); });
   ensure('rights-support', `<h4>サポート</h4><p>Email: <a href="mailto:${SUPPORT_MAIL}">${SUPPORT_MAIL}</a><br>Web: <a href="${SITE_URL}" target="_blank" rel="noopener">${SITE_URL}</a></p>`);
