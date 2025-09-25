@@ -102,6 +102,7 @@ textarea{min-height:84px;resize:vertical}
 #adSlot .ad{ display:flex; gap:10px; align-items:center; border:1px dashed #e0b600; padding:10px; border-radius:12px; background:#fffef5; }
 [data-theme="dark"] #adSlot .ad{ background:#2a2a1f; border-color:#8a7b1b; }
 #adSlot small{ color:var(--muted); }
+.tlp-badge, #tlpBadge { pointer-events: none; }
 </style>
 </head>
 <body>
@@ -528,14 +529,7 @@ function showPage(id){
    if(id==="license"){ const r=document.getElementById("page-rights");  if(r){ r.classList.add("hidden"); r.hidden=true; } }
   if(id==="rights"){  const l=document.getElementById("page-license"); if(l){ l.classList.add("hidden"); l.hidden=true; } }
 
-if(id==="rights"){
-    const host=document.getElementById("tlp-rights-badge-host");
-    const b=document.getElementById("tlpBadge")||document.querySelector(".tlp-badge");
-    if(host && b) host.appendChild(b);        // rights内へ移動
-  }else{
-    document.getElementById("tlpBadge")?.remove();      // 他ページでは消す
-    document.querySelector(".tlp-badge")?.remove();
-  }
+
   window.scrollTo(0,0);
 }
 function navigate(id){ internalNav=true; location.hash=id; showPage(id); internalNav=false; }
