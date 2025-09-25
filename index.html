@@ -526,7 +526,14 @@ function showPage(id){
   }
   if(id==="history"){ HistoryUI.sync(); HistoryUI.bindOnce(); try{ renderHistory(); }catch(err){ console.error("renderHistory failed:", err); } }
   if(id==="rights" || id==="license"){ try{ syncLicenseButtons?.(); }catch(e){} try{ renderRights?.(); }catch(e){} }
-   if (id === 'rights') ensure('rights-privacy', `<h4>プライバシーポリシー</h4><p>本アプリは入力データを<b>端末ローカル</b>に保存します。バックアップ機能利用時のみ、利用者自身のクラウドに保存されます。</p><p>詳細は <a href="https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/" target="_blank" rel="noopener">プライバシーポリシー</a> をご覧ください。</p>`);if(id==="license"){ const r=document.getElementById("page-rights");  if(r){ r.classList.add("hidden"); r.hidden=true; } }
+if (id === 'rights') {
+  const html = `<h4>プライバシーポリシー</h4><p>本アプリは入力データを<b>端末ローカル</b>に保存します。バックアップ機能利用時のみ、利用者自身のクラウドに保存されます。</p><p>詳細は <a href="https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/" target="_blank" rel="noopener">プライバシーポリシー</a> をご覧ください。</p>`;
+  const card = document.querySelector('#page-rights .card');
+  let box = document.getElementById('rights-privacy');
+  if (!box && card) { box = document.createElement('div'); box.id = 'rights-privacy'; card.prepend(box); }
+  if (box) box.innerHTML = html;
+}
+
   if(id==="rights"){  const l=document.getElementById("page-license"); if(l){ l.classList.add("hidden"); l.hidden=true; } }
 
 
