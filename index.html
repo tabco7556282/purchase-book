@@ -314,8 +314,7 @@ textarea{min-height:84px;resize:vertical}
         </ul>
       </section>
       <section><h4>サードパーティ表記</h4><p>本アプリにはオープンソースコンポーネントが含まれる場合があり、そのライセンスを記載します。</p></section>
-      <section><h4>お問い合わせ</h4><p>ご不明点は https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/ までご連絡ください。</p></section>
-      <div id="tlp-rights-badge-host" aria-hidden="true"></div>
+            <div id="tlp-rights-badge-host" aria-hidden="true"></div>
     </div>
   </section>
 </main>
@@ -1623,7 +1622,7 @@ init();
   ensure('rights-privacy', `<h4>プライバシーポリシー</h4><p>本アプリは入力データを<b>端末ローカル</b>に保存します。バックアップ機能利用時のみ、利用者自身のクラウドに保存されます。</p><p>詳細は <a href="https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/" target="_blank" rel="noopener">プライバシーポリシー</a> をご覧ください。</p>`);
   ensure('rights-eula-note', `<h4>使用許諾（EULA）</h4><p>本アプリの利用により、<a href="#" id="rights-open-eula">EULA（使用許諾契約）</a>に同意したものとみなされます。</p>`);
   page.addEventListener('click', (e)=>{ const a = e.target.closest('#rights-open-eula'); if(!a) return; e.preventDefault(); if (typeof window.tlpOpenEula === 'function') window.tlpOpenEula(); else if (window.TLP && typeof TLP.showEula === 'function') TLP.showEula(); else alert('EULAを表示できませんでした。'); });
-  ensure('rights-support', `<h4>サポート</h4><p>Email: <a href="mailto:${SUPPORT_MAIL}">${SUPPORT_MAIL}</a><br>Web: <a href="${SITE_URL}" target="_blank" rel="noopener">${SITE_URL}</a></p>`);
+ensure('rights-support', `<h4>お問い合わせ</h4><p>Webサイト：<a href="https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/" target="_blank" rel="noopener noreferrer">https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/</a></p>`);
   ensure('rights-trademark', `<h4>商標について</h4><p>“${APP_NAME}” および関連ロゴは ${PUBLISHER} の商標です。記載の会社名・製品名は各社の商標または登録商標です。</p>`);
   ensure('rights-oss', `<h4>オープンソースコンポーネント</h4><p>本アプリは主に HTML/CSS/JavaScript で構築されています。必要に応じてライセンス情報を追記します。</p><ul id="oss-list" style="margin-top:4px"></ul>`);
   const css = `#page-rights section + section { margin-top: 12px; } #page-rights a { text-decoration: underline; } #page-rights p { line-height: 1.6; }`;
