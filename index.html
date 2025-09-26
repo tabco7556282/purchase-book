@@ -516,7 +516,7 @@ let internalNav=false;
 function showPage(id){
  $$("main > section").forEach(s=>s.classList.add("hidden")); // 子ページだけ隠す
 
-  const page=$("#page-"+id)||$("#"+id); if(page){ page.classList.remove("hidden"); page.hidden=false; page.style.removeProperty("display"); }
+  const page=$("#page-"+id)||$("#"+id); if(page){ page.classList.remove("hidden"); page.hidden=false; }
   if(id==="home"){
     $("#btnHome")?.classList.add("hidden");
     $("#pageTitle").textContent="仕入れ管理";
