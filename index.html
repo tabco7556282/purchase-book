@@ -132,7 +132,7 @@ textarea{min-height:84px;resize:vertical}
       <button class="btn ghost" data-goto="products" type="button">商品マスタ</button>
       <button class="btn ghost" id="btnExport" type="button">データ出力</button>
       <button class="btn ghost" data-goto="backup" type="button">バックアップ設定</button>
-      <button class="btn ghost" data-goto="license" type="button">Plans</button>
+      <button class="btn ghost" data-goto="plans" type="button">Plans</button>
       <button class="btn ghost" data-goto="rights" type="button">Licenses＆Notices</button>
 　    <button class="btn danger" id="btnFactoryReset" type="button">データ初期化</button>
       <div class="label">※初期化の前にバックアップを取ってください。</div>
@@ -476,7 +476,7 @@ function setHeaderTitleByPage(id){
     products:"商品マスタ",
     history:"履歴・集計",
     backup:"バックアップ設定",
-    license:"Plans",
+    plans: "プラン",
     rights:"Licenses & Notices",
   };
   const el=$("#pageTitle"); if(el) el.textContent = map[id] || "";
@@ -526,8 +526,8 @@ function showPage(id){
   if(id==="history"){ HistoryUI.sync(); HistoryUI.bindOnce(); try{ renderHistory(); }catch(err){ console.error("renderHistory failed:", err); } }
   if(id==="rights"){  try{ renderRights?.(); }catch(e){} }
 　if(id==="plans"){   try{ syncLicenseButtons?.(); }catch(e){} }
-if(id==="license"){ const r=document.getElementById("page-rights");  if(r){ r.classList.add("hidden"); r.hidden=true; } }
-if(id==="rights"){  const l=document.getElementById("page-license"); if(l){ l.classList.add("hidden"); l.hidden=true; } }
+if(id==="plans"){   const r=document.getElementById("page-rights");  if(r){ r.classList.add("hidden"); r.hidden=true; } }
++ if(id==="rights"){  const l=document.getElementById("page-plans");   if(l){ l.classList.add("hidden"); l.hidden=true; } }
   if (id === 'rights') {
   const html = `<h4>プライバシーポリシー</h4>
   <p>本アプリは入力データを<b>端末ローカル</b>に保存します。バックアップ機能利用時のみ、利用者自身のクラウドに保存されます。</p>
