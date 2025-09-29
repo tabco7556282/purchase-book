@@ -953,7 +953,8 @@ function tryAddSupplier(){
 item.querySelector(".addp").onclick  = () => openProductModal(null, s.id);
 item.querySelector(".edit").onclick  = () => openSupplierModal(s);
 list.appendChild(item);
-}); 
+}); // ← これでOK
+
 
 
 function renderProducts(){
