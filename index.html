@@ -948,11 +948,13 @@ function tryAddSupplier(){
   openSupplierModal(null);
 }
 
-    item.querySelector(".addp").onclick=()=>openProductModal(null,s.id);
-    item.querySelector(".edit").onclick=()=>openSupplierModal(s);
-    list.appendChild(item);
-  });
-}
+    // =======  ← 補助の見出しにするならコメントで置く
+item.querySelector(".addp").onclick  = () => openProductModal(null, s.id);
+item.querySelector(".edit").onclick  = () => openSupplierModal(s);
+list.appendChild(item);
+});   // forEach の閉じ
+}     // 関数の閉じ（この1個だけ）
+
 
 function renderProducts(){
   const list=$("#productList"); list.innerHTML="";
