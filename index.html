@@ -938,21 +938,23 @@ function openSupplierModal(s){
   if(s){
     const delBtn=$("#modalDelete"); delBtn.classList.remove("hidden");
     delBtn.onclick=()=>{ if(confirm("削除しますか？")){ s.deleted=true; DB.save(store); renderSuppliers(); refreshHome(); closeModal(); } };
-    $(".actions").insertBefore(delBtn, $("#modalCancel"));
-
-item.querySelector(".addp").onclick = () => openProductModal(null, s.id);
-item.querySelector(".edit").onclick  = () => openSupplierModal(s);
-list.appendChild(item);
-
-}); // ← forEach をここで1回だけ閉じる
+$(".actions").insertBefore(delBtn, $("#modalCancel"));
 
 function tryAddSupplier(){
-  const limit = PlanRules[store.settings.plan||'free'].supplierMax;
-  const count = store.suppliers.filter(x=>!x.deleted).length;
-  if(count >= limit){
-    alert(`このプランでは仕入れ先は ${limit} 社までです。Plans からアップグレードをご検討ください。`);
+  const limit = PlanRules[store.settings.plan || 'free'].supplierMax;
+  const count = store.suppliers.filter(x => !x.deleted).length;
+  if (count >= limit) {
+    alert('このプランでは仕入れ先は ' + limit + ' 社までです。Plans からアップグレードをご検討ください。');
     return;
   }
+  openSupplierModal(null);
+}
+
+item.querySelector(".addp").onclick  = () => openProductModal(null, s.id);
+item.querySelector(".edit").onclick  = () => openSupplierModal(s);
+list.appendChild(item);
+}); // forEach はここで1回だけ閉じる
+
   openSupplierModal(null);
 }
 
