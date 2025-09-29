@@ -948,12 +948,12 @@ function tryAddSupplier(){
   openSupplierModal(null);
 }
 
-=======
-    item.querySelector(".addp").onclick=()=>openProductModal(null,s.id);
-    item.querySelector(".edit").onclick=()=>openSupplierModal(s);
-    list.appendChild(item);
-  });
-}
+   item.querySelector(".addp").onclick  = () => openProductModal(null, s.id);
+item.querySelector(".edit").onclick  = () => openSupplierModal(s);
+list.appendChild(item);
+}); // ← forEach の閉じ（これ1つ）
+}   // ← その関数の閉じ（これ1つ）
+
 
 function renderProducts(){
   const list=$("#productList"); list.innerHTML="";
