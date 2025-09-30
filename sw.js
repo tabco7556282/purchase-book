@@ -1,5 +1,5 @@
 // sw.js  —— v0.8.1
-const CACHE = 'tlp-cache-v0.8.1';
+const CACHE = 'tlp-cache-v0.8.2';
 const ASSETS = [
   '/',                      // ルートをオフラインで開ける
   'index.html',
