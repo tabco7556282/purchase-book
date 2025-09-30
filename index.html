@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
-<title>仕入れ管理｜MVP v0.8.0</title>
+<title>仕入れ管理｜MVP v0.8.1</title>
 <style>
 :root{
   --brand:#FFC107; --brand-ink:#1A1300;
@@ -300,7 +300,7 @@ textarea{min-height:84px;resize:vertical}
   <section id="page-rights" class="hidden" data-title="Licenses & Notices">
     <div class="card">
       <h3>Licenses & Notices</h3>
-      <section><h4>App & Version</h4><p>Tabco Ledger Plus<sup>™</sup> v0.8.0</p></section>
+      <section><h4>App & Version</h4><p>Tabco Ledger Plus<sup>™</sup> v0.8.1</p></section>
       <section><h4>Copyright</h4><p>© 2025 チカキッサ.タブコ. All rights reserved.</p></section>
       <section><h4>Trademark Notice</h4><p><strong>Tabco Ledger Plus<sup>™</sup></strong> and related logos are trademarks of Tabco.</p></section>
 　　　<section><h4>EULA（使用許諾）</h4><p>本アプリのご利用によりEULA（使用許諾契約）に同意したものとみなされます。 <a href="#" id="open-eula">EULAを開く</a></p></section>
@@ -1533,7 +1533,7 @@ init();
     const el = document.createElement('div');
     el.id = 'tlp-brand-badge-rights';
     el.setAttribute('role','note');
-    el.textContent = 'Tabco Ledger Plus\u2122 v0.8.0';
+    el.textContent = 'Tabco Ledger Plus\u2122 v0.8.1';
     return el;
   }
   function mountRightsBadge(){
@@ -1564,7 +1564,7 @@ init();
 (()=>{try{
   const meta = window.__tlp_meta || {};
   const eulaVer = meta.eulaVersion || "2025-09-08";
-  console.log("[TLP] diag boot v0.8.0 (minimal)");
+  console.log("[TLP] diag boot v0.8.1 (minimal)");
   window.addEventListener("keydown", (e)=>{
     if(e.altKey && e.key.toLowerCase()==="e"){
       e.preventDefault();
