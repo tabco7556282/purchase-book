@@ -106,6 +106,21 @@ textarea{min-height:84px;resize:vertical}
 #adSlot small{ color:var(--muted); }
 .tlp-badge, #tlpBadge { pointer-events: none; }
 </style>
+<style>
+  /* === EULA Hard Consent === */
+  #eulaOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.6);z-index:2147483647;}
+  #eulaOverlay.show{display:flex;}
+  #eulaDialog{max-width:640px;width:min(92vw,640px);background:#111;color:#fff;border-radius:14px;
+    box-shadow:0 12px 40px rgba(0,0,0,.45); padding:20px; outline:0;}
+  #eulaDialog h2{margin:0 0 8px;font-size:1.1rem}
+  #eulaDialog p{margin:.6em 0;line-height:1.6}
+  #eulaActions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+  #btnEulaAgree{padding:.7em 1.1em;border:0;border-radius:10px;cursor:pointer}
+  #btnEulaAgree{background:#00a86b;color:#fff}
+  #eulaLinks a{color:#9ad5ff;text-decoration:underline}
+  body.eula-locked{overflow:hidden}
+</style>
 </head>
 <body>
 <header class="app-header">
@@ -1650,6 +1665,100 @@ document.addEventListener("focusin", (e)=>{
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js?v=0.8.2'); // 末尾の?vで更新検知を確実化
   }
+</script>
+<!-- === EULA Hard Consent (blocking) === -->
+<div id="eulaOverlay" aria-modal="true" role="dialog" aria-labelledby="eulaTitle">
+  <div id="eulaDialog" tabindex="-1">
+    <h2 id="eulaTitle">利用許諾契約（EULA）への同意が必要です</h2>
+    <p>本アプリのご利用前に、以下の規約をご確認ください。同意いただけない場合はご利用になれません。</p>
+    <div id="eulaLinks">
+      <p>
+        <a href="./eula.html" target="_blank" rel="noopener">EULA本文</a> ・
+        <a href="./privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a> ・
+        <a href="./contact.html" target="_blank" rel="noopener">お問い合わせ</a>
+      </p>
+    </div>
+    <div id="eulaActions">
+      <button id="btnEulaAgree" type="button" autofocus>同意する</button>
+    </div>
+  </div>
+</div>
+<script>
+/* === EULA Hard Consent === */
+(() => {
+  const EULA_VERSION = "1.0.0";              // ← EULA本文を更新したら上げる
+  const EULA_KEY = "tlp.eula.accepted";      // localStorageキー
+
+  const $overlay = document.getElementById('eulaOverlay');
+  const $dialog  = document.getElementById('eulaDialog');
+  const $agree   = document.getElementById('btnEulaAgree');
+
+  function getAccepted(){
+    try { return JSON.parse(localStorage.getItem(EULA_KEY) || "null"); }
+    catch(e){ return null; }
+  }
+  function setAccepted(){
+    const payload = { version: EULA_VERSION, ts: new Date().toISOString() };
+    try { localStorage.setItem(EULA_KEY, JSON.stringify(payload)); }
+    catch(e){
+      alert("ブラウザの保存領域にアクセスできないため、アプリを利用できません。設定をご確認ください。");
+      return;
+    }
+  }
+  function needsConsent(){
+    const saved = getAccepted();
+    return !saved || saved.version !== EULA_VERSION;
+  }
+  function lockUI(lock){
+    document.body.classList.toggle('eula-locked', lock);
+    // 背景クリック/Escで閉じられないようにする
+    if(lock){
+      $overlay.addEventListener('click', eat, {capture:true});
+      document.addEventListener('keydown', blockEsc, {capture:true});
+      // フォーカスをダイアログ内にトラップ
+      setTimeout(()=> ($agree || $dialog).focus(), 0);
+      document.addEventListener('focus', trapFocus, true);
+    }else{
+      $overlay.removeEventListener('click', eat, {capture:true});
+      document.removeEventListener('keydown', blockEsc, {capture:true});
+      document.removeEventListener('focus', trapFocus, true);
+    }
+  }
+  function eat(ev){
+    // オーバーレイ/背景クリックの伝播を止める
+    if(ev.target === $overlay) ev.stopPropagation();
+    if(ev.target === $overlay) ev.preventDefault();
+  }
+  function blockEsc(ev){
+    if(ev.key === 'Escape'){ ev.preventDefault(); ev.stopPropagation(); }
+  }
+  function trapFocus(ev){
+    if(!$overlay.classList.contains('show')) return;
+    if(!$dialog.contains(ev.target)){
+      ev.stopPropagation();
+      ($agree || $dialog).focus();
+    }
+  }
+  function openEula(){
+    $overlay.classList.add('show');
+    lockUI(true);
+  }
+  function closeEula(){
+    $overlay.classList.remove('show');
+    lockUI(false);
+  }
+
+  // 同意ボタン
+  $agree.addEventListener('click', () => {
+    setAccepted();
+    closeEula();
+  });
+
+  // 起動後チェック（既存initの後でも先でも安全に動くようDOMContentLoadedで実行）
+  window.addEventListener('DOMContentLoaded', () => {
+    if (needsConsent()) openEula();
+  });
+})();
 </script>
 </body>
 </html>
