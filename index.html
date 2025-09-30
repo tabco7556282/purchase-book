@@ -1760,5 +1760,32 @@ document.addEventListener("focusin", (e)=>{
   });
 })();
 </script>
+<script>
+/* === Disable legacy (soft) EULA triggers === */
+window.addEventListener('DOMContentLoaded', () => {
+  // 1) よくある関数名を無効化（存在するものだけ上書き）
+  ['openEula','showEula','openEULAModal','showEULAModal'].forEach(fn=>{
+    if (typeof window[fn] === 'function') window[fn] = function(){};
+  });
+
+  // 2) クリック系トリガーを無効化（よくあるセレクタ）
+  const sels = [
+    '#btnEula','#btnOpenEula','#linkEula',
+    '[data-open="eula"]','[data-modal="eula"]'
+  ];
+  sels.forEach(s=>{
+    document.querySelectorAll(s).forEach(el=>{
+      el.replaceWith(el.cloneNode(true)); // 全リスナー剥がし
+      el.setAttribute?.('data-eula-soft-disabled','1');
+    });
+  });
+
+  // 3) 旧オーバーレイが万一表示されたら即座に隠す（代表的ID/クラス）
+  const hide = sel => document.querySelectorAll(sel).forEach(n=>{
+    n.style.display='none'; n.setAttribute('aria-hidden','true');
+  });
+  hide('#eulaModal'); hide('#modalEula'); hide('.eula-modal'); hide('[data-role="eula-modal"]');
+});
+</script>
 </body>
 </html>
