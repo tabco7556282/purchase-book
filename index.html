@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+<link rel="manifest" href="/manifest.webmanifest?v=0.8.1">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png">
 <title>仕入れ管理｜MVP v0.8.1</title>
 <style>
 :root{
@@ -1643,6 +1645,11 @@ document.addEventListener("focusin", (e)=>{
   try{ inp.select && inp.select(); }catch(_){}
   setTimeout(()=>{ try{ inp.select && inp.select(); }catch(_){} }, 0);
 });
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js?v=0.8.1'); // 末尾の?vで更新検知を確実化
+  }
 </script>
 </body>
 </html>
