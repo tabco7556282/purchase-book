@@ -2,11 +2,11 @@
 const CACHE = 'tlp-cache-v0.8.1';
 const ASSETS = [
   '/',                      // ルートをオフラインで開ける
-  '/index.html',
-  '/manifest.webmanifest?v=0.8.1',
-  '/icons/icon-192-v223i.png',
-  '/icons/icon-512-v223i.png',
-  '/icons/apple-touch-icon-180.png'
+  'index.html',
+  'manifest.webmanifest?v=0.8.1',
+  'icons/icon-192-v223i.png',
+  'icons/icon-512-v223i.png',
+  'icons/apple-touch-icon-180.png'
 ];
 
 // 即時適用
