@@ -1676,14 +1676,22 @@ document.addEventListener("focusin", (e)=>{
 <div id="eulaOverlay" aria-modal="true" role="dialog" aria-labelledby="eulaTitle">
   <div id="eulaDialog" tabindex="-1">
     <h2 id="eulaTitle">利用許諾契約（EULA）への同意が必要です</h2>
-    <p>本アプリのご利用前に、以下の規約をご確認ください。同意いただけない場合はご利用になれません。</p>
-    <div id="eulaLinks">
-      <p>
-       <a href="./#rights" target="_blank" rel="noopener">EULA本文</a> ・
-<a href="https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/" target="_blank" rel="noopener">プライバシーポリシー</a> ・
-<a href="https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/" target="_blank" rel="noopener">お問い合わせ</a>
-      </p>
-    </div>
+  <p>本アプリのご利用には、次の利用許諾契約（EULA）への同意が必要です。</p>
+<ul style="margin:.6em 0 0 1.2em;line-height:1.6">
+  <li><b>ライセンス付与：</b>非独占・譲渡不可。再配布／逆コンパイル禁止。</li>
+  <li><b>データとプライバシー：</b>出力データの管理は利用者の責任。</li>
+  <li><b>知的財産：</b>本ソフト／名称／ロゴ等は開発者に帰属。</li>
+  <li><b>保証の否認：</b>現状有姿。損害・逸失利益等は免責。</li>
+  <li><b>準拠法・裁判管轄：</b>日本法・京都地方裁判所。</li>
+</ul>
+<div id="eulaLinks" style="margin-top:.6em">
+  <p>
+    <a href="./#rights" target="_blank" rel="noopener">EULA本文</a> ・
+    <a href="https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/" target="_blank" rel="noopener">プライバシーポリシー</a> ・
+    <a href="https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/" target="_blank" rel="noopener">お問い合わせ</a>
+  </p>
+</div>
+
     <div id="eulaActions">
       <button id="btnEulaAgree" type="button" autofocus>同意する</button>
     </div>
