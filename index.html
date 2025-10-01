@@ -1259,31 +1259,70 @@ function backupNow(){
   store.settings.lastBackupAt=Date.now(); DB.save(store); refreshHome();
   const bk=$("#bkLast"); if(bk) bk.textContent=new Date(store.settings.lastBackupAt).toLocaleString("ja-JP");
 }
+// Backup はそのまま
 document.addEventListener("click",(e)=>{ if(e.target.id==="btnBackupNow") backupNow(); });
-document.addEventListener("click",(e)=>{ if(e.target.id==="btnRestore") $("#fileRestore").click(); });
+
+// Restore: クリック → 毎回クリアして同一ファイルでも change が発火
+document.addEventListener("click",(e)=>{
+  if(e.target.id!=="btnRestore") return;
+  const input = document.getElementById("fileRestore");
+  if(!input) return;
+  input.value = "";   // ←重要：同じファイルでも再選択で発火させる
+  input.click();
+});
+
+// Restore: 読み込み＋適用（全ての終了経路で input をリセット）
 document.addEventListener("change",(e)=>{
   if(e.target.id!=="fileRestore") return;
-  const f=e.target.files[0]; if(!f) return;
-  if(!confirm("バックアップから復元します。現在のデータは置き換えられます。続行しますか？")) return;
-  const r=new FileReader();
-  r.onload=()=>{
+
+  const input = e.target;
+  const f = input.files && input.files[0];
+  if(!f){ input.value=''; return; }
+
+  if(!confirm("バックアップから復元します。現在のデータは置き換えられます。続行しますか？")){
+    input.value='';   // ←キャンセル時もクリア
+    return;
+  }
+
+  const r = new FileReader();
+
+  r.onerror = () => {
+    alert("バックアップの読み込みに失敗しました（I/Oエラー）");
+    input.value = '';
+  };
+
+  r.onload = () => {
     try{
-      const data=JSON.parse(r.result); if(!data.tables) throw 0;
-      store.suppliers=data.tables.suppliers||[];
-      store.products=data.tables.products||[];
-      store.entries=data.tables.entries||[];
-      store.priceHistory=data.tables.priceHistory||{};
-      store.settings=Object.assign({
+      const data = JSON.parse(String(r.result||""));
+      if(!data || !data.tables) throw 0;
+
+      // 既存の適用処理（そのまま）
+      store.suppliers = data.tables.suppliers || [];
+      store.products  = data.tables.products  || [];
+      store.entries   = data.tables.entries   || [];
+      store.priceHistory = data.tables.priceHistory || {};
+      store.settings = Object.assign({
         theme:store.settings.theme, plan:store.settings.plan, autoClear:true,
-        historyShowBoth:true, showTaxFlags:false, recentProducts:store.settings.recentProducts||[], hisRangeDays:30
+        historyShowBoth:true, showTaxFlags:false,
+        recentProducts:store.settings.recentProducts||[], hisRangeDays:30
       }, data.tables.settings||{});
       DB.save(store);
+
       alert("復元しました");
-      applyTheme(); refreshHome(); initInputPage(); renderSuppliers(); fillFilterSupplier(); renderProducts(); renderHistory();renderTodayList(); navigate("home"); enableSelectOnFocus();
-    }catch{ alert("復元に失敗しました。ファイルをご確認ください。"); }
+      applyTheme(); refreshHome(); initInputPage();
+      renderSuppliers(); fillFilterSupplier(); renderProducts();
+      renderHistory(); renderTodayList(); navigate("home");
+      enableSelectOnFocus();
+    }catch{
+      alert("復元に失敗しました。ファイルをご確認ください。");
+    }finally{
+      input.value = '';  // ←毎回必ずクリア（Android/PC 連続選択・無反応対策）
+    }
   };
+
   r.readAsText(f);
 });
+
 function refreshFiscalLabel(){
   const y=new Date().getFullYear();
   const el=$("#fiscalLabel"); if(el) el.textContent=`対象：${y}年（1月〜12月）`;
