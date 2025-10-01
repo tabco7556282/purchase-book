@@ -1760,46 +1760,5 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 })();
 </script>
-<script>
-/* Restore: global file-change handler (JSON only) */
-document.addEventListener('change', (e) => {
-  const el = e.target;
-  if (!(el instanceof HTMLInputElement)) return;
-  if (el.type !== 'file') return;
-  const acc = (el.getAttribute('accept')||'').toLowerCase();
-  if (!acc.includes('json') && !el.files?.[0]?.name.toLowerCase().endsWith('.json')) return;
-
-  const f = el.files?.[0];
-  if (!f) { alert('復元ファイルが選択されていません'); return; }
-  if (!(f.type === 'application/json' || f.name.toLowerCase().endsWith('.json'))) {
-    alert('JSONファイル（.json）を選択してください'); return;
-  }
-
-  const r = new FileReader();
-  r.onerror = () => alert('バックアップの読み込みに失敗しました（I/Oエラー）');
-  r.onload = () => {
-    let data;
-    try { data = JSON.parse(String(r.result||'')); }
-    catch { alert('ファイルの形式が不正です（JSON解析失敗）'); el.value=''; return; }
-
-    // 簡易スキーマ検証（Step2を入れている場合のみ）
-    if (typeof validateBackupSchema === 'function') {
-      const errs = validateBackupSchema(data);
-      if (errs.length) { alert('形式エラー:\n- ' + errs.join('\n- ')); el.value=''; return; }
-    }
-
-    try {
-      if (typeof window.tlpRestoreFromJson === 'function') {
-        window.tlpRestoreFromJson(data);   // 既存の復元ロジックへ
-      } else {
-        alert('内部復元処理が未接続です'); console.warn('tlpRestoreFromJson not found', data);
-      }
-    } finally {
-      el.value = ''; // 同じファイル再選択でも発火させる
-    }
-  };
-  r.readAsText(f);
-}, { capture:true });
-</script>
 </body>
 </html>
