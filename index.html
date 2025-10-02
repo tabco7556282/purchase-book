@@ -1260,6 +1260,41 @@ function backupNow(){
   const bk=$("#bkLast"); if(bk) bk.textContent=new Date(store.settings.lastBackupAt).toLocaleString("ja-JP");
 }
 // Backup はそのまま
+// ---- Plan enforcement (端末プランに基づくロック計算) ----
+function getPlan(){
+  return (store && store.settings && store.settings.plan) || 'free';
+}
+
+// TODO: 実運用の上限に合わせて調整
+const PLAN_LIMITS = {
+  free:   { suppliers: 5,  products: 20,  entries: 1000 },
+  middle: { suppliers: 15, products: 200, entries: 5000 },
+  pro:    { suppliers: Infinity, products: Infinity, entries: Infinity }
+};
+
+function enforcePlan(){
+  const plan = getPlan();
+  const lim  = PLAN_LIMITS[plan] || PLAN_LIMITS.free;
+
+  const mkLocks = (arr, limit) => {
+    if (!Array.isArray(arr)) return [];
+    const locks = [];
+    for (let i = limit; i < arr.length; i++) {
+      const item = arr[i];
+      const id = item && (item.id ?? item.uuid ?? item.code);
+      locks.push(id != null ? id : i);
+    }
+    return locks;
+  };
+
+  store.planLocks = {
+    suppliers: mkLocks(store.suppliers, lim.suppliers),
+    products:  mkLocks(store.products,  lim.products),
+    entries:   mkLocks(store.entries,   lim.entries),
+  };
+
+  try { DB.save(store); } catch(_) {}
+}
 document.addEventListener("click",(e)=>{ if(e.target.id==="btnBackupNow") backupNow(); });
 
 // Restore: クリック → 毎回クリアして同一ファイルでも change が発火
@@ -1309,6 +1344,7 @@ document.addEventListener("change",(e)=>{
       DB.save(store);
 
       alert("復元しました");
+      enforcePlan();
       applyTheme(); refreshHome(); initInputPage();
       renderSuppliers(); fillFilterSupplier(); renderProducts();
       renderHistory(); renderTodayList(); navigate("home");
