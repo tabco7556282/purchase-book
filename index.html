@@ -1295,8 +1295,7 @@ function enforcePlan(){
 
   try { DB.save(store); } catch(_) {}
 }
-window.PLAN_LIMITS = {...}
-  window.enforcePlan = function(){...}
+
   // 端末プラン上限（必要に応じて調整）
 window.PLAN_LIMITS = {
   free:   { suppliers: 5,  products: 20,  entries: 1000 },
