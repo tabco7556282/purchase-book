@@ -1297,7 +1297,38 @@ function enforcePlan(){
 }
 window.PLAN_LIMITS = {...}
   window.enforcePlan = function(){...}
-  
+  // 端末プラン上限（必要に応じて調整）
+window.PLAN_LIMITS = {
+  free:   { suppliers: 5,  products: 20,  entries: 1000 },
+  middle: { suppliers: 15, products: 200, entries: 5000 },
+  pro:    { suppliers: Infinity, products: Infinity, entries: Infinity }
+};
+
+// 復元直後などに呼んで“ロック対象”だけ計算して保存
+window.enforcePlan = function(){
+  const plan = (store && store.settings && store.settings.plan) || 'free';
+  const lim  = window.PLAN_LIMITS[plan] || window.PLAN_LIMITS.free;
+
+  const mkLocks = (arr, limit) => {
+    if (!Array.isArray(arr)) return [];
+    const locks = [];
+    for (let i = limit; i < arr.length; i++) {
+      const it = arr[i];
+      const id = it && (it.id ?? it.uuid ?? it.code);
+      locks.push(id != null ? id : i);
+    }
+    return locks;
+  };
+
+  store.planLocks = {
+    suppliers: mkLocks(store.suppliers, lim.suppliers),
+    products:  mkLocks(store.products,  lim.products),
+    entries:   mkLocks(store.entries,   lim.entries),
+  };
+
+  try { DB.save(store); } catch(_) {}
+};
+
   document.addEventListener("click",(e)=>{ if(e.target.id==="btnBackupNow") backupNow(); });
 
 // Restore: クリック → 毎回クリアして同一ファイルでも change が発火
