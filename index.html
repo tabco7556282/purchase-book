@@ -1308,14 +1308,26 @@ window.PLAN_LIMITS = {
   const DLG_SEL  = '[role="dialog"], .modal, .dialog, .sheet';
 
   // ダイアログ→エンティティ推定（IDやクラス名に合わせて必要なら足す）
-  const resolveEntity = (dlg) => {
-    const idc = (dlg.id || dlg.className || '').toLowerCase();
-    if (idc.includes('supplier')) return 'suppliers';
-    if (idc.includes('product'))  return 'products';
-    if (idc.includes('entry'))    return 'entries';
-    // 既定：仕入入力に寄せる
-    return 'entries';
-  };
+  // 置き換え：ダイアログ→エンティティ推定
+const resolveEntity = (dlg) => {
+  const h = (location.hash || '').toLowerCase();     // ← まずハッシュを見る
+  if (h.includes('supplier')) return 'suppliers';
+  if (h.includes('product'))  return 'products';
+  if (h.includes('entry') || h.includes('home')) return 'entries';
+
+  // フォールバック：要素の id/class から推定
+  const idc = (dlg.id || dlg.className || '').toLowerCase();
+  if (idc.includes('supplier')) return 'suppliers';
+  if (idc.includes('product'))  return 'products';
+  if (idc.includes('entry'))    return 'entries';
+
+  // 最後の保険（日本語ラベル等）
+  const txt = (dlg.textContent || '').toLowerCase();
+  if (txt.includes('仕入先') || txt.includes('supplier')) return 'suppliers';
+  if (txt.includes('商品')   || txt.includes('product'))  return 'products';
+
+  return 'entries';
+};
 
   // 編集か新規か判定（hidden [name="index"] を推奨；無ければ新規扱い）
   const getEditingIndex = (dlg) => {
