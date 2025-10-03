@@ -1327,6 +1327,25 @@ window.enforcePlan = function(){
 
   try { DB.save(store); } catch(_) {}
 };
+// ---- Central guards (まだUIには接続しない) ----
+
+// entity: "suppliers" | "products" | "entries"
+window.canCreate = function(entity){
+  const plan = (store && store.settings && store.settings.plan) || 'free';
+  const lim  = window.PLAN_LIMITS[plan] || window.PLAN_LIMITS.free;
+  const count = (store && Array.isArray(store[entity])) ? store[entity].length : 0;
+  const limit = lim[entity] ?? 0;
+  return count < limit;               // 上限未満なら新規追加OK
+};
+
+// itemを編集できるか（超過分は閲覧のみ）
+window.isLocked = function(entity, item, index){
+  if (!store || !store.planLocks) return false;
+  const locks = store.planLocks[entity] || [];
+  const id = item && (item.id ?? item.uuid ?? item.code);
+  const key = (id != null) ? id : index;
+  return locks.includes(key);         // trueなら“編集不可”
+};
 
   document.addEventListener("click",(e)=>{ if(e.target.id==="btnBackupNow") backupNow(); });
 
