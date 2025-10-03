@@ -1362,6 +1362,42 @@ window.applyPlanUI = function(){
     el.classList.toggle('is-disabled', !ok); // あれば見た目用
   });
 };
+// ---- 保存ガード：ロック行は保存できないよう中央で止める ----
+document.addEventListener('click', (e) => {
+  // 保存ボタン候補（IDは必要に応じて実IDに置換）
+  const targets = new Map([
+    ['#btnSaveSupplier', {entity:'suppliers', getIndex:()=> document.querySelector('#supplierForm [name="index"]')?.value}],
+    ['#btnSaveProduct',  {entity:'products',  getIndex:()=> document.querySelector('#productForm  [name="index"]')?.value}],
+    ['#btnSaveEntry',    {entity:'entries',   getIndex:()=> document.querySelector('#entryForm    [name="index"]')?.value}],
+  ]);
+
+  for (const [sel, cfg] of targets) {
+    const btn = e.target.closest(sel);
+    if (!btn) continue;
+
+    if (!(window.isLocked && window.canCreate)) return; // まだ未定義なら何もしない
+
+    const {entity, getIndex} = cfg;
+    // 編集対象インデックス（フォームの隠しinputなどから取得）
+    let idx = Number(getIndex?.() ?? -1);
+    if (Number.isNaN(idx)) idx = -1;
+
+    // 新規作成は canCreate() を、既存編集は isLocked() をチェック
+    const isCreate = (idx < 0);
+    let blocked = false;
+
+    if (isCreate) {
+      blocked = !canCreate(entity);
+      if (blocked) alert(`この端末のプランでは ${entity} の新規作成上限に達しています。`);
+    } else {
+      const item = (store?.[entity] ?? [])[idx];
+      blocked = isLocked(entity, item, idx);
+      if (blocked) alert(`この端末のプランでは、この${entity==='entries'?'仕入入力':entity==='products'?'商品':'仕入先'}は編集できません。`);
+    }
+
+    if (blocked) { e.preventDefault(); e.stopPropagation(); return; }
+  }
+}, true);
 
   document.addEventListener("click",(e)=>{ if(e.target.id==="btnBackupNow") backupNow(); });
 
