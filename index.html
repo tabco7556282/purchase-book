@@ -1346,6 +1346,22 @@ window.isLocked = function(entity, item, index){
   const key = (id != null) ? id : index;
   return locks.includes(key);         // trueなら“編集不可”
 };
+// ---- Plan UI wiring (Addボタンだけ最小で無効化) ----
+window.applyPlanUI = function(){
+  const btns = [
+    { sel: '#btnAddSupplier', entity: 'suppliers', label: '仕入先の追加' },
+    { sel: '#btnAddProduct',  entity: 'products',  label: '商品の追加' },
+    { sel: '#btnAddEntry',    entity: 'entries',   label: '仕入入力の追加' },
+  ];
+  btns.forEach(({sel, entity, label})=>{
+    const el = document.querySelector(sel);
+    if(!el) return; // ボタンが存在しなければ何もしない（安全）
+    const ok = window.canCreate ? window.canCreate(entity) : true;
+    el.disabled = !ok;
+    el.title = ok ? '' : `この端末のプランでは「${label}」の上限に達しています`;
+    el.classList.toggle('is-disabled', !ok); // あれば見た目用
+  });
+};
 
   document.addEventListener("click",(e)=>{ if(e.target.id==="btnBackupNow") backupNow(); });
 
