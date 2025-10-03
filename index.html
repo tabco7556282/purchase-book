@@ -1302,6 +1302,55 @@ window.PLAN_LIMITS = {
   middle: { suppliers: 15, products: 200, entries: 5000 },
   pro:    { suppliers: Infinity, products: Infinity, entries: Infinity }
 };
+<script>
+// === Save Guard for modal save (#modalOK / .btn--save) ===
+(() => {
+  const SEL_SAVE = '#modalOK, .btn--save';         // さっき当たった保存ボタン
+  const DLG_SEL  = '[role="dialog"], .modal, .dialog, .sheet';
+
+  // ダイアログ→エンティティ推定（IDやクラス名に合わせて必要なら足す）
+  const resolveEntity = (dlg) => {
+    const idc = (dlg.id || dlg.className || '').toLowerCase();
+    if (idc.includes('supplier')) return 'suppliers';
+    if (idc.includes('product'))  return 'products';
+    if (idc.includes('entry'))    return 'entries';
+    // 既定：仕入入力に寄せる
+    return 'entries';
+  };
+
+  // 編集か新規か判定（hidden [name="index"] を推奨；無ければ新規扱い）
+  const getEditingIndex = (dlg) => {
+    const v = dlg.querySelector('[name="index"]')?.value;
+    if (v === '' || v == null) return -1;
+    const n = +v;
+    return Number.isFinite(n) ? n : -1;
+  };
+
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest(SEL_SAVE);
+    if (!btn) return;
+
+    const dlg = btn.closest(DLG_SEL) || document;
+    const entity = resolveEntity(dlg);
+
+    const plan   = (window.store?.settings?.plan) || 'free';
+    const lim    = (window.PLAN_LIMITS && PLAN_LIMITS[plan]) || {suppliers:Infinity,products:Infinity,entries:Infinity};
+    const count  = (window.store?.[entity]?.length) ?? 0;
+
+    const idx    = getEditingIndex(dlg);
+    const isNew  = (idx < 0); // -1 などは新規
+
+    if (isNew && count >= (lim[entity] ?? Infinity)) {
+      e.preventDefault();
+      e.stopPropagation();
+      alert('この端末のプラン上限です：' +
+            `${entity} は ${lim[entity]} 件まで（現在 ${count} 件）`);
+      return;
+    }
+    // 通過＝保存許可（既存編集 or 余裕あり）
+  }, true);
+})();
+</script>
 
 // 復元直後などに呼んで“ロック対象”だけ計算して保存
 window.enforcePlan = function(){
