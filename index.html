@@ -1302,7 +1302,6 @@ window.PLAN_LIMITS = {
   middle: { suppliers: 15, products: 200, entries: 5000 },
   pro:    { suppliers: Infinity, products: Infinity, entries: Infinity }
 };
-<script>
 // === Save Guard for modal save (#modalOK / .btn--save) ===
 (() => {
   const SEL_SAVE = '#modalOK, .btn--save';         // さっき当たった保存ボタン
@@ -1350,7 +1349,6 @@ window.PLAN_LIMITS = {
     // 通過＝保存許可（既存編集 or 余裕あり）
   }, true);
 })();
-</script>
 
 // 復元直後などに呼んで“ロック対象”だけ計算して保存
 window.enforcePlan = function(){
