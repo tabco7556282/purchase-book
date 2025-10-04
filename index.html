@@ -1266,11 +1266,6 @@ function getPlan(){
 }
 
 // TODO: 実運用の上限に合わせて調整
-const PLAN_LIMITS = {
-  free:   { suppliers: 5,  products: 20,  entries: 1000 },
-  middle: { suppliers: 15, products: 200, entries: 5000 },
-  pro:    { suppliers: Infinity, products: Infinity, entries: Infinity }
-};
 
 function enforcePlan(){
   const plan = getPlan();
@@ -1302,6 +1297,8 @@ window.PLAN_LIMITS = {
   middle: { suppliers: 15, products: 200, entries: 5000 },
   pro:    { suppliers: Infinity, products: Infinity, entries: Infinity }
 };
+  const PLAN_LIMITS = window.PLAN_LIMITS;
+
 // === Save Guard for modal save (#modalOK / .btn--save) ===
 (() => {
   const SEL_SAVE = '#modalOK, .btn--save';         // さっき当たった保存ボタン
