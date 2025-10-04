@@ -286,7 +286,7 @@ textarea{min-height:84px;resize:vertical}
         <h3>無料版</h3>
         <ul>
           <li>広告あり（控えめ表示）</li>
-          <li>仕入れ先 <b>5社</b>まで／商品 <b>合計50品</b>まで（1社10品目安）</li>
+          <li>仕入れ先 <b>5社</b>まで／商品 <b>合計50品</b></li>
           <li>出力範囲：<b>当月のみ</b></li>
         </ul>
         <button class="btn ghost small" id="btnUseFree" type="button">このプランを使う</button>
@@ -296,7 +296,7 @@ textarea{min-height:84px;resize:vertical}
         <h3>ミドル（¥700）</h3>
         <ul>
           <li>広告なし</li>
-          <li>仕入れ先 <b>15社</b>まで／1社<b>15品</b>（合計225品）</li>
+          <li>仕入れ先 <b>15社</b>まで／商品<b>合計200品</b></li>
           <li>出力範囲：<b>年度（1月〜今月）</b></li>
         </ul>
         <button class="btn primary small" id="mockBuyMid" type="button">アップグレードする</button>
@@ -306,7 +306,7 @@ textarea{min-height:84px;resize:vertical}
         <h3>プロ（¥1,500）</h3>
         <ul>
           <li>広告なし</li>
-          <li>上限なし</li>
+          <li>仕入先数・商品数に上限なし</li>
           <li>出力範囲：<b>無制限</b></li>
         </ul>
         <button class="btn primary small" id="mockBuyPro" type="button">フル機能で使う</button>
@@ -419,7 +419,7 @@ function enableSelectOnFocus(){
 /* === Plans: 単一の真実（SOT） ============================= */
 const PlanRules = {
   free:   { exportMax: 'month',  supplierMax: 5,  productTotalMax: 50,  productPerSupplierMax: 10,  ads: true  },
-  middle: { exportMax: 'fiscal', supplierMax: 15, productTotalMax: 225, productPerSupplierMax: 15,  ads: false },
+  middle: { exportMax: 'fiscal', supplierMax: 15, productTotalMax: 200, productPerSupplierMax: 15,  ads: false },
   pro:    { exportMax: 'all',    supplierMax: Infinity, productTotalMax: Infinity, productPerSupplierMax: Infinity, ads: false }
 };
 const EXPORT_KEYS = ['month','fiscal','all'];
@@ -1293,7 +1293,7 @@ function enforcePlan(){
 
   // 端末プラン上限（必要に応じて調整）
 window.PLAN_LIMITS = {
-  free:   { suppliers: 5,  products: 20,  entries: 1000 },
+  free:   { suppliers: 5,  products: 50,  entries: 1000 },
   middle: { suppliers: 15, products: 200, entries: 5000 },
   pro:    { suppliers: Infinity, products: Infinity, entries: Infinity }
 };
