@@ -142,7 +142,8 @@ textarea{min-height:84px;resize:vertical}
       <div class="card"><div class="label">今週の仕入れ合計（税込）</div><div id="kpiWeek" style="font-weight:800;font-size:20px">¥0</div></div>
       <div class="card"><div class="label">今月の仕入れ合計（税込）</div><div id="kpiMonth" style="font-weight:800;font-size:20px">¥0</div></div>
     </div>
-    <div class="nav-vertical" style="margin-top:12px">
+    <div id="home-counts"><span id="count-sup">仕入先: --</span>　<span id="count-item">商品: --</span></div>
+<div class="nav-vertical" style="margin-top:12px">
       <button class="btn primary" data-goto="input" type="button">仕入入力</button>
       <button class="btn ghost" data-goto="history" type="button">履歴・集計</button>
       <button class="btn ghost" data-goto="suppliers" type="button">仕入れ先マスタ</button>
@@ -1936,6 +1937,25 @@ window.addEventListener('DOMContentLoaded', () => {
   });
   hide('#eulaModal'); hide('#modalEula'); hide('.eula-modal'); hide('[data-role="eula-modal"]');
 });
+// 件数表示
+function updateCounts(){
+  const d = (window.DB && DB.data) ? DB.data : {};
+  const nSup  = (d.suppliers||[]).length;
+  const nItem = (d.items||[]).length;
+  const supEl  = document.getElementById('count-sup');
+  const itemEl = document.getElementById('count-item');
+  if (supEl)  supEl.textContent  = `仕入先: ${nSup}`;
+  if (itemEl) itemEl.textContent = `商品: ${nItem}`;
+}
+// 画面遷移や起動時に更新
+window.addEventListener('DOMContentLoaded', updateCounts);
+window.addEventListener('hashchange', updateCounts);
+
+// 保存後にも自動で更新（既存saveに薄くフック）
+if (window.DB && typeof DB.save === 'function') {
+  const _save = DB.save.bind(DB);
+  DB.save = function(){ const r=_save(...arguments); try{ updateCounts(); }catch(e){} return r; };
+}
 </script>
 <!-- update: 2025-10-01 -->
 </body>
