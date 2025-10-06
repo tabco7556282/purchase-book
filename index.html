@@ -143,6 +143,7 @@ textarea{min-height:84px;resize:vertical}
       <div class="card"><div class="label">今月の仕入れ合計（税込）</div><div id="kpiMonth" style="font-weight:800;font-size:20px">¥0</div></div>
     </div>
     <div id="home-counts"><span id="count-sup">仕入先: --</span>　<span id="count-item">商品: --</span></div>
+    
 <div class="nav-vertical" style="margin-top:12px">
       <button class="btn primary" data-goto="input" type="button">仕入入力</button>
       <button class="btn ghost" data-goto="history" type="button">履歴・集計</button>
@@ -1937,25 +1938,32 @@ window.addEventListener('DOMContentLoaded', () => {
   });
   hide('#eulaModal'); hide('#modalEula'); hide('.eula-modal'); hide('[data-role="eula-modal"]');
 });
-// 件数表示
-function updateCounts(){
-  const d = (window.DB && DB.data) ? DB.data : {};
-  const nSup  = (d.suppliers||[]).length;
-  const nItem = (d.items||[]).length;
-  const supEl  = document.getElementById('count-sup');
-  const itemEl = document.getElementById('count-item');
-  if (supEl)  supEl.textContent  = `仕入先: ${nSup}`;
-  if (itemEl) itemEl.textContent = `商品: ${nItem}`;
+function updateCountsCurrent(){
+  const st = window.store || {}, d = (window.DB && DB.data) || {};
+  const nS = (st.suppliers?.length ?? d.suppliers?.length ?? 0);
+  const nP = (st.products ?.length ?? st.items?.length ?? d.products?.length ?? d.items?.length ?? 0);
+  const sup = document.getElementById('count-sup');
+  const itm = document.getElementById('count-item');
+  if (sup) sup.textContent = `仕入先: ${nS}`;
+  if (itm) itm.textContent = `商品: ${nP}`;
 }
-// 画面遷移や起動時に更新
-window.addEventListener('DOMContentLoaded', updateCounts);
-window.addEventListener('hashchange', updateCounts);
-
-// 保存後にも自動で更新（既存saveに薄くフック）
-if (window.DB && typeof DB.save === 'function') {
+document.addEventListener('DOMContentLoaded', updateCountsCurrent);
+window.addEventListener('hashchange', ()=>setTimeout(updateCountsCurrent,0));
+if (window.DB?.save){
   const _save = DB.save.bind(DB);
-  DB.save = function(){ const r=_save(...arguments); try{ updateCounts(); }catch(e){} return r; };
+  DB.save = function(){ const r=_save(...arguments); try{ updateCountsCurrent(); }catch{} return r; };
 }
+document.addEventListener('click', (e)=>{
+  const b = e.target.closest('button');
+  if(!b) return;
+  const txt = (b.textContent||'');
+  if (b.id==='btnSave' || b.classList.contains('btn--save') || /保存|削除|追加/.test(txt)) {
+    setTimeout(updateCountsCurrent, 0);
+  }
+});
+// 互換：もし既存コードが updateCounts を呼んでいても動くように
+window.updateCounts = updateCountsCurrent;
+
 </script>
 <!-- update: 2025-10-01 -->
 </body>
