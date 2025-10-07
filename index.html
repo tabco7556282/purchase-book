@@ -846,40 +846,43 @@ function fillFilterSupplier(){
   });
   if(cur && [...sel.options].some(o=>o.value===cur)) sel.value=cur;
 }
-document.addEventListener("click",(e)=>{
-  const root = document.getElementById("supplierList");
+// 仕入先リスト：クリック委譲（置換用・末尾まで完全版）
+document.addEventListener('click', (e) => {
+  const root = document.getElementById('supplierList');
   if (!root) return;
 
-  const addp = e.target.closest("#supplierList .addp");
-  const edit = e.target.closest("#supplierList .edit");
-  const tap  = e.target.closest("#supplierList .tapzone");
-  const host = e.target.closest("#supplierList .list-item.supplier,[data-id]");
+  const addp = e.target.closest('#supplierList .addp');
+  const edit = e.target.closest('#supplierList .edit');
+  const tap  = e.target.closest('#supplierList .tapzone');
+  const host = e.target.closest('#supplierList .list-item.supplier,[data-id]');
 
-  // 押された要素 or 行から ID を取得（最優先で data-id を参照）
-  const id = (e.target.getAttribute?.("data-id"))
-          || (host && host.getAttribute("data-id"));
+  // 押された要素 or 行から ID を取得（最優先で data-id）
+  const id = e.target.getAttribute?.('data-id') || host?.getAttribute('data-id');
 
-  if (addp){
-    if (!id) return alert("仕入先IDが見つかりません");
+  if (addp) {
+    if (!id) { alert('仕入先IDが見つかりません'); return; }
     tryAddProductStart(id);
     return;
   }
-  if (edit){
-    if (!id) return alert("仕入先IDが見つかりません");
-    const sup = (store.suppliers||[]).find(s=>s.id===id);
-    if (!sup) return alert("仕入先が見つかりません");
+
+  if (edit) {
+    if (!id) { alert('仕入先IDが見つかりません'); return; }
+    const sup = (store.suppliers || []).find(s => s.id === id);
+    if (!sup) { alert('仕入先が見つかりません'); return; }
     openSupplierModal(sup);
     return;
   }
-  if (tap){
+
+  if (tap) {
     if (!id) return;
-    navigate("products");
-    const sel = $("#filterProdSupplier");
-    if (sel){ sel.value = id; }
+    navigate('products');
+    const sel = $('#filterProdSupplier');
+    if (sel) sel.value = id;
     renderProducts();
     return;
   }
-});
+}); // ← ここが必須（}); で確実に閉じる）
+
 function renderProducts(){
   const list=$("#productList"); if(!list) return;
   const sid=$("#filterProdSupplier").value;
