@@ -954,7 +954,7 @@ function openSupplierModal(s){
   };
   $("#modalOK").onclick=onOK;
 
-  if (s) {
+ if (s) {
   var delBtn = document.querySelector("#modalDelete");
   if (delBtn) delBtn.classList.remove("hidden");
 
@@ -986,7 +986,7 @@ function openSupplierModal(s){
     fillFilterSupplier();
     renderProducts();
     refreshHome();
-    try { enforcePlan(); applyPlanUI(); } catch(_) {}
+    try { enforcePlan(); applyPlanUI(); } catch(e) {}
 
     closeModal();
   };
@@ -995,7 +995,7 @@ function openSupplierModal(s){
   var cancelBtn = document.querySelector("#modalCancel");
   if (actions && delBtn && cancelBtn) actions.insertBefore(delBtn, cancelBtn);
 }
-
+ 
 function tryAddSupplier(){
   const limit = PlanRules[store.settings.plan||'free'].supplierMax;
   const count = store.suppliers.filter(x=>!x.deleted).length;
