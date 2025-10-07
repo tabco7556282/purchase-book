@@ -953,24 +953,26 @@ function openSupplierModal(s){
     DB.save(store); renderSuppliers(); refreshHome(); fillSupplierSelect($("#inSupplier")); closeModal();
   };
   $("#modalOK").onclick=onOK;
-
- if (s) {
+// --- openSupplierModal(s) 内の削除ブロック ここから置換 ---
+if (s) {
   const delBtn = $("#modalDelete");
   delBtn.classList.remove("hidden");
   delBtn.onclick = () => {
     const sid = s.id;
-    const linked = (store.products || [])
-      .filter(p => !p?.deleted && p.supplier_id === sid).length;
+    const linked = (store.products || store.items || [])
+      .filter(p => !p?.deleted && (p.supplier_id ?? p.supplierId) === sid).length;
 
     if (!confirm(`仕入先「${s.name}」を削除します。\n関連商品 ${linked} 件も同時に削除されます。よろしいですか？`)) return;
 
-    // 商品カスケード（supplier_id が一致する商品を物理削除）
+    // 商品カスケード（物理削除）
     if (Array.isArray(store.products)) {
-      store.products = store.products.filter(p => p.supplier_id !== sid);
+      store.products = store.products.filter(p => (p.supplier_id ?? p.supplierId) !== sid);
+    } else if (Array.isArray(store.items)) {
+      store.items = store.items.filter(p => (p.supplier_id ?? p.supplierId) !== sid);
     }
 
     // 仕入先を物理削除
-    const i = (store.suppliers || []).findIndex(x => x && x.id === sid);
+    const i = (store.suppliers || []).findIndex(x => x?.id === sid);
     if (i >= 0) store.suppliers.splice(i, 1);
 
     // 保存＆再描画＆プランUI
@@ -984,9 +986,11 @@ function openSupplierModal(s){
       applyPlanUI?.();
     } catch (_) {}
     closeModal();
-  };
+  }; // ← onclick は "};" で必ず締める
+
   $(".actions").insertBefore(delBtn, $("#modalCancel"));
-}
+} // ← if (s) をここで閉じる
+// --- 置換ここまで ---
 
 
 function tryAddSupplier(){
