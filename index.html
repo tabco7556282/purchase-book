@@ -956,52 +956,34 @@ function openSupplierModal(s){
 // --- 検証用：安全ガード＋ログ付き削除ハンドラ ---
 if (s) {
   const delBtn = $("#modalDelete");
-  if (!delBtn) {
-    console.warn("[P3] #modalDelete が見つかりません。モーダルDOMが未挿入の可能性。");
-    return; // ここで止める＝このブロックが原因か切り分けられる
-  }
-
   delBtn.classList.remove("hidden");
+
   delBtn.onclick = () => {
-    try {
-      const S = store.suppliers || [];
-      const P0 = (store.products || store.items || []);
-      const sid = s.id;
+    const sid = s.id;
 
-      // 事前ログ
-      console.table({ sid, S_len: S.length, P_len: P0.length });
+    // products / items 両対応
+    const P0 = (store.products || store.items || []);
+    const linked = P0.filter(p => !p?.deleted && (p.supplier_id ?? p.supplierId) === sid).length;
+    if (!confirm(`仕入先「${s.name}」を削除します。\n関連商品 ${linked} 件も同時に削除されます。よろしいですか？`)) return;
 
-      const linked = P0.filter(p => !p?.deleted && (p.supplier_id ?? p.supplierId) === sid).length;
-      if (!confirm(`仕入先「${s.name}」を削除します。\n関連商品 ${linked} 件も同時に削除されます。よろしいですか？`)) return;
+    // 商品カスケード
+    const kept = P0.filter(p => (p.supplier_id ?? p.supplierId) !== sid);
+    if (Array.isArray(store.products)) store.products = kept;
+    else if (Array.isArray(store.items)) store.items = kept;
 
-      // 商品カスケード
-      const kept = P0.filter(p => (p.supplier_id ?? p.supplierId) !== sid);
-      if (Array.isArray(store.products)) store.products = kept;
-      else if (Array.isArray(store.items)) store.items = kept;
+    // 仕入先を物理削除（ID一致のみ）
+    const S = store.suppliers || [];
+    const i = S.findIndex(x => x?.id === sid);
+    if (i >= 0) S.splice(i, 1);
 
-      // 仕入先削除
-      const i = S.findIndex(x => x?.id === sid);
-      if (i >= 0) S.splice(i, 1);
-
-      // 保存＋UI更新
-      DB?.save && DB.save(store);
-      renderSuppliers?.();
-      fillFilterSupplier?.();
-      renderProducts?.();
-      refreshHome?.();
-      enforcePlan?.();
-      applyPlanUI?.();
-      closeModal?.();
-
-      console.table({ removedProducts: P0.length - kept.length, suppliersNow: S.length, productsNow: kept.length });
-    } catch (e) {
-      console.error("[P3] delete handler failed:", e);
-      alert("削除処理でエラー: " + (e?.message || e));
-    }
+    // 保存＆UI更新（存在しない場合は呼ばない）
+    DB?.save && DB.save(store);
+    renderSuppliers?.(); fillFilterSupplier?.(); renderProducts?.(); refreshHome?.();
+    enforcePlan?.();      applyPlanUI?.();
+    closeModal?.();
   };
 
-  // ボタン挿入も安全に
-  try { $(".actions")?.insertBefore?.(delBtn, $("#modalCancel")); } catch (_) {}
+  $(".actions").insertBefore(delBtn, $("#modalCancel"));
 }
 
 
