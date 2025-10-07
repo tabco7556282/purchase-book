@@ -820,6 +820,7 @@ function fillFilterSupplier(){
   });
   if(cur && [...sel.options].some(o=>o.value===cur)) sel.value=cur;
 }
+/* ---- test off: supplier click delegation ----
 document.addEventListener("click",(e)=>{
   const root = document.getElementById("supplierList");
   if (!root) return;
@@ -854,7 +855,7 @@ document.addEventListener("click",(e)=>{
     return;
   }
 });
-
+---- test off end ---- */
 function renderProducts(){
   const list=$("#productList"); if(!list) return;
   const sid=$("#filterProdSupplier").value;
