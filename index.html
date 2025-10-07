@@ -151,7 +151,7 @@ textarea{min-height:84px;resize:vertical}
       <button class="btn ghost" data-goto="backup" type="button">バックアップ設定</button>
       <button class="btn ghost" data-goto="license" type="button">Plans</button>
       <button class="btn ghost" data-goto="rights" type="button">Licenses＆Notices</button>
-     <button class="btn danger" id="btnFactoryReset" type="button">データ初期化</button>
+　    <button class="btn danger" id="btnFactoryReset" type="button">データ初期化</button>
       <div class="label">※初期化の前にバックアップを取ってください。</div>
     </div>
 
@@ -321,7 +321,7 @@ textarea{min-height:84px;resize:vertical}
       <section><h4>App & Version</h4><p>Tabco Ledger Plus<sup>™</sup> v0.8.1</p></section>
       <section><h4>Copyright</h4><p>© 2025 チカキッサ.タブコ. All rights reserved.</p></section>
       <section><h4>Trademark Notice</h4><p><strong>Tabco Ledger Plus<sup>™</sup></strong> and related logos are trademarks of Tabco.</p></section>
-   <section id="rights"><h4>EULA（使用許諾）</h4><p>本アプリのご利用によりEULA（使用許諾契約）に同意したものとみなされます。</p><ol>
+　　　<section id="rights"><h4>EULA（使用許諾）</h4><p>本アプリのご利用によりEULA（使用許諾契約）に同意したものとみなされます。</p><ol>
         <li><b>ライセンス付与：</b>非独占・譲渡不可。再配布/逆コンパイル禁止。</li>
         <li><b>データとプライバシー：</b>出力データの管理は利用者の責任。</li>
         <li><b>知的財産：</b>本ソフト/名称/ロゴ等は開発者に帰属。</li>
@@ -822,7 +822,7 @@ function renderSuppliers(){
     item.innerHTML = `
       <div class="tapzone" data-id="${s.id}">
         <b>${s.name}</b>
-        <div class="muted">担当:${s.contact || "-" } TEL:${s.phone || "-" } INV:${s.invoice_number || "-" }</div>
+        <div class="muted">担当:${s.contact || "-" }　TEL:${s.phone || "-" }　INV:${s.invoice_number || "-" }</div>
         <div class="muted">｜商品${prodCount}件</div>
       </div>
       <div class="ops-col">
@@ -944,7 +944,7 @@ function openSupplierModal(s){
     const inv    =$("#mSupInv").value.trim();
     if(s){ s.name=name; s.contact=contact; s.phone=phone; s.invoice_number=inv; }
    else {  const cap = CAPS();const supCount = store.suppliers.filter(x=>!x.deleted).length;
-   if (supCount >= cap.suppliers){
+  　if (supCount >= cap.suppliers){
     alert(`現在のプランでは仕入先は ${capLabel(cap.suppliers,'社')} までです。\nPlans からアップグレードをご検討ください。`);
     return;
   }
@@ -953,40 +953,13 @@ function openSupplierModal(s){
     DB.save(store); renderSuppliers(); refreshHome(); fillSupplierSelect($("#inSupplier")); closeModal();
   };
   $("#modalOK").onclick=onOK;
-// --- 検証用：安全ガード＋ログ付き削除ハンドラ ---
-if (s) {
-  const delBtn = $("#modalDelete");
-  delBtn.classList.remove("hidden");
 
-  delBtn.onclick = () => {
-    const sid = s.id;
-
-    // products / items 両対応
-    const P0 = (store.products || store.items || []);
-    const linked = P0.filter(p => !p?.deleted && (p.supplier_id ?? p.supplierId) === sid).length;
-    if (!confirm(`仕入先「${s.name}」を削除します。\n関連商品 ${linked} 件も同時に削除されます。よろしいですか？`)) return;
-
-    // 商品カスケード
-    const kept = P0.filter(p => (p.supplier_id ?? p.supplierId) !== sid);
-    if (Array.isArray(store.products)) store.products = kept;
-    else if (Array.isArray(store.items)) store.items = kept;
-
-    // 仕入先を物理削除（ID一致のみ）
-    const S = store.suppliers || [];
-    const i = S.findIndex(x => x?.id === sid);
-    if (i >= 0) S.splice(i, 1);
-
-    // 保存＆UI更新（存在しない場合は呼ばない）
-    DB?.save && DB.save(store);
-    renderSuppliers?.(); fillFilterSupplier?.(); renderProducts?.(); refreshHome?.();
-    enforcePlan?.();      applyPlanUI?.();
-    closeModal?.();
-  };
-
-  $(".actions").insertBefore(delBtn, $("#modalCancel"));
+  if(s){
+    const delBtn=$("#modalDelete"); delBtn.classList.remove("hidden");
+    delBtn.onclick=()=>{ if(confirm("削除しますか？")){ s.deleted=true; DB.save(store); renderSuppliers(); refreshHome(); closeModal(); } };
+    $(".actions").insertBefore(delBtn, $("#modalCancel"));
+  }
 }
-
-
 function tryAddSupplier(){
   const limit = PlanRules[store.settings.plan||'free'].supplierMax;
   const count = store.suppliers.filter(x=>!x.deleted).length;
@@ -1036,7 +1009,7 @@ function openProductModal(p,defaultSid){
     const note=$("#mProdNote").value||"";
     if(p){ p.supplier_id=sid; p.name=name; p.default_price=price; p.tax_rate=tax_rate; p.tax_mode=tax_mode; p.note=note; }
    else {const cap = CAPS(); const total = store.products.filter(x=>!x.deleted).length;
-  if (total >= cap.products){
+　　if (total >= cap.products){
      alert(`現在のプランでは商品合計は ${capLabel(cap.products,'品')} までです。\nPlans からアップグレードをご検討ください。`);
      return;
   }
@@ -1167,7 +1140,7 @@ function renderHistory(){
         const name = supplierName(sk) || sk;
         let net=0,gross=0; for (const e of group[sk]){ const t=calcLineTotal(e); net+=t.excl; gross+=t.incl; }
         const head = showBoth ? `税別 ${yen(net)}｜税込 ${yen(gross)}` : `税込 ${yen(gross)}`;
-        html += `<div style="margin-top:6px"><u>${name}</u> <span class="muted">${head}</span>`;
+        html += `<div style="margin-top:6px"><u>${name}</u>　<span class="muted">${head}</span>`;
         html += group[sk].map(e=>{
           const t=calcLineTotal(e);
           const show=(e.taxmode==="incl")?t.incl:t.excl;
@@ -1198,7 +1171,7 @@ function renderHistory(){
       const name=supplierName(sk)||sk;
       let net=0,gross=0; for(const e of group[sk]){ const t=calcLineTotal(e); net+=t.excl; gross+=t.incl; }
       const head = showBoth ? `税別 ${yen(net)}｜税込 ${yen(gross)}` : `税込 ${yen(gross)}`;
-      html += `<div style="margin-top:6px"><u>${name}</u> <span class="muted">${head}</span>`;
+      html += `<div style="margin-top:6px"><u>${name}</u>　<span class="muted">${head}</span>`;
       html += group[sk].map(e=>{
         const t=calcLineTotal(e);
         const show=(e.taxmode==="incl")?t.incl:t.excl;
@@ -1413,7 +1386,7 @@ const resolveEntity = (dlg) => {
   }, true);
 })();
 
-// 復元直後などに呼んで"ロック対象"だけ計算して保存
+// 復元直後などに呼んで“ロック対象”だけ計算して保存
 window.enforcePlan = function(){
   const plan = (store && store.settings && store.settings.plan) || 'free';
   const lim  = window.PLAN_LIMITS[plan] || window.PLAN_LIMITS.free;
@@ -1454,7 +1427,7 @@ window.isLocked = function(entity, item, index){
   const locks = store.planLocks[entity] || [];
   const id = item && (item.id ?? item.uuid ?? item.code);
   const key = (id != null) ? id : index;
-  return locks.includes(key);         // trueなら"編集不可"
+  return locks.includes(key);         // trueなら“編集不可”
 };
 // ---- Plan UI wiring (Addボタンだけ最小で無効化) ----
 window.applyPlanUI = function(){
@@ -1648,9 +1621,9 @@ function init(){
     fillFilterSupplier();
     renderProducts();
     refreshFiscalLabel();
-    showPage(location.hash.replace("#", "") || "home");
-if ((location.hash || "") === "#history") { try { renderHistory(); } catch (e) { console.error(e); } }
-syncLicenseButtons();
+    showPage(location.hash.replace("#","")||"home");
+    if ((location.hash||"") === "#history") { try{ renderHistory(); }catch(e){ console.error(e); } }
+    syncLicenseButtons();
   }catch(err){
     console.error("init failed:", err);
     alert("初期化中に問題が発生しました。ページを再読み込みしてください。");
@@ -1836,7 +1809,7 @@ init();
   ensure('rights-eula-note', `<h4>使用許諾（EULA）</h4><p>本アプリの利用により、<a href="./#rights">EULA（使用許諾契約）</a>に同意したものとみなされます。</p>`);
   page.addEventListener('click', (e)=>{ const a = e.target.closest('#rights-open-eula'); if(!a) return; e.preventDefault(); if (typeof window.tlpOpenEula === 'function') window.tlpOpenEula(); else if (window.TLP && typeof TLP.showEula === 'function') TLP.showEula(); else alert('EULAを表示できませんでした。'); });
 ensure('rights-support', `<h4>お問い合わせ</h4><p>Webサイト：<a href="https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/" target="_blank" rel="noopener noreferrer">https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/</a></p>`);
-  ensure('rights-trademark', `<h4>商標について</h4><p>"${APP_NAME}" および関連ロゴは ${PUBLISHER} の商標です。記載の会社名・製品名は各社の商標または登録商標です。</p>`);
+  ensure('rights-trademark', `<h4>商標について</h4><p>“${APP_NAME}” および関連ロゴは ${PUBLISHER} の商標です。記載の会社名・製品名は各社の商標または登録商標です。</p>`);
   ensure('rights-oss', `<h4>オープンソースコンポーネント</h4><p>本アプリは主に HTML/CSS/JavaScript で構築されています。必要に応じてライセンス情報を追記します。</p><ul id="oss-list" style="margin-top:4px"></ul>`);
   const css = `#page-rights section + section { margin-top: 12px; } #page-rights a { text-decoration: underline; } #page-rights p { line-height: 1.6; }`;
   const styleTag = document.createElement('style'); styleTag.textContent = css; page.appendChild(styleTag);
