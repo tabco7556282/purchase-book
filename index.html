@@ -805,24 +805,37 @@ function renderTodayList(){
 
 /* ===== Supplier/Product ===== */
 function renderSuppliers(){
-  const list=$("#supplierList"); if(!list) return;
-  list.innerHTML="";
-  store.suppliers.filter(s=>!s.deleted).forEach(s=>{
-    const prodCount=store.products.filter(p=>!p.deleted&&p.supplier_id===s.id).length;
-    const item=document.createElement("div"); item.className="list-item supplier";
-    item.innerHTML=`
-      <div class="tapzone">
+  const list = $("#supplierList");
+  if (!list) return;
+  list.innerHTML = "";
+
+  const suppliers = (store.suppliers || []).filter(s => !s.deleted);
+  const products  = (store.products || store.items || []);
+
+  suppliers.forEach(s => {
+    const prodCount = products.filter(p => !p?.deleted && (p.supplier_id ?? p.supplierId) === s.id).length;
+
+    const item = document.createElement("div");
+    item.className = "list-item supplier";
+    item.setAttribute("data-id", s.id);            // ← 行にIDを通す
+
+    item.innerHTML = `
+      <div class="tapzone" data-id="${s.id}">
         <b>${s.name}</b>
-        <div class="muted">担当:${s.contact||"-"}　TEL:${s.phone||"-"}　INV:${s.invoice_number||"-"}</div>
+        <div class="muted">担当:${s.contact || "-" }　TEL:${s.phone || "-" }　INV:${s.invoice_number || "-" }</div>
         <div class="muted">｜商品${prodCount}件</div>
       </div>
       <div class="ops-col">
-        <button class="btn op small square addp" type="button"><span class="twoline">＋<br>商品追加</span></button>
-        <button class="btn op small square edit" type="button">編集</button>
-      </div>`;
+        <button class="btn op small square addp" type="button" data-id="${s.id}">
+          <span class="twoline">＋<br>商品追加</span>
+        </button>
+        <button class="btn op small square edit" type="button" data-id="${s.id}">編集</button>
+      </div>
+    `;
     list.appendChild(item);
   });
 }
+
 function fillFilterSupplier(){
   const sel=$("#filterProdSupplier"); if(!sel) return;
   const cur=sel.value;
