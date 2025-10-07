@@ -954,38 +954,40 @@ function openSupplierModal(s){
   };
   $("#modalOK").onclick=onOK;
 
-  if (s){
+ if (s) {
   const delBtn = $("#modalDelete");
   delBtn.classList.remove("hidden");
   delBtn.onclick = () => {
     const sid = s.id;
-    const prodLinked = (store.products||[]).filter(p=>!p.deleted && (p.supplier_id===sid)).length;
-    const ok = confirm(`仕入先「${s.name}」を削除します。\n関連商品 ${prodLinked} 件も同時に削除されます。よろしいですか？`);
-    if (!ok) return;
+    const linked = (store.products || [])
+      .filter(p => !p?.deleted && p.supplier_id === sid).length;
 
-    // 1) 商品カスケード（物理削除）
-    if (Array.isArray(store.products)){
+    if (!confirm(`仕入先「${s.name}」を削除します。\n関連商品 ${linked} 件も同時に削除されます。よろしいですか？`)) return;
+
+    // 商品カスケード（supplier_id が一致する商品を物理削除）
+    if (Array.isArray(store.products)) {
       store.products = store.products.filter(p => p.supplier_id !== sid);
     }
 
-    // 2) 仕入先を物理削除（配列から除去）
-    const i = (store.suppliers||[]).findIndex(x=>x && x.id===sid);
-    if (i >= 0) store.suppliers.splice(i,1);
+    // 仕入先を物理削除
+    const i = (store.suppliers || []).findIndex(x => x && x.id === sid);
+    if (i >= 0) store.suppliers.splice(i, 1);
 
-    // 3) 保存 & 再描画 & プランUI更新
+    // 保存＆再描画＆プランUI
     DB.save(store);
-    renderSuppliers();
-    fillFilterSupplier();
-    renderProducts();
-    refreshHome();
-
-    // ロック/ボタン状態の再計算（端末プラン）
-    try { enforcePlan(); applyPlanUI(); } catch(_){}
-
+    try {
+      renderSuppliers();
+      fillFilterSupplier?.();
+      renderProducts();
+      refreshHome();
+      enforcePlan?.();
+      applyPlanUI?.();
+    } catch (_) {}
     closeModal();
   };
   $(".actions").insertBefore(delBtn, $("#modalCancel"));
 }
+
 
 function tryAddSupplier(){
   const limit = PlanRules[store.settings.plan||'free'].supplierMax;
