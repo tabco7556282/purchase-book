@@ -846,7 +846,7 @@ function fillFilterSupplier(){
   });
   if(cur && [...sel.options].some(o=>o.value===cur)) sel.value=cur;
 }
-// 仕入先リスト：クリック委譲（置換用・末尾まで完全版）
+// 仕入先リスト：クリック委譲（完全版）
 document.addEventListener('click', (e) => {
   const root = document.getElementById('supplierList');
   if (!root) return;
@@ -881,7 +881,7 @@ document.addEventListener('click', (e) => {
     renderProducts();
     return;
   }
-}); // ← ここが必須（}); で確実に閉じる）
+}); // ← ここまでで確実に閉じる
 
 function renderProducts(){
   const list=$("#productList"); if(!list) return;
