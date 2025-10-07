@@ -846,26 +846,40 @@ function fillFilterSupplier(){
   if(cur && [...sel.options].some(o=>o.value===cur)) sel.value=cur;
 }
 document.addEventListener("click",(e)=>{
-  const addp=e.target.closest("#supplierList .addp");
-  const edit=e.target.closest("#supplierList .edit");
-  const tap =e.target.closest("#supplierList .tapzone");
-  if(addp){
-    const item=addp.closest(".list-item");
-    const name=item.querySelector("b").textContent;
-    const sup=store.suppliers.find(s=>s.name===name);
-    if(sup){ tryAddProductStart(sup.id); }
-  }else if(edit){
-    const item=edit.closest(".list-item");
-    const name=item.querySelector("b").textContent;
-    const sup=store.suppliers.find(s=>s.name===name);
-    if(sup){ openSupplierModal(sup); }
-  }else if(tap){
-    const item=tap.closest(".list-item");
-    const name=item.querySelector("b").textContent;
-    const sup=store.suppliers.find(s=>s.name===name);
-    if(sup){ navigate("products"); $("#filterProdSupplier").value=sup.id; renderProducts(); }
+  const root = document.getElementById("supplierList");
+  if (!root) return;
+
+  const addp = e.target.closest("#supplierList .addp");
+  const edit = e.target.closest("#supplierList .edit");
+  const tap  = e.target.closest("#supplierList .tapzone");
+  const host = e.target.closest("#supplierList .list-item.supplier,[data-id]");
+
+  // 押された要素 or 行から ID を取得（最優先で data-id を参照）
+  const id = (e.target.getAttribute?.("data-id"))
+          || (host && host.getAttribute("data-id"));
+
+  if (addp){
+    if (!id) return alert("仕入先IDが見つかりません");
+    tryAddProductStart(id);
+    return;
+  }
+  if (edit){
+    if (!id) return alert("仕入先IDが見つかりません");
+    const sup = (store.suppliers||[]).find(s=>s.id===id);
+    if (!sup) return alert("仕入先が見つかりません");
+    openSupplierModal(sup);
+    return;
+  }
+  if (tap){
+    if (!id) return;
+    navigate("products");
+    const sel = $("#filterProdSupplier");
+    if (sel){ sel.value = id; }
+    renderProducts();
+    return;
   }
 });
+
 function renderProducts(){
   const list=$("#productList"); if(!list) return;
   const sid=$("#filterProdSupplier").value;
