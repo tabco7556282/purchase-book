@@ -995,7 +995,7 @@ function openSupplierModal(s){
   var cancelBtn = document.querySelector("#modalCancel");
   if (actions && delBtn && cancelBtn) actions.insertBefore(delBtn, cancelBtn);
 }
- 
+} 
 function tryAddSupplier(){
   const limit = PlanRules[store.settings.plan||'free'].supplierMax;
   const count = store.suppliers.filter(x=>!x.deleted).length;
