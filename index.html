@@ -805,24 +805,37 @@ function renderTodayList(){
 
 /* ===== Supplier/Product ===== */
 function renderSuppliers(){
-  const list=$("#supplierList"); if(!list) return;
-  list.innerHTML="";
-  store.suppliers.filter(s=>!s.deleted).forEach(s=>{
-    const prodCount=store.products.filter(p=>!p.deleted&&p.supplier_id===s.id).length;
-    const item=document.createElement("div"); item.className="list-item supplier";
-    item.innerHTML=`
-      <div class="tapzone">
+  const list = $("#supplierList");
+  if (!list) return;
+  list.innerHTML = "";
+
+  const suppliers = (store.suppliers || []).filter(s => !s.deleted);
+  const products  = (store.products || store.items || []);
+
+  suppliers.forEach(s => {
+    const prodCount = products.filter(p => !p?.deleted && (p.supplier_id ?? p.supplierId) === s.id).length;
+
+    const item = document.createElement("div");
+    item.className = "list-item supplier";
+    item.setAttribute("data-id", s.id);            // ← 行にIDを通す
+
+    item.innerHTML = `
+      <div class="tapzone" data-id="${s.id}">
         <b>${s.name}</b>
-        <div class="muted">担当:${s.contact||"-"}　TEL:${s.phone||"-"}　INV:${s.invoice_number||"-"}</div>
+        <div class="muted">担当:${s.contact || "-" }　TEL:${s.phone || "-" }　INV:${s.invoice_number || "-" }</div>
         <div class="muted">｜商品${prodCount}件</div>
       </div>
       <div class="ops-col">
-        <button class="btn op small square addp" type="button"><span class="twoline">＋<br>商品追加</span></button>
-        <button class="btn op small square edit" type="button">編集</button>
-      </div>`;
+        <button class="btn op small square addp" type="button" data-id="${s.id}">
+          <span class="twoline">＋<br>商品追加</span>
+        </button>
+        <button class="btn op small square edit" type="button" data-id="${s.id}">編集</button>
+      </div>
+    `;
     list.appendChild(item);
   });
 }
+
 function fillFilterSupplier(){
   const sel=$("#filterProdSupplier"); if(!sel) return;
   const cur=sel.value;
@@ -833,26 +846,40 @@ function fillFilterSupplier(){
   if(cur && [...sel.options].some(o=>o.value===cur)) sel.value=cur;
 }
 document.addEventListener("click",(e)=>{
-  const addp=e.target.closest("#supplierList .addp");
-  const edit=e.target.closest("#supplierList .edit");
-  const tap =e.target.closest("#supplierList .tapzone");
-  if(addp){
-    const item=addp.closest(".list-item");
-    const name=item.querySelector("b").textContent;
-    const sup=store.suppliers.find(s=>s.name===name);
-    if(sup){ tryAddProductStart(sup.id); }
-  }else if(edit){
-    const item=edit.closest(".list-item");
-    const name=item.querySelector("b").textContent;
-    const sup=store.suppliers.find(s=>s.name===name);
-    if(sup){ openSupplierModal(sup); }
-  }else if(tap){
-    const item=tap.closest(".list-item");
-    const name=item.querySelector("b").textContent;
-    const sup=store.suppliers.find(s=>s.name===name);
-    if(sup){ navigate("products"); $("#filterProdSupplier").value=sup.id; renderProducts(); }
+  const root = document.getElementById("supplierList");
+  if (!root) return;
+
+  const addp = e.target.closest("#supplierList .addp");
+  const edit = e.target.closest("#supplierList .edit");
+  const tap  = e.target.closest("#supplierList .tapzone");
+  const host = e.target.closest("#supplierList .list-item.supplier,[data-id]");
+
+  // 押された要素 or 行から ID を取得（最優先で data-id を参照）
+  const id = (e.target.getAttribute?.("data-id"))
+          || (host && host.getAttribute("data-id"));
+
+  if (addp){
+    if (!id) return alert("仕入先IDが見つかりません");
+    tryAddProductStart(id);
+    return;
+  }
+  if (edit){
+    if (!id) return alert("仕入先IDが見つかりません");
+    const sup = (store.suppliers||[]).find(s=>s.id===id);
+    if (!sup) return alert("仕入先が見つかりません");
+    openSupplierModal(sup);
+    return;
+  }
+  if (tap){
+    if (!id) return;
+    navigate("products");
+    const sel = $("#filterProdSupplier");
+    if (sel){ sel.value = id; }
+    renderProducts();
+    return;
   }
 });
+
 function renderProducts(){
   const list=$("#productList"); if(!list) return;
   const sid=$("#filterProdSupplier").value;
@@ -928,11 +955,39 @@ function openSupplierModal(s){
   $("#modalOK").onclick=onOK;
 
   if(s){
-    const delBtn=$("#modalDelete"); delBtn.classList.remove("hidden");
-    delBtn.onclick=()=>{ if(confirm("削除しますか？")){ s.deleted=true; DB.save(store); renderSuppliers(); refreshHome(); closeModal(); } };
-    $(".actions").insertBefore(delBtn, $("#modalCancel"));
-  }
+   if (s){
+  const delBtn = $("#modalDelete");
+  delBtn.classList.remove("hidden");
+  delBtn.onclick = () => {
+    const sid = s.id;
+    const prodLinked = (store.products||[]).filter(p=>!p.deleted && (p.supplier_id===sid)).length;
+    const ok = confirm(`仕入先「${s.name}」を削除します。\n関連商品 ${prodLinked} 件も同時に削除されます。よろしいですか？`);
+    if (!ok) return;
+
+    // 1) 商品カスケード（物理削除）
+    if (Array.isArray(store.products)){
+      store.products = store.products.filter(p => p.supplier_id !== sid);
+    }
+
+    // 2) 仕入先を物理削除（配列から除去）
+    const i = (store.suppliers||[]).findIndex(x=>x && x.id===sid);
+    if (i >= 0) store.suppliers.splice(i,1);
+
+    // 3) 保存 & 再描画 & プランUI更新
+    DB.save(store);
+    renderSuppliers();
+    fillFilterSupplier();
+    renderProducts();
+    refreshHome();
+
+    // ロック/ボタン状態の再計算（端末プラン）
+    try { enforcePlan(); applyPlanUI(); } catch(_){}
+
+    closeModal();
+  };
+  $(".actions").insertBefore(delBtn, $("#modalCancel"));
 }
+
 function tryAddSupplier(){
   const limit = PlanRules[store.settings.plan||'free'].supplierMax;
   const count = store.suppliers.filter(x=>!x.deleted).length;
