@@ -1648,9 +1648,9 @@ function init(){
     fillFilterSupplier();
     renderProducts();
     refreshFiscalLabel();
-    showPage(location.hash.replace("#","")||"home");
-    if ((location.hash||"") === "#history") { try{ renderHistory(); }catch(e){ console.error(e); } }
-    syncLicenseButtons();
+    showPage(location.hash.replace("#", "") || "home");
+if ((location.hash || "") === "#history") { try { renderHistory(); } catch (e) { console.error(e); } }
+syncLicenseButtons();
   }catch(err){
     console.error("init failed:", err);
     alert("初期化中に問題が発生しました。ページを再読み込みしてください。");
