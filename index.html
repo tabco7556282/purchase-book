@@ -808,6 +808,32 @@ function renderSuppliers(){
   const list = $("#supplierList");
   if (!list) return;
   list.innerHTML = "";
+
+  const suppliers = (store.suppliers || []).filter(s => !s.deleted);
+  const products  = (store.products || store.items || []);
+
+  suppliers.forEach(s => {
+    const prodCount = products.filter(p => !p?.deleted && (p.supplier_id ?? p.supplierId) === s.id).length;
+
+    const item = document.createElement("div");
+    item.className = "list-item supplier";
+    item.setAttribute("data-id", s.id);
+
+    item.innerHTML = `
+      <div class="tapzone" data-id="${s.id}">
+        <b>${s.name}</b>
+        <div class="muted">担当:${s.contact || "-" }　TEL:${s.phone || "-" }　INV:${s.invoice_number || "-" }</div>
+        <div class="muted">｜商品${prodCount}件</div>
+      </div>
+      <div class="ops-col">
+        <button class="btn op small square addp" type="button" data-id="${s.id}">
+          <span class="twoline">＋<br>商品追加</span>
+        </button>
+        <button class="btn op small square edit" type="button" data-id="${s.id}">編集</button>
+      </div>
+    `;
+    list.appendChild(item);
+  });
 }
 
 
@@ -820,7 +846,6 @@ function fillFilterSupplier(){
   });
   if(cur && [...sel.options].some(o=>o.value===cur)) sel.value=cur;
 }
-/* ---- test off: supplier click delegation ----
 document.addEventListener("click",(e)=>{
   const root = document.getElementById("supplierList");
   if (!root) return;
@@ -855,7 +880,6 @@ document.addEventListener("click",(e)=>{
     return;
   }
 });
----- test off end ---- */
 function renderProducts(){
   const list=$("#productList"); if(!list) return;
   const sid=$("#filterProdSupplier").value;
@@ -930,7 +954,6 @@ function openSupplierModal(s){
   };
   $("#modalOK").onclick=onOK;
 
-  if(s){
    if (s){
   const delBtn = $("#modalDelete");
   delBtn.classList.remove("hidden");
