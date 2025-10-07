@@ -953,17 +953,13 @@ function openSupplierModal(s){
     DB.save(store); renderSuppliers(); refreshHome(); fillSupplierSelect($("#inSupplier")); closeModal();
   };
   $("#modalOK").onclick=onOK;
-// 仕入先モーダル：削除ボタンの配線・削除処理（ネイティブDOM版・バッククォート不使用）
 if (s) {
   const delBtn    = document.getElementById("modalDelete");
   const cancelBtn = document.getElementById("modalCancel");
   const actions   = document.querySelector(".actions");
 
   if (delBtn) {
-    // 表示
     delBtn.classList.remove("hidden");
-
-    // 多重バインド防止のため一旦既存クリックを解除してから付け直し
     delBtn.onclick = null;
     delBtn.addEventListener("click", function () {
       const sid = s.id;
@@ -978,37 +974,35 @@ if (s) {
       );
       if (!ok) return;
 
-      // 1) 商品カスケード（物理削除）
+      // 商品カスケード（物理削除）
       if (Array.isArray(store.products)) {
         store.products = store.products.filter(function (p) {
           return p.supplier_id !== sid;
         });
       }
 
-      // 2) 仕入先を物理削除（配列から除去）
+      // 仕入先を物理削除
       const supIdx = Array.isArray(store.suppliers)
         ? store.suppliers.findIndex(function (x) { return x && x.id === sid; })
         : -1;
       if (supIdx >= 0) store.suppliers.splice(supIdx, 1);
 
-      // 3) 保存 & 再描画 & プランUI更新
+      // 保存 & 再描画 & プランUI更新
       DB.save(store);
       renderSuppliers();
       fillFilterSupplier();
       renderProducts();
       refreshHome();
       try { enforcePlan(); applyPlanUI(); } catch (e) {}
-
       closeModal();
     });
   }
 
-  // フッターの配置（Cancel の直前に Delete を移動）
+  // Delete ボタンを Cancel の直前に移動
   if (actions && delBtn && cancelBtn && cancelBtn.parentNode === actions) {
     actions.insertBefore(delBtn, cancelBtn);
   }
 }
-
 function tryAddSupplier(){
   const limit = PlanRules[store.settings.plan||'free'].supplierMax;
   const count = store.suppliers.filter(x=>!x.deleted).length;
