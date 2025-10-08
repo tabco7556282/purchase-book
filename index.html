@@ -2068,6 +2068,34 @@ window.saveBackupStrict = function(){
 };
 window.backupNow = function(){ saveBackupStrict(); };
 </script>
+<script>
+  // === Plan/UI 同期（起動時・復元直後）========================
+  window.syncPlanUI = function () {
+    try {
+      const plan = ((window.store && window.store.settings && window.store.settings.plan) || 'free').toLowerCase();
+      if (typeof window.setPlan === 'function')      window.setPlan(plan);
+      if (typeof window.enforcePlan === 'function')  window.enforcePlan();
+      if (typeof window.applyPlanUI === 'function')  window.applyPlanUI();
+      // console.log('[syncPlanUI] applied:', plan);
+    } catch (e) { /* noop */ }
+  };
+
+  // 1) 起動時（DOM 構築後すぐ）
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', window.syncPlanUI, { once: true });
+  } else {
+    window.syncPlanUI();
+  }
+
+  // 2) 復元直後（#fileRestore の change を既存ハンドラの後で拾う）
+  document.addEventListener('change', (e) => {
+    if (e.target && e.target.id === 'fileRestore') {
+      // 既存の復元処理が store を入れ替えた“直後”に同期させる
+      setTimeout(window.syncPlanUI, 0);
+    }
+  }, true);
+  // ============================================================
+</script>
 <!-- update: 2025-10-01 -->
 </body>
 </html>
