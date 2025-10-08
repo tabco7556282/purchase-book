@@ -2070,15 +2070,24 @@ window.backupNow = function(){ saveBackupStrict(); };
 </script>
 <script>
   // === Plan/UI 同期（起動時・復元直後）========================
-  window.syncPlanUI = function () {
-    try {
-      const plan = ((window.store && window.store.settings && window.store.settings.plan) || 'free').toLowerCase();
-      if (typeof window.setPlan === 'function')      window.setPlan(plan);
-      if (typeof window.enforcePlan === 'function')  window.enforcePlan();
-      if (typeof window.applyPlanUI === 'function')  window.applyPlanUI();
-      // console.log('[syncPlanUI] applied:', plan);
-    } catch (e) { /* noop */ }
-  };
+<script>
+// 既存の syncPlanUI をこの版に置き換え
+window.syncPlanUI = function () {
+  try {
+    const plan = ((window.store && window.store.settings && window.store.settings.plan) || 'free').toLowerCase();
+
+    // ★ 副作用の強い setPlan は呼ばない。静かに反映。
+    if (window.store) window.store.settings = Object.assign({}, window.store.settings, { plan });
+
+    // UI表示だけ必要なら同期（副作用少ない想定）
+    if (typeof window.syncLicenseButtons === 'function') window.syncLicenseButtons();
+
+    // 上限→UIを再適用
+    if (typeof window.enforcePlan === 'function')  window.enforcePlan();
+    if (typeof window.applyPlanUI === 'function')  window.applyPlanUI();
+  } catch (_) {}
+};
+</script>
 
   // 1) 起動時（DOM 構築後すぐ）
   if (document.readyState === 'loading') {
