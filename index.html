@@ -2047,7 +2047,7 @@ function getCleanSnapshot(s){
 // 既存の「バックアップ保存」に適用する（※ここだけ置き換え）
 // 例）元が saveJson(store) なら → saveJson(getCleanSnapshot(store))
 window.saveBackupStrict = function(){
-  const clean = getCleanSnapshot(window.store);
+  const clean = getCleanSnapshot(store);
   const blob  = new Blob([JSON.stringify(clean)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
