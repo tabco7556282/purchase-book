@@ -2049,7 +2049,17 @@ if (sid==null || !supSet.has(sid)) continue; // 未紐づけ/不正リンクは�
 // 例）元が saveJson(store) なら → saveJson(getCleanSnapshot(store))
 window.saveBackupStrict = function(){
   const clean = getCleanSnapshot(store);
-  const blob  = new Blob([JSON.stringify(clean)], {type:'application/json'});
+ const payload = {                                    // ★ ここから
+    tables: {
+      suppliers: clean.suppliers || [],
+      products:  clean.products  || [],
+      entries:   clean.entries   || [],
+      priceHistory: clean.priceHistory || []
+    },
+    settings: clean.settings || { plan:'Free' },
+    version:  clean.version  || 'v0.8.4'
+  };                                                   // ★ ここまで
+  const blob  = new Blob([JSON.stringify(payload)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `backup_strict_${new Date().toISOString().slice(0,10)}.json`;
