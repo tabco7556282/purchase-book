@@ -2096,6 +2096,22 @@ window.backupNow = function(){ saveBackupStrict(); };
   }, true);
   // ============================================================
 </script>
+<script>
+// モーダル(#modalHost)が hidden になった直後に、残留フォーカスを消して UI を再適用
+(function () {
+  const mh = document.getElementById('modalHost');
+  if (!mh || typeof MutationObserver==='undefined') return;
+
+  new MutationObserver(() => {
+    const hidden = mh.classList.contains('hidden') || mh.getAttribute('aria-hidden') === 'true';
+    if (!hidden) return;
+    // 1) 残留フォーカス解除
+    if (document.activeElement) document.activeElement.blur();
+    // 2) プラン/UI再適用（同期）
+    window.syncPlanUI && window.syncPlanUI();
+  }).observe(mh, { attributes:true, attributeFilter:['class','aria-hidden'] });
+})();
+</script>
 <!-- update: 2025-10-01 -->
 </body>
 </html>
