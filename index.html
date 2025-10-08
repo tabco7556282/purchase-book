@@ -2025,7 +2025,8 @@ function getCleanSnapshot(s){
     if (!p || isFlagged(p)) continue;
     if (!p.id) continue;
     if (!p.name || !String(p.name).trim()) continue;
-    if (!supSet.has(p.supplierId)) continue; // 未紐づけ/不正リンクは除外
+   const sid = p.supplierId ?? p.supplier_id ?? null;
+if (sid==null || !supSet.has(sid)) continue; // 未紐づけ/不正リンクは除外
     if (seenProd.has(p.id)) continue;        // 重複idは先勝ち
     products.push(p);
     seenProd.add(p.id);
