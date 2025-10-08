@@ -1518,7 +1518,7 @@ document.addEventListener('click', (e) => {
   }
 }, true);
 
-  document.addEventListener("click",(e)=>{ if(e.target.id==="btnBackupNow") backupNow(); });
+  document.addEventListener("click",(e)=>{ if(e.target.id==="btnBackupNow") saveBackupStrict(); });
 
 // Restore: クリック → 毎回クリアして同一ファイルでも change が発火
 document.addEventListener("click",(e)=>{
@@ -1999,6 +1999,63 @@ window.addEventListener('DOMContentLoaded', () => {
   });
   hide('#eulaModal'); hide('#modalEula'); hide('.eula-modal'); hide('[data-role="eula-modal"]');
 });
+</script>
+<script>
+// --- Strictバックアップ（表示対象と同じ集合だけ保存） ---
+// 非表示/削除/無効フラグの共通判定
+function isFlagged(o){
+  return !!(o && (
+    o.deleted === true || o.isDeleted === true || o._deleted === true ||
+    o.hidden  === true || o.archived === true ||
+    o.active  === false|| o.enabled  === false|| o.visible  === false
+  ));
+}
+
+// クリーンスナップショットを作る（UIで見えるデータだけ）
+function getCleanSnapshot(s){
+  s = s || {};
+  // 1) 仕入先：フラグ無＆idあり
+  const suppliers = (s.suppliers||[]).filter(x => !isFlagged(x) && x && x.id);
+  const supSet = new Set(suppliers.map(x => x.id));
+
+  // 2) 商品：フラグ無＆id/名前あり＆仕入先に実在リンク＆id重複排除
+  const seenProd = new Set();
+  const products = [];
+  for (const p of (s.products||[])) {
+    if (!p || isFlagged(p)) continue;
+    if (!p.id) continue;
+    if (!p.name || !String(p.name).trim()) continue;
+    if (!supSet.has(p.supplierId)) continue; // 未紐づけ/不正リンクは除外
+    if (seenProd.has(p.id)) continue;        // 重複idは先勝ち
+    products.push(p);
+    seenProd.add(p.id);
+  }
+  const prodSet = new Set(products.map(p => p.id));
+
+  // 3) 履歴：フラグ無＆参照整合（product/supplierが存在する場合のみ許可）
+  const history = (s.history||[]).filter(h => {
+    if (!h || isFlagged(h)) return false;
+    const pidOk = (h.productId  == null) || prodSet.has(h.productId);
+    const sidOk = (h.supplierId == null) || supSet.has(h.supplierId);
+    return pidOk && sidOk;
+  });
+
+  // 4) そのほか（設定類）はそのまま持ち越す
+  return { ...s, suppliers, products, history };
+}
+
+// 既存の「バックアップ保存」に適用する（※ここだけ置き換え）
+// 例）元が saveJson(store) なら → saveJson(getCleanSnapshot(store))
+window.saveBackupStrict = function(){
+  const clean = getCleanSnapshot(window.store);
+  const blob  = new Blob([JSON.stringify(clean)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `backup_strict_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(a.href);
+};
+window.backupNow = function(){ saveBackupStrict(); };
 </script>
 <!-- update: 2025-10-01 -->
 </body>
