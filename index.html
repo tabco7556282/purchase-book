@@ -1564,12 +1564,13 @@ document.addEventListener("change",(e)=>{
         historyShowBoth:true, showTaxFlags:false,
         recentProducts:store.settings.recentProducts||[], hisRangeDays:30
       }, data.tables.settings||{});
-      // ★復元直後にプラン/UIを同期（法則1,2,3対策）
-store.settings.plan = String(store?.settings?.plan || 'free').toLowerCase();
-enforcePlan?.();    // 上限ロック再計算
-applyPlanUI?.();    // 追加ボタンなどUIを再適用
-setTimeout(()=>{ enforcePlan?.(); applyPlanUI?.(); }, 0);
-DB.save(store);
+　　　DB.save(store);
+　　　const _reapplyPlanUI = () => {
+  store.settings.plan = String(store?.settings?.plan || 'free').toLowerCase();
+  enforcePlan?.();
+  applyPlanUI?.();
+};
+requestAnimationFrame(() => requestAnimationFrame(_reapplyPlanUI));
 
       alert("復元しました");
       enforcePlan();
