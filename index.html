@@ -1465,6 +1465,23 @@ window.isLocked = function(entity, item, index){
   const key = (id != null) ? id : index;
   return locks.includes(key);         // trueなら“編集不可”
 };
+// === create可否判定（プラン上限）adapter ===
+// ここからを applyPlanUI の直前に置く
+function canCreate(entity) {
+  const plan = String(store?.settings?.plan || 'free').toLowerCase();
+
+  // ルール表はどれでも拾う / 無ければ無制限
+  const LIM   = window.PLAN_LIMITS || window.PlanRules || window.planRules || {};
+  const rules = LIM[plan] || LIM.free || { suppliers: Infinity, products: Infinity, entries: Infinity };
+
+  // 有効データだけ数える（削除・非表示は除外）
+  const list  = Array.isArray(store?.[entity]) ? store[entity] : [];
+  const count = list.filter(x => !x?.deleted && !x?._deleted && x?.visible !== false).length;
+
+  const limit = Number.isFinite(rules[entity]) ? rules[entity] : Infinity;
+  return count < limit;
+}
+window.canCreate = canCreate;  // window.canCreate() 呼び出しにも対応
 // ---- Plan UI wiring (Addボタンだけ最小で無効化) ----
 window.applyPlanUI = function(){
   const btns = [
