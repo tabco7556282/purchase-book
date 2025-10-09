@@ -2068,59 +2068,6 @@ window.saveBackupStrict = function(){
 };
 window.backupNow = function(){ saveBackupStrict(); };
 </script>
-<script>
-  // === Plan/UI 同期（起動時・復元直後）========================
-<script>
-// 既存の syncPlanUI をこの版に置き換え
-window.syncPlanUI = function () {
-  try {
-    const plan = ((window.store && window.store.settings && window.store.settings.plan) || 'free').toLowerCase();
-
-    // ★ 副作用の強い setPlan は呼ばない。静かに反映。
-    if (window.store) window.store.settings = Object.assign({}, window.store.settings, { plan });
-
-    // UI表示だけ必要なら同期（副作用少ない想定）
-    if (typeof window.syncLicenseButtons === 'function') window.syncLicenseButtons();
-
-    // 上限→UIを再適用
-    if (typeof window.enforcePlan === 'function')  window.enforcePlan();
-    if (typeof window.applyPlanUI === 'function')  window.applyPlanUI();
-  } catch (_) {}
-};
-</script>
-
-  // 1) 起動時（DOM 構築後すぐ）
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', window.syncPlanUI, { once: true });
-  } else {
-    window.syncPlanUI();
-  }
-
-  // 2) 復元直後（#fileRestore の change を既存ハンドラの後で拾う）
-  document.addEventListener('change', (e) => {
-    if (e.target && e.target.id === 'fileRestore') {
-      // 既存の復元処理が store を入れ替えた“直後”に同期させる
-      setTimeout(window.syncPlanUI, 0);
-    }
-  }, true);
-  // ============================================================
-</script>
-<script>
-// モーダル(#modalHost)が hidden になった直後に、残留フォーカスを消して UI を再適用
-(function () {
-  const mh = document.getElementById('modalHost');
-  if (!mh || typeof MutationObserver==='undefined') return;
-
-  new MutationObserver(() => {
-    const hidden = mh.classList.contains('hidden') || mh.getAttribute('aria-hidden') === 'true';
-    if (!hidden) return;
-    // 1) 残留フォーカス解除
-    if (document.activeElement) document.activeElement.blur();
-    // 2) プラン/UI再適用（同期）
-    window.syncPlanUI && window.syncPlanUI();
-  }).observe(mh, { attributes:true, attributeFilter:['class','aria-hidden'] });
-})();
-</script>
 <!-- update: 2025-10-01 -->
 </body>
 </html>
