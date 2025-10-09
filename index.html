@@ -1565,13 +1565,29 @@ document.addEventListener("change",(e)=>{
         recentProducts:store.settings.recentProducts||[], hisRangeDays:30
       }, data.tables.settings||{});
 　　　DB.save(store);
-　　　const _reapplyPlanUI = () => {
+　　　// ★復元直後にプラン/UIを強制同期（ボタンを直接書き換え）
+const _reapplyPlanUI = () => {
+  // plan を安全に小文字化
   store.settings.plan = String(store?.settings?.plan || 'free').toLowerCase();
-  enforcePlan?.();
-  applyPlanUI?.();
-};
-requestAnimationFrame(() => requestAnimationFrame(_reapplyPlanUI));
 
+  // まずロック再計算
+  enforcePlan?.();
+
+  // ボタンを“直接”更新（存在する時だけ当てる）
+  const patch = (id, entity, label) => {
+    const el = document.getElementById(id);
+    if (!el) return;                          // ← まだ無ければ何もしない
+    const ok = canCreate?.(entity) ?? true;   // ← 生成可否
+    el.disabled = !ok;                        // ← 実動作
+    el.classList.toggle('is-disabled', !ok);  // ← 見た目
+    el.title = ok ? '' : `この端末のプランでは「${label}」の上限に達しています`;
+  };
+  patch('btnAddSupplier', 'suppliers', '仕入先の追加');
+  patch('btnAddProduct',  'products',  '商品の追加');
+};
+
+// DOM差し替え完了を待ってから一度だけ実行
+requestAnimationFrame(() => requestAnimationFrame(_reapplyPlanUI));
       alert("復元しました");
       enforcePlan();
       applyPlanUI();
