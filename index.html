@@ -1568,6 +1568,7 @@ document.addEventListener("change",(e)=>{
 store.settings.plan = String(store?.settings?.plan || 'free').toLowerCase();
 enforcePlan?.();    // 上限ロック再計算
 applyPlanUI?.();    // 追加ボタンなどUIを再適用
+setTimeout(()=>{ enforcePlan?.(); applyPlanUI?.(); }, 0);
 DB.save(store);
 
       alert("復元しました");
