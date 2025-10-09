@@ -1565,29 +1565,27 @@ document.addEventListener("change",(e)=>{
         recentProducts:store.settings.recentProducts||[], hisRangeDays:30
       }, data.tables.settings||{});
 　　　DB.save(store);
-　　　// ★復元直後にプラン/UIを強制同期（ボタンを直接書き換え）
-const _reapplyPlanUI = () => {
-  // plan を安全に小文字化
-  store.settings.plan = String(store?.settings?.plan || 'free').toLowerCase();
+// ① plan を安全に小文字化
+store.settings.plan = String(store?.settings?.plan || 'free').toLowerCase();
 
-  // まずロック再計算
-  enforcePlan?.();
+// ② ボタンが実体化したタイミングで一度だけ UI を再適用
+const _apply = () => { try { enforcePlan?.(); applyPlanUI?.(); } catch(_){} };
 
-  // ボタンを“直接”更新（存在する時だけ当てる）
-  const patch = (id, entity, label) => {
-    const el = document.getElementById(id);
-    if (!el) return;                          // ← まだ無ければ何もしない
-    const ok = canCreate?.(entity) ?? true;   // ← 生成可否
-    el.disabled = !ok;                        // ← 実動作
-    el.classList.toggle('is-disabled', !ok);  // ← 見た目
-    el.title = ok ? '' : `この端末のプランでは「${label}」の上限に達しています`;
-  };
-  patch('btnAddSupplier', 'suppliers', '仕入先の追加');
-  patch('btnAddProduct',  'products',  '商品の追加');
+const _tryNow = () => {
+  const a = document.getElementById('btnAddSupplier');
+  const b = document.getElementById('btnAddProduct');
+  if (a && b) { _apply(); _obs.disconnect(); _done = true; }
 };
 
-// DOM差し替え完了を待ってから一度だけ実行
-requestAnimationFrame(() => requestAnimationFrame(_reapplyPlanUI));
+let _done = false;
+const _obs = new MutationObserver(() => { if (!_done) _tryNow(); });
+_obs.observe(document.body, { childList: true, subtree: true });
+
+// ③ 既にボタンがある場合にも即試行
+_tryNow();
+
+// ④ 念のためタイムアウトで監視を終了（保険）
+setTimeout(() => { if (!_done) _obs.disconnect(); }, 3000);
       alert("復元しました");
       enforcePlan();
       applyPlanUI();
