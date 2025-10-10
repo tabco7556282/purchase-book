@@ -1645,6 +1645,14 @@ document.addEventListener("click",(e)=>{
 
     try {
       applyNormalized(store, normalized.data);
+      // 追加（参照を保ったまま中身を最新化）
+const fresh = DB.load();
+Object.keys(store).forEach(k => delete store[k]);
+Object.assign(store, fresh);
+
+// UI更新（存在チェックつき）
+if (typeof renderSuppliers==='function') renderSuppliers();
+if (typeof renderProducts==='function')  renderProducts();
       try { DB.save(store); } catch (err) { console.error('[DB] save error after restore', err); }
       store = DB.load(); // メモリの store を最新化
     } catch (error) {
