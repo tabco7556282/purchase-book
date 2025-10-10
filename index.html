@@ -1567,67 +1567,85 @@ document.addEventListener("click",(e)=>{
 });
 
 // Restore: 読み込み＋適用（全ての終了経路で input をリセット）
-  document.addEventListener("change",(e)=>{
+document.addEventListener("change",(e)=>{
   if(e.target.id!=="fileRestore") return;
 
   const input = e.target;
   const f = input.files && input.files[0];
   if(!f){ input.value=''; return; }
 
+  if (input.dataset.restoring === '1') {
+    console.warn('[restore] request ignored because another restore is in progress');
+    input.value = '';
+    return;
+  }
+
   if(!confirm("バックアップから復元します。現在のデータは置き換えられます。続行しますか？")){
     input.value='';   // ←キャンセル時もクリア
     return;
   }
 
+  input.dataset.restoring = '1';
+
   const r = new FileReader();
 
-  const resetInput = () => { input.value = ''; };
   const utils = window.RestoreUtils || {};
   const normalize = utils.normalizeBackupPayload || (() => ({ ok:false }));
   const applyNormalized = utils.applyBackupToStore || (() => { throw new Error('restore utils missing'); });
 
-  let settled = false;
+  let outcome = null; // 'success' | 'error'
 
-  const failRestore = (logMessage, err) => {
-    if (settled) return;
-    settled = true;
-    if (err) console.error(logMessage, err);
-    alert("復元に失敗しました。ファイルをご確認ください。");
-    resetInput();
+  const resetInput = () => {
+    delete input.dataset.restoring;
+    input.value = '';
+  };
+
+  const finish = (status, meta) => {
+    if (outcome) return;
+    outcome = status;
+
+    if (status === 'error') {
+      const { logMessage, error } = meta || {};
+      if (logMessage || error) {
+        console.error(logMessage || 'Restore failed', error);
+      }
+      alert("復元に失敗しました。ファイルをご確認ください。");
+    } else {
+      alert("復元しました");
+    }
+
+    resetInput();  // ←毎回必ずクリア（Android/PC 連続選択・無反応対策）
   };
 
   r.onerror = (evt) => {
     const error = evt && evt.target && evt.target.error ? evt.target.error : evt;
-    failRestore("Failed to read backup file", error);
+    finish('error', { logMessage: 'Failed to read backup file', error });
   };
 
   r.onload = () => {
-    if (settled) return;
+    if (outcome) return;
 
     let data;
     try {
       data = JSON.parse(String(r.result || ""));
-    } catch (err) {
-      failRestore("Failed to parse backup payload", err);
+    } catch (error) {
+      finish('error', { logMessage: 'Failed to parse backup payload', error });
       return;
     }
 
     const normalized = normalize(data);
-    if (!normalized || !normalized.ok) {
-      failRestore("Invalid backup payload", normalized && normalized.reason);
+    if (!normalized || normalized.ok === false) {
+      finish('error', { logMessage: 'Invalid backup payload', error: normalized && normalized.reason });
       return;
     }
 
     try {
       applyNormalized(store, normalized.data);
       try { DB.save(store); } catch (err) { console.error('[DB] save error after restore', err); }
-    } catch (err) {
-      failRestore("Failed to apply backup payload", err);
+    } catch (error) {
+      finish('error', { logMessage: 'Failed to apply backup payload', error });
       return;
     }
-
-    settled = true;
-    alert("復元しました");
 
     try {
       enforcePlan();
@@ -1640,10 +1658,14 @@ document.addEventListener("click",(e)=>{
       console.error("Post-restore refresh failed", err);
     }
 
-    resetInput();  // ←毎回必ずクリア（Android/PC 連続選択・無反応対策）
+    finish('success');
   };
 
-  r.readAsText(f);
+  try {
+    r.readAsText(f);
+  } catch (error) {
+    finish('error', { logMessage: 'Failed to initiate file read', error });
+  }
 });
 
 function refreshFiscalLabel(){
@@ -2091,24 +2113,29 @@ function getCleanSnapshot(s){
     if (!p || isFlagged(p)) continue;
     if (!p.id) continue;
     if (!p.name || !String(p.name).trim()) continue;
-   const sid = p.supplierId ?? p.supplier_id ?? null;
-if (sid==null || !supSet.has(sid)) continue; // 未紐づけ/不正リンクは除外
+    const sid = p.supplierId ?? p.supplier_id ?? null;
+    if (sid == null || !supSet.has(sid)) continue; // 未紐づけ/不正リンクは除外
     if (seenProd.has(p.id)) continue;        // 重複idは先勝ち
     products.push(p);
     seenProd.add(p.id);
   }
   const prodSet = new Set(products.map(p => p.id));
 
-  // 3) 履歴：フラグ無＆参照整合（product/supplierが存在する場合のみ許可）
-  const history = (s.history||[]).filter(h => {
-    if (!h || isFlagged(h)) return false;
-    const pidOk = (h.productId  == null) || prodSet.has(h.productId);
-    const sidOk = (h.supplierId == null) || supSet.has(h.supplierId);
+  // 3) 明細：フラグ無＆参照整合（product/supplierが存在する場合のみ許可）
+  const entrySource = Array.isArray(s.entries)
+    ? s.entries
+    : (Array.isArray(s.history) ? s.history : []);
+  const entries = entrySource.filter(entry => {
+    if (!entry || isFlagged(entry)) return false;
+    const pid = entry.product_id ?? entry.productId ?? null;
+    const sid = entry.supplier_id ?? entry.supplierId ?? null;
+    const pidOk = (pid == null) || prodSet.has(pid);
+    const sidOk = (sid == null) || supSet.has(sid);
     return pidOk && sidOk;
   });
 
   // 4) そのほか（設定類）はそのまま持ち越す
-  return { ...s, suppliers, products, history };
+  return { ...s, suppliers, products, entries, history: entries };
 }
 
 // 既存の「バックアップ保存」に適用する（※ここだけ置き換え）
