@@ -1566,10 +1566,13 @@ document.addEventListener("click",(e)=>{
   input.click();
 });
 
-// Restore: 読み込み＋適用（全ての終了経路で input をリセット）
-document.addEventListener("change",(e)=>{
+ // Restore: 読み込み＋適用（全ての終了経路で input をリセット）
+　document.addEventListener("change",(e)=>{
   if(e.target.id!=="fileRestore") return;
-
+ // ここで他の重複ハンドラを止める
+　 e.stopImmediatePropagation();
+  
+  }, true); // ← 第3引数 true（capture）
   const input = e.target;
   const f = input.files && input.files[0];
   if(!f){ input.value=''; return; }
