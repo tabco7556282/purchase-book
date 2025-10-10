@@ -1645,6 +1645,7 @@ document.addEventListener("click",(e)=>{
     try {
       applyNormalized(store, normalized.data);
       try { DB.save(store); } catch (err) { console.error('[DB] save error after restore', err); }
+      store = DB.load(); // メモリの store を最新化
     } catch (error) {
       finish('error', { logMessage: 'Failed to apply backup payload', error });
       return;
