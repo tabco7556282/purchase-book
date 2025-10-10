@@ -3,7 +3,7 @@ const CACHE = 'tlp-cache-v0.8.4';
 const ASSETS = [
   
   'index.html',
-  'manifest.webmanifest?v=0.8.1',
+  'manifest.webmanifest?v=0.8.4',
   'icons/icon-192-v223i.png',
   'icons/icon-512-v223i.png',
   'icons/icon-180-v223i.png',
