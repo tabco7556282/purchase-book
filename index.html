@@ -1569,6 +1569,7 @@ document.addEventListener("click",(e)=>{
  // Restore: 読み込み＋適用（全ての終了経路で input をリセット）
 　document.addEventListener("change",(e)=>{
   if(e.target.id!=="fileRestore") return;
+   console.count('[restore change]');
  // ここで他の重複ハンドラを止める
 　 e.stopImmediatePropagation();
   e.stopPropagation();
