@@ -121,6 +121,7 @@ textarea{min-height:84px;resize:vertical}
   #eulaLinks a{color:#9ad5ff;text-decoration:underline}
   body.eula-locked{overflow:hidden}
 </style>
+<script src="./restore-utils.js"></script>
 </head>
 <body>
 <header class="app-header">
@@ -1524,7 +1525,7 @@ document.addEventListener("click",(e)=>{
 });
 
 // Restore: 読み込み＋適用（全ての終了経路で input をリセット）
-document.addEventListener("change",(e)=>{
+  document.addEventListener("change",(e)=>{
   if(e.target.id!=="fileRestore") return;
 
   const input = e.target;
@@ -1538,49 +1539,52 @@ document.addEventListener("change",(e)=>{
 
   const r = new FileReader();
 
-  r.onerror = () => {
-    alert("バックアップの読み込みに失敗しました（I/Oエラー）");
-    input.value = '';
+  const resetInput = () => { input.value = ''; };
+  const utils = window.RestoreUtils || {};
+  const normalize = utils.normalizeBackupPayload || (() => ({ ok:false }));
+  const applyNormalized = utils.applyBackupToStore || (() => { throw new Error('restore utils missing'); });
+
+  let settled = false;
+
+  const failRestore = (logMessage, err) => {
+    if (settled) return;
+    settled = true;
+    if (err) console.error(logMessage, err);
+    alert("復元に失敗しました。ファイルをご確認ください。");
+    resetInput();
+  };
+
+  r.onerror = (evt) => {
+    const error = evt && evt.target && evt.target.error ? evt.target.error : evt;
+    failRestore("Failed to read backup file", error);
   };
 
   r.onload = () => {
-    const resetInput = () => { input.value = ''; };
+    if (settled) return;
 
     let data;
     try {
       data = JSON.parse(String(r.result || ""));
     } catch (err) {
-      console.error("Failed to parse backup payload", err);
-      alert("復元に失敗しました。ファイルをご確認ください。");
-      resetInput();
+      failRestore("Failed to parse backup payload", err);
       return;
     }
 
-    if (!data || !data.tables) {
-      alert("復元に失敗しました。ファイルをご確認ください。");
-      resetInput();
+    const normalized = normalize(data);
+    if (!normalized || !normalized.ok) {
+      failRestore("Invalid backup payload", normalized && normalized.reason);
       return;
     }
 
     try {
-      // 既存の適用処理（そのまま）
-      store.suppliers = data.tables.suppliers || [];
-      store.products  = data.tables.products  || [];
-      store.entries   = data.tables.entries   || [];
-      store.priceHistory = data.tables.priceHistory || {};
-      store.settings = Object.assign({
-        theme:store.settings.theme, plan:store.settings.plan, autoClear:true,
-        historyShowBoth:true, showTaxFlags:false,
-        recentProducts:store.settings.recentProducts||[], hisRangeDays:30
-      }, data.tables.settings||{});
-      DB.save(store);
+      applyNormalized(store, normalized.data);
+      try { DB.save(store); } catch (err) { console.error('[DB] save error after restore', err); }
     } catch (err) {
-      console.error("Failed to apply backup payload", err);
-      alert("復元に失敗しました。ファイルをご確認ください。");
-      resetInput();
+      failRestore("Failed to apply backup payload", err);
       return;
     }
 
+    settled = true;
     alert("復元しました");
 
     try {
@@ -2066,16 +2070,16 @@ if (sid==null || !supSet.has(sid)) continue; // 未紐づけ/不正リンクは�
 // 例）元が saveJson(store) なら → saveJson(getCleanSnapshot(store))
 window.saveBackupStrict = function(){
   const clean = getCleanSnapshot(store);
- const payload = {                                    // ★ ここから
+  const payload = {
     tables: {
       suppliers: clean.suppliers || [],
       products:  clean.products  || [],
       entries:   clean.entries   || [],
-      priceHistory: clean.priceHistory || []
+      priceHistory: clean.priceHistory || {},
+      settings: clean.settings || { plan: 'free' }
     },
-    settings: clean.settings || { plan:'Free' },
     version:  clean.version  || 'v0.8.4'
-  };                                                   // ★ ここまで
+  };
   const blob  = new Blob([JSON.stringify(payload)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
