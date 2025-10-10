@@ -122,6 +122,7 @@ textarea{min-height:84px;resize:vertical}
   body.eula-locked{overflow:hidden}
 </style>
 <script src="./restore-utils.js"></script>
+<script src="./plan-utils.js"></script>
 </head>
 <body>
 <header class="app-header">
@@ -1333,6 +1334,27 @@ function getPlan(){
 
 function resolvePlanCaps(){
   const defaults = { suppliers: Infinity, products: Infinity, entries: Infinity };
+
+  if (window.PlanUtils && typeof window.PlanUtils.resolvePlanContext === 'function') {
+    const ctx = window.PlanUtils.resolvePlanContext(store, window.PLAN_LIMITS, 'free');
+    const pick = (entity) => {
+      if (window.PlanUtils && typeof window.PlanUtils.getPlanLimit === 'function') {
+        const limit = window.PlanUtils.getPlanLimit(ctx, entity, { fallbackInfinity: true });
+        return Number.isFinite(limit) ? limit : Infinity;
+      }
+      const table = window.PLAN_LIMITS;
+      const plan = getPlan();
+      const rec = (table && table[plan]) || (table && table.free) || defaults;
+      const raw = rec ? rec[entity] : undefined;
+      return Number.isFinite(raw) ? raw : Infinity;
+    };
+    return {
+      suppliers: pick('suppliers'),
+      products:  pick('products'),
+      entries:   pick('entries'),
+    };
+  }
+
   const plan = getPlan();
   const table = window.PLAN_LIMITS;
   if (!table || typeof table !== 'object') return defaults;
@@ -1345,12 +1367,15 @@ function resolvePlanCaps(){
 }
 
 function collectPlanLocks(arr, limit){
+  if (window.PlanUtils && typeof window.PlanUtils.computeLockList === 'function') {
+    return window.PlanUtils.computeLockList(arr, limit);
+  }
   if (!Array.isArray(arr)) return [];
   if (!Number.isFinite(limit)) return [];
   const locks = [];
   let seen = 0;
   arr.forEach((item, index) => {
-    if (item && item.deleted) return;
+    if (isFlagged(item)) return;
     seen += 1;
     if (seen > limit) {
       const id = item && (item.id ?? item.uuid ?? item.code);
@@ -1361,13 +1386,17 @@ function collectPlanLocks(arr, limit){
 }
 
 function enforcePlan(){
-  const lim = resolvePlanCaps();
+  if (window.PlanUtils && typeof window.PlanUtils.computePlanLocks === 'function') {
+    store.planLocks = window.PlanUtils.computePlanLocks(store, window.PLAN_LIMITS, 'free');
+  } else {
+    const lim = resolvePlanCaps();
 
-  store.planLocks = {
-    suppliers: collectPlanLocks(store.suppliers, lim.suppliers),
-    products:  collectPlanLocks(store.products,  lim.products),
-    entries:   collectPlanLocks(store.entries,   lim.entries),
-  };
+    store.planLocks = {
+      suppliers: collectPlanLocks(store.suppliers, lim.suppliers),
+      products:  collectPlanLocks(store.products,  lim.products),
+      entries:   collectPlanLocks(store.entries,   lim.entries),
+    };
+  }
 
   try { DB.save(store); } catch(_) {}
 }
@@ -1422,16 +1451,25 @@ const resolveEntity = (dlg) => {
     const entity = resolveEntity(dlg);
 
     const caps   = resolvePlanCaps();
-    const count  = (window.store?.[entity]?.length) ?? 0;
+    const ctx    = window.PlanUtils?.resolvePlanContext?.(window.store, window.PLAN_LIMITS, 'free');
+    const limit  = window.PlanUtils?.getPlanLimit
+      ? window.PlanUtils.getPlanLimit(ctx, entity, { fallbackInfinity: true })
+      : (caps[entity] ?? Infinity);
+    const count  = window.PlanUtils?.getActiveCount
+      ? window.PlanUtils.getActiveCount(window.store?.[entity])
+      : ((window.store?.[entity]?.length) ?? 0);
+    const canCreateNow = window.PlanUtils?.canCreate
+      ? window.PlanUtils.canCreate(window.store, entity, window.PLAN_LIMITS, 'free')
+      : (count < limit);
 
     const idx    = getEditingIndex(dlg);
     const isNew  = (idx < 0); // -1 などは新規
 
-    if (isNew && count >= (caps[entity] ?? Infinity)) {
+    if (isNew && !canCreateNow) {
       e.preventDefault();
       e.stopPropagation();
       alert('この端末のプラン上限です：' +
-            `${entity} は ${caps[entity]} 件まで（現在 ${count} 件）`);
+            `${entity} は ${limit === Infinity ? '無制限' : limit} 件まで（現在 ${count} 件）`);
       return;
     }
     // 通過＝保存許可（既存編集 or 余裕あり）
@@ -1444,9 +1482,13 @@ window.enforcePlan = enforcePlan;
 
 // entity: "suppliers" | "products" | "entries"
 window.canCreate = function(entity){
+  if (window.PlanUtils && typeof window.PlanUtils.canCreate === 'function') {
+    return window.PlanUtils.canCreate(store, entity, window.PLAN_LIMITS, 'free');
+  }
+
   const lim = resolvePlanCaps();
   const arr  = (store && Array.isArray(store[entity])) ? store[entity] : [];
-  const active = arr.reduce((n, item) => (item && item.deleted) ? n : n + 1, 0);
+  const active = arr.reduce((n, item) => isFlagged(item) ? n : n + 1, 0);
   const limit = lim[entity];
   if (!Number.isFinite(limit)) return true;
   return active < limit;               // 上限未満なら新規追加OK
@@ -2025,6 +2067,9 @@ window.addEventListener('DOMContentLoaded', () => {
 // --- Strictバックアップ（表示対象と同じ集合だけ保存） ---
 // 非表示/削除/無効フラグの共通判定
 function isFlagged(o){
+  if (window.PlanUtils && typeof window.PlanUtils.isSoftDeleted === 'function') {
+    return window.PlanUtils.isSoftDeleted(o);
+  }
   return !!(o && (
     o.deleted === true || o.isDeleted === true || o._deleted === true ||
     o.hidden  === true || o.archived === true ||
