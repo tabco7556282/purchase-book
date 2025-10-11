@@ -1550,43 +1550,61 @@ document.addEventListener("change",(e)=>{
   };
 
   r.onload = () => {
-    try{
-      const data = JSON.parse(String(r.result||""));
-      if(!data || !data.tables) throw 0;
-
-      // 既存の適用処理（そのまま）
-      store.suppliers = data.tables.suppliers || [];
-      store.products  = data.tables.products  || [];
-      store.entries   = data.tables.entries   || [];
-      store.priceHistory = data.tables.priceHistory || {};
-      store.settings = Object.assign({
-        theme:store.settings.theme, plan:store.settings.plan, autoClear:true,
-        historyShowBoth:true, showTaxFlags:false,
-        recentProducts:store.settings.recentProducts||[], hisRangeDays:30
-      }, data.tables.settings||{});
-      DB.save(store);
-　　　const probe=(label,fn)=>{ try{ fn(); console.log('RESTORE OK:',label); } catch(e){ console.error('RESTORE NG:',label,e); throw e; } };
-
-      alert("復元しました");
-probe('enforcePlan', ()=>enforcePlan());
-probe('applyPlanUI', ()=>applyPlanUI());
-probe('applyTheme', ()=>applyTheme());
-probe('refreshHome', ()=>refreshHome());
-probe('initInputPage', ()=>initInputPage());
-probe('renderSuppliers', ()=>renderSuppliers());
-probe('fillFilterSupplier', ()=>fillFilterSupplier());
-probe('renderProducts', ()=>renderProducts());
-probe('renderHistory', ()=>renderHistory());
-probe('renderTodayList', ()=>renderTodayList());
-probe('navigate(home)', ()=>navigate("home"));
-probe('enableSelectOnFocus', ()=>enableSelectOnFocus());
-
-    }catch{
-      alert("復元に失敗しました。ファイルをご確認ください。");
-    }finally{
-      input.value = '';  // ←毎回必ずクリア（Android/PC 連続選択・無反応対策）
+  // ステップごとの失敗箇所を可視化する小さなラッパー
+  const probe = (label, fn) => {
+    try { fn(); console.log("RESTORE OK:", label); }
+    catch (e) {
+      console.error("RESTORE NG:", label, e);
+      alert(`復元中エラー：${label}\n→ ${e?.message || e}`);
+      throw e; // ここで止めて “最初に落ちた場所” を確定
     }
   };
+
+  try {
+    const raw = String(r.result || "");
+    const data = JSON.parse(raw);
+
+    // 旧バックアップ形式も拾えるようにメッセージ付きで検証
+    const tables = data?.tables || data;
+    if (!tables) throw new Error("backup schema: tables が見つかりません");
+
+    // データ適用（既存ロジックそのまま＋フォールバック最小限）
+    store.suppliers = tables.suppliers || [];
+    store.products  = tables.products  || tables.items || [];
+    store.entries   = tables.entries   || [];
+    store.priceHistory = tables.priceHistory || {};
+    store.settings = Object.assign({
+      theme: store.settings.theme,
+      plan:  store.settings.plan,
+      autoClear: true,
+      historyShowBoth: true,
+      showTaxFlags: false,
+      recentProducts: store.settings.recentProducts || [],
+      hisRangeDays: 30
+    }, tables.settings || {});
+
+    DB.save(store);
+    alert("復元しました");
+
+    // ここからUI更新を1ステップずつ検証
+    probe("applyTheme",        () => applyTheme());
+    probe("refreshHome",       () => refreshHome());
+    probe("initInputPage",     () => initInputPage());
+    probe("renderSuppliers",   () => renderSuppliers());
+    probe("fillFilterSupplier",() => fillFilterSupplier());
+    probe("renderProducts",    () => renderProducts());
+    probe("renderHistory",     () => renderHistory());
+    probe("renderTodayList",   () => renderTodayList());
+    probe("navigate(home)",    () => navigate("home"));
+    probe("enableSelectOnFocus", () => enableSelectOnFocus());
+
+  } catch (err) {
+    console.error("RESTORE FATAL:", err);
+    alert("復元に失敗しました：" + (err?.message || err));
+  } finally {
+    input.value = ''; // 連続選択対策（元の通り）
+  }
+};
 
   r.readAsText(f);
 });
