@@ -1565,14 +1565,22 @@ document.addEventListener("change",(e)=>{
         recentProducts:store.settings.recentProducts||[], hisRangeDays:30
       }, data.tables.settings||{});
       DB.save(store);
+　　　const probe=(label,fn)=>{ try{ fn(); console.log('RESTORE OK:',label); } catch(e){ console.error('RESTORE NG:',label,e); throw e; } };
 
       alert("復元しました");
-      enforcePlan();
-      applyPlanUI();
-      applyTheme(); refreshHome(); initInputPage();
-      renderSuppliers(); fillFilterSupplier(); renderProducts();
-      renderHistory(); renderTodayList(); navigate("home");
-      enableSelectOnFocus();
+probe('enforcePlan', ()=>enforcePlan());
+probe('applyPlanUI', ()=>applyPlanUI());
+probe('applyTheme', ()=>applyTheme());
+probe('refreshHome', ()=>refreshHome());
+probe('initInputPage', ()=>initInputPage());
+probe('renderSuppliers', ()=>renderSuppliers());
+probe('fillFilterSupplier', ()=>fillFilterSupplier());
+probe('renderProducts', ()=>renderProducts());
+probe('renderHistory', ()=>renderHistory());
+probe('renderTodayList', ()=>renderTodayList());
+probe('navigate(home)', ()=>navigate("home"));
+probe('enableSelectOnFocus', ()=>enableSelectOnFocus());
+
     }catch{
       alert("復元に失敗しました。ファイルをご確認ください。");
     }finally{
