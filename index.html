@@ -424,10 +424,18 @@ const PlanRules = {
   middle: { exportMax: 'fiscal', supplierMax: 15, productTotalMax: 200, productPerSupplierMax: 15,  ads: false },
   pro:    { exportMax: 'all',    supplierMax: Infinity, productTotalMax: Infinity, productPerSupplierMax: Infinity, ads: false }
 };
+
+function currentPlanKey(rawPlan){
+  const key = rawPlan ?? (store?.settings?.plan);
+  return PlanRules[key] ? key : 'free';
+}
+
+function currentPlanRules(rawPlan){
+  return PlanRules[currentPlanKey(rawPlan)];
+}
 const EXPORT_KEYS = ['month','fiscal','all'];
 function clampExportKey(req, plan){
-  const p = (plan ?? PLAN());
-  const rules = PlanRules[p] || PlanRules.free;
+  const rules = currentPlanRules(plan ?? PLAN());
   const key = EXPORT_KEYS.includes(req) ? req : 'month';
   if (rules.exportMax === 'month') return 'month';
   if (rules.exportMax === 'fiscal' && key === 'all') return 'fiscal';
@@ -937,7 +945,7 @@ function openSupplierModal(s){
   const onOK=()=>{
     const name=$("#mSupName").value.trim(); if(!name){ alert("社名を入力してください"); return; }
     if(!s){
-      const limit = PlanRules[store.settings.plan||'free'].supplierMax;
+      const limit = currentPlanRules(store.settings.plan).supplierMax;
       const count = store.suppliers.filter(x=>!x.deleted).length;
       if(count >= limit){ alert(`このプランでは仕入れ先は ${limit} 社までです。Plans からアップグレードをご検討ください。`); return; }
     }
@@ -999,7 +1007,7 @@ function openSupplierModal(s){
 }
 } 
 function tryAddSupplier(){
-  const limit = PlanRules[store.settings.plan||'free'].supplierMax;
+  const limit = currentPlanRules(store.settings.plan).supplierMax;
   const count = store.suppliers.filter(x=>!x.deleted).length;
   if(count >= limit){ alert(`このプランでは仕入れ先は ${limit} 社までです。Plans からアップグレードをご検討ください。`); return; }
   openSupplierModal(null);
@@ -1035,7 +1043,7 @@ function openProductModal(p,defaultSid){
     }
     // プラン制限チェック
     if(!p){
-      const rules = PlanRules[store.settings.plan||'free'];
+      const rules = currentPlanRules(store.settings.plan);
       const total = store.products.filter(x=>!x.deleted).length;
       if(total >= rules.productTotalMax){ alert(`このプランでは商品は合計 ${rules.productTotalMax} 品までです。Plans からアップグレードをご検討ください。`); return; }
       const per = store.products.filter(x=>!x.deleted && x.supplier_id===sid).length;
@@ -1069,7 +1077,7 @@ function openProductModal(p,defaultSid){
   }
 }
 function tryAddProductStart(defaultSid){
-  const rules = PlanRules[store.settings.plan||'free'];
+  const rules = currentPlanRules(store.settings.plan);
   const total = store.products.filter(x=>!x.deleted).length;
   if(total >= rules.productTotalMax){ alert(`このプランでは商品は合計 ${rules.productTotalMax} 品までです。Plans からアップグレードをご検討ください。`); return; }
   openProductModal(null, defaultSid);
@@ -1290,7 +1298,7 @@ function exportData(rangeKey){
 
 /* === 出力モーダル（プラン連動） === */
 function ModalExport(){
-  const plan = store.settings.plan || "free";
+  const plan = currentPlanKey(store.settings.plan);
   openModalBase("データ出力", `
     <div class="grid" id="ModalExport">
       <div class="label">出力範囲</div>
@@ -1302,7 +1310,7 @@ function ModalExport(){
   `);
   const radios = Array.from(document.querySelectorAll('input[name="exRange"]'));
   radios.forEach(r => { r.disabled = (clampExportKey(r.value, plan) !== r.value); });
-  const def = PlanRules[plan].exportMax;
+  const def = currentPlanRules(plan).exportMax;
   (radios.find(r=>r.value===def) || radios[0]).checked = true;
   const ok=$("#modalOK");
   ok.textContent="出力する";
