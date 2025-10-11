@@ -121,8 +121,6 @@ textarea{min-height:84px;resize:vertical}
   #eulaLinks a{color:#9ad5ff;text-decoration:underline}
   body.eula-locked{overflow:hidden}
 </style>
-<script src="./restore-utils.js"></script>
-<script src="./plan-utils.js"></script>
 </head>
 <body>
 <header class="app-header">
@@ -1332,71 +1330,26 @@ function getPlan(){
 
 // TODO: 実運用の上限に合わせて調整
 
-function resolvePlanCaps(){
-  const defaults = { suppliers: Infinity, products: Infinity, entries: Infinity };
-
-  if (window.PlanUtils && typeof window.PlanUtils.resolvePlanContext === 'function') {
-    const ctx = window.PlanUtils.resolvePlanContext(store, window.PLAN_LIMITS, 'free');
-    const pick = (entity) => {
-      if (window.PlanUtils && typeof window.PlanUtils.getPlanLimit === 'function') {
-        const limit = window.PlanUtils.getPlanLimit(ctx, entity, { fallbackInfinity: true });
-        return Number.isFinite(limit) ? limit : Infinity;
-      }
-      const table = window.PLAN_LIMITS;
-      const plan = getPlan();
-      const rec = (table && table[plan]) || (table && table.free) || defaults;
-      const raw = rec ? rec[entity] : undefined;
-      return Number.isFinite(raw) ? raw : Infinity;
-    };
-    return {
-      suppliers: pick('suppliers'),
-      products:  pick('products'),
-      entries:   pick('entries'),
-    };
-  }
-
-  const plan = getPlan();
-  const table = window.PLAN_LIMITS;
-  if (!table || typeof table !== 'object') return defaults;
-  const rec = table[plan] || table.free || defaults;
-  return {
-    suppliers: Number.isFinite(rec.suppliers) ? rec.suppliers : defaults.suppliers,
-    products:  Number.isFinite(rec.products)  ? rec.products  : defaults.products,
-    entries:   Number.isFinite(rec.entries)   ? rec.entries   : defaults.entries,
-  };
-}
-
-function collectPlanLocks(arr, limit){
-  if (window.PlanUtils && typeof window.PlanUtils.computeLockList === 'function') {
-    return window.PlanUtils.computeLockList(arr, limit);
-  }
-  if (!Array.isArray(arr)) return [];
-  if (!Number.isFinite(limit)) return [];
-  const locks = [];
-  let seen = 0;
-  arr.forEach((item, index) => {
-    if (isFlagged(item)) return;
-    seen += 1;
-    if (seen > limit) {
-      const id = item && (item.id ?? item.uuid ?? item.code);
-      locks.push(id != null ? id : index);
-    }
-  });
-  return locks;
-}
-
 function enforcePlan(){
-  if (window.PlanUtils && typeof window.PlanUtils.computePlanLocks === 'function') {
-    store.planLocks = window.PlanUtils.computePlanLocks(store, window.PLAN_LIMITS, 'free');
-  } else {
-    const lim = resolvePlanCaps();
+  const plan = getPlan();
+  const lim  = PLAN_LIMITS[plan] || PLAN_LIMITS.free;
 
-    store.planLocks = {
-      suppliers: collectPlanLocks(store.suppliers, lim.suppliers),
-      products:  collectPlanLocks(store.products,  lim.products),
-      entries:   collectPlanLocks(store.entries,   lim.entries),
-    };
-  }
+  const mkLocks = (arr, limit) => {
+    if (!Array.isArray(arr)) return [];
+    const locks = [];
+    for (let i = limit; i < arr.length; i++) {
+      const item = arr[i];
+      const id = item && (item.id ?? item.uuid ?? item.code);
+      locks.push(id != null ? id : i);
+    }
+    return locks;
+  };
+
+  store.planLocks = {
+    suppliers: mkLocks(store.suppliers, lim.suppliers),
+    products:  mkLocks(store.products,  lim.products),
+    entries:   mkLocks(store.entries,   lim.entries),
+  };
 
   try { DB.save(store); } catch(_) {}
 }
@@ -1407,6 +1360,7 @@ window.PLAN_LIMITS = {
   middle: { suppliers: 15, products: 200, entries: 5000 },
   pro:    { suppliers: Infinity, products: Infinity, entries: Infinity }
 };
+  const PLAN_LIMITS = window.PLAN_LIMITS;
 
 // === Save Guard for modal save (#modalOK / .btn--save) ===
 (() => {
@@ -1450,26 +1404,18 @@ const resolveEntity = (dlg) => {
     const dlg = btn.closest(DLG_SEL) || document;
     const entity = resolveEntity(dlg);
 
-    const caps   = resolvePlanCaps();
-    const ctx    = window.PlanUtils?.resolvePlanContext?.(window.store, window.PLAN_LIMITS, 'free');
-    const limit  = window.PlanUtils?.getPlanLimit
-      ? window.PlanUtils.getPlanLimit(ctx, entity, { fallbackInfinity: true })
-      : (caps[entity] ?? Infinity);
-    const count  = window.PlanUtils?.getActiveCount
-      ? window.PlanUtils.getActiveCount(window.store?.[entity])
-      : ((window.store?.[entity]?.length) ?? 0);
-    const canCreateNow = window.PlanUtils?.canCreate
-      ? window.PlanUtils.canCreate(window.store, entity, window.PLAN_LIMITS, 'free')
-      : (count < limit);
+    const plan   = (window.store?.settings?.plan) || 'free';
+    const lim    = (window.PLAN_LIMITS && PLAN_LIMITS[plan]) || {suppliers:Infinity,products:Infinity,entries:Infinity};
+    const count  = (window.store?.[entity]?.length) ?? 0;
 
     const idx    = getEditingIndex(dlg);
     const isNew  = (idx < 0); // -1 などは新規
 
-    if (isNew && !canCreateNow) {
+    if (isNew && count >= (lim[entity] ?? Infinity)) {
       e.preventDefault();
       e.stopPropagation();
       alert('この端末のプラン上限です：' +
-            `${entity} は ${limit === Infinity ? '無制限' : limit} 件まで（現在 ${count} 件）`);
+            `${entity} は ${lim[entity]} 件まで（現在 ${count} 件）`);
       return;
     }
     // 通過＝保存許可（既存編集 or 余裕あり）
@@ -1477,21 +1423,38 @@ const resolveEntity = (dlg) => {
 })();
 
 // 復元直後などに呼んで“ロック対象”だけ計算して保存
-window.enforcePlan = enforcePlan;
+window.enforcePlan = function(){
+  const plan = (store && store.settings && store.settings.plan) || 'free';
+  const lim  = window.PLAN_LIMITS[plan] || window.PLAN_LIMITS.free;
+
+  const mkLocks = (arr, limit) => {
+    if (!Array.isArray(arr)) return [];
+    const locks = [];
+    for (let i = limit; i < arr.length; i++) {
+      const it = arr[i];
+      const id = it && (it.id ?? it.uuid ?? it.code);
+      locks.push(id != null ? id : i);
+    }
+    return locks;
+  };
+
+  store.planLocks = {
+    suppliers: mkLocks(store.suppliers, lim.suppliers),
+    products:  mkLocks(store.products,  lim.products),
+    entries:   mkLocks(store.entries,   lim.entries),
+  };
+
+  try { DB.save(store); } catch(_) {}
+};
 // ---- Central guards (まだUIには接続しない) ----
 
 // entity: "suppliers" | "products" | "entries"
 window.canCreate = function(entity){
-  if (window.PlanUtils && typeof window.PlanUtils.canCreate === 'function') {
-    return window.PlanUtils.canCreate(store, entity, window.PLAN_LIMITS, 'free');
-  }
-
-  const lim = resolvePlanCaps();
-  const arr  = (store && Array.isArray(store[entity])) ? store[entity] : [];
-  const active = arr.reduce((n, item) => isFlagged(item) ? n : n + 1, 0);
-  const limit = lim[entity];
-  if (!Number.isFinite(limit)) return true;
-  return active < limit;               // 上限未満なら新規追加OK
+  const plan = (store && store.settings && store.settings.plan) || 'free';
+  const lim  = window.PLAN_LIMITS[plan] || window.PLAN_LIMITS.free;
+  const count = (store && Array.isArray(store[entity])) ? store[entity].length : 0;
+  const limit = lim[entity] ?? 0;
+  return count < limit;               // 上限未満なら新規追加OK
 };
 
 // itemを編集できるか（超過分は閲覧のみ）
@@ -1567,128 +1530,57 @@ document.addEventListener("click",(e)=>{
 });
 
 // Restore: 読み込み＋適用（全ての終了経路で input をリセット）
-const restoreInput = document.getElementById('fileRestore');
-restoreInput.addEventListener('change', (e) => {
-  // 他の重複ハンドラへバブルさせない
-  e.stopImmediatePropagation();
-  e.stopPropagation();
+document.addEventListener("change",(e)=>{
+  if(e.target.id!=="fileRestore") return;
 
-  // 以降は元の本体そのまま
-  const input = e.currentTarget;
+  const input = e.target;
   const f = input.files && input.files[0];
   if(!f){ input.value=''; return; }
-
-  // ---- ここから下は、あなたの既存処理（FileReader～applyNormalized～DB.save～finish(...)）をそのまま残す ----
-  // 例：
-  // const r = new FileReader();
-  // r.onload = () => { try { ...; applyNormalized(store, normalized.data); DB.save(store); /* UI更新 */ finish('success'); }
-  //                    catch(err){ /* ログ */ finish('error'); } finally { input.value=''; } };
-  // r.onerror = () => { finish('error'); input.value=''; };
-  // r.readAsText(f, 'utf-8');
-  // -----------------------------------------------------------------------------------------------
-});
-
-  if (input.dataset.restoring === '1') {
-    console.warn('[restore] request ignored because another restore is in progress');
-    input.value = '';
-    return;
-  }
 
   if(!confirm("バックアップから復元します。現在のデータは置き換えられます。続行しますか？")){
     input.value='';   // ←キャンセル時もクリア
     return;
   }
 
-  input.dataset.restoring = '1';
-
   const r = new FileReader();
 
-  const utils = window.RestoreUtils || {};
-  const normalize = utils.normalizeBackupPayload || (() => ({ ok:false }));
-  const applyNormalized = utils.applyBackupToStore || (() => { throw new Error('restore utils missing'); });
-
-  let outcome = null; // 'success' | 'error'
-
-  const resetInput = () => {
-    delete input.dataset.restoring;
+  r.onerror = () => {
+    alert("バックアップの読み込みに失敗しました（I/Oエラー）");
     input.value = '';
   };
 
-  const finish = (status, meta) => {
-    if (outcome) return;
-    outcome = status;
-
-    if (status === 'error') {
-      const { logMessage, error } = meta || {};
-      if (logMessage || error) {
-        console.error(logMessage || 'Restore failed', error);
-      }
-      alert("復元に失敗しました。ファイルをご確認ください。");
-    } else {
-      alert("復元しました");
-    }
-
-    resetInput();  // ←毎回必ずクリア（Android/PC 連続選択・無反応対策）
-  };
-
-  r.onerror = (evt) => {
-    const error = evt && evt.target && evt.target.error ? evt.target.error : evt;
-    finish('error', { logMessage: 'Failed to read backup file', error });
-  };
-
   r.onload = () => {
-    if (outcome) return;
+    try{
+      const data = JSON.parse(String(r.result||""));
+      if(!data || !data.tables) throw 0;
 
-    let data;
-    try {
-      data = JSON.parse(String(r.result || ""));
-    } catch (error) {
-      finish('error', { logMessage: 'Failed to parse backup payload', error });
-      return;
-    }
+      // 既存の適用処理（そのまま）
+      store.suppliers = data.tables.suppliers || [];
+      store.products  = data.tables.products  || [];
+      store.entries   = data.tables.entries   || [];
+      store.priceHistory = data.tables.priceHistory || {};
+      store.settings = Object.assign({
+        theme:store.settings.theme, plan:store.settings.plan, autoClear:true,
+        historyShowBoth:true, showTaxFlags:false,
+        recentProducts:store.settings.recentProducts||[], hisRangeDays:30
+      }, data.tables.settings||{});
+      DB.save(store);
 
-    const normalized = normalize(data);
-    if (!normalized || normalized.ok === false) {
-      finish('error', { logMessage: 'Invalid backup payload', error: normalized && normalized.reason });
-      return;
-    }
-
-    try {
-      applyNormalized(store, normalized.data);
-      // 追加（参照を保ったまま中身を最新化）
-const fresh = DB.load();
-Object.keys(store).forEach(k => delete store[k]);
-Object.assign(store, fresh);
-
-// UI更新（存在チェックつき）
-if (typeof renderSuppliers==='function') renderSuppliers();
-if (typeof renderProducts==='function')  renderProducts();
-      try { DB.save(store); } catch (err) { console.error('[DB] save error after restore', err); }
-      store = DB.load(); // メモリの store を最新化
-    } catch (error) {
-      finish('error', { logMessage: 'Failed to apply backup payload', error });
-      return;
-    }
-
-    try {
+      alert("復元しました");
       enforcePlan();
       applyPlanUI();
       applyTheme(); refreshHome(); initInputPage();
       renderSuppliers(); fillFilterSupplier(); renderProducts();
       renderHistory(); renderTodayList(); navigate("home");
       enableSelectOnFocus();
-    } catch (err) {
-      console.error("Post-restore refresh failed", err);
+    }catch{
+      alert("復元に失敗しました。ファイルをご確認ください。");
+    }finally{
+      input.value = '';  // ←毎回必ずクリア（Android/PC 連続選択・無反応対策）
     }
-
-    finish('success');
   };
 
-  try {
-    r.readAsText(f);
-  } catch (error) {
-    finish('error', { logMessage: 'Failed to initiate file read', error });
-  }
+  r.readAsText(f);
 });
 
 function refreshFiscalLabel(){
@@ -2112,9 +2004,6 @@ window.addEventListener('DOMContentLoaded', () => {
 // --- Strictバックアップ（表示対象と同じ集合だけ保存） ---
 // 非表示/削除/無効フラグの共通判定
 function isFlagged(o){
-  if (window.PlanUtils && typeof window.PlanUtils.isSoftDeleted === 'function') {
-    return window.PlanUtils.isSoftDeleted(o);
-  }
   return !!(o && (
     o.deleted === true || o.isDeleted === true || o._deleted === true ||
     o.hidden  === true || o.archived === true ||
@@ -2136,45 +2025,40 @@ function getCleanSnapshot(s){
     if (!p || isFlagged(p)) continue;
     if (!p.id) continue;
     if (!p.name || !String(p.name).trim()) continue;
-    const sid = p.supplierId ?? p.supplier_id ?? null;
-    if (sid == null || !supSet.has(sid)) continue; // 未紐づけ/不正リンクは除外
+   const sid = p.supplierId ?? p.supplier_id ?? null;
+if (sid==null || !supSet.has(sid)) continue; // 未紐づけ/不正リンクは除外
     if (seenProd.has(p.id)) continue;        // 重複idは先勝ち
     products.push(p);
     seenProd.add(p.id);
   }
   const prodSet = new Set(products.map(p => p.id));
 
-  // 3) 明細：フラグ無＆参照整合（product/supplierが存在する場合のみ許可）
-  const entrySource = Array.isArray(s.entries)
-    ? s.entries
-    : (Array.isArray(s.history) ? s.history : []);
-  const entries = entrySource.filter(entry => {
-    if (!entry || isFlagged(entry)) return false;
-    const pid = entry.product_id ?? entry.productId ?? null;
-    const sid = entry.supplier_id ?? entry.supplierId ?? null;
-    const pidOk = (pid == null) || prodSet.has(pid);
-    const sidOk = (sid == null) || supSet.has(sid);
+  // 3) 履歴：フラグ無＆参照整合（product/supplierが存在する場合のみ許可）
+  const history = (s.history||[]).filter(h => {
+    if (!h || isFlagged(h)) return false;
+    const pidOk = (h.productId  == null) || prodSet.has(h.productId);
+    const sidOk = (h.supplierId == null) || supSet.has(h.supplierId);
     return pidOk && sidOk;
   });
 
   // 4) そのほか（設定類）はそのまま持ち越す
-  return { ...s, suppliers, products, entries, history: entries };
+  return { ...s, suppliers, products, history };
 }
 
 // 既存の「バックアップ保存」に適用する（※ここだけ置き換え）
 // 例）元が saveJson(store) なら → saveJson(getCleanSnapshot(store))
 window.saveBackupStrict = function(){
   const clean = getCleanSnapshot(store);
-  const payload = {
+ const payload = {                                    // ★ ここから
     tables: {
       suppliers: clean.suppliers || [],
       products:  clean.products  || [],
       entries:   clean.entries   || [],
-      priceHistory: clean.priceHistory || {},
-      settings: clean.settings || { plan: 'free' }
+      priceHistory: clean.priceHistory || []
     },
+    settings: clean.settings || { plan:'Free' },
     version:  clean.version  || 'v0.8.4'
-  };
+  };                                                   // ★ ここまで
   const blob  = new Blob([JSON.stringify(payload)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
