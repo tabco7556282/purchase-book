@@ -1566,17 +1566,27 @@ document.addEventListener("click",(e)=>{
   input.click();
 });
 
- // Restore: 読み込み＋適用（全ての終了経路で input をリセット）
-　document.addEventListener("change",(e)=>{
-  if(e.target.id!=="fileRestore") return;
-   console.count('[restore change]');
- // ここで他の重複ハンドラを止める
-　 e.stopImmediatePropagation();
+// Restore: 読み込み＋適用（全ての終了経路で input をリセット）
+const restoreInput = document.getElementById('fileRestore');
+restoreInput.addEventListener('change', (e) => {
+  // 他の重複ハンドラへバブルさせない
+  e.stopImmediatePropagation();
   e.stopPropagation();
-  }, true); // ← 第3引数 true（capture）
-  const input = e.target;
+
+  // 以降は元の本体そのまま
+  const input = e.currentTarget;
   const f = input.files && input.files[0];
   if(!f){ input.value=''; return; }
+
+  // ---- ここから下は、あなたの既存処理（FileReader～applyNormalized～DB.save～finish(...)）をそのまま残す ----
+  // 例：
+  // const r = new FileReader();
+  // r.onload = () => { try { ...; applyNormalized(store, normalized.data); DB.save(store); /* UI更新 */ finish('success'); }
+  //                    catch(err){ /* ログ */ finish('error'); } finally { input.value=''; } };
+  // r.onerror = () => { finish('error'); input.value=''; };
+  // r.readAsText(f, 'utf-8');
+  // -----------------------------------------------------------------------------------------------
+});
 
   if (input.dataset.restoring === '1') {
     console.warn('[restore] request ignored because another restore is in progress');
