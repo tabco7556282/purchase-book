@@ -1,6 +1,6 @@
 {
-  "name": "仕入れ管理アプリ v0.8.1",
-  "short_name": "仕入れ管理 v0.8.1",
+ "name": "仕入れ管理 v0 検証用",
+"short_name": "仕入れ管理 v0",
   "version": "0.8.1",
   "start_url": "./",
   "display": "standalone",
