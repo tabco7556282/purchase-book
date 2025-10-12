@@ -751,61 +751,6 @@ function addLine(){
     $("#inProduct").value=""; $("#inPrice").value=""; $("#inQty").value=1; $("#inMemo").value=""; $("#priceHistory").innerHTML="";
   }
 }
-/* ==== 完了（ホームへ） ==== */
-function _val(sel){ const el=document.querySelector(sel); return (el && 'value' in el) ? el.value : ''; }
-function _checked(sel){ const el=document.querySelector(sel); return !!(el && el.checked); }
-window.hasPendingInput = function(){
-  const free=_checked('#chkFree');
-  const price=Number(_val('#inPrice')||0);
-  const qty=Number(_val('#inQty')||1);
-  if(price>0) return true;
-  if(qty!==1) return true;
-  if((_val('#inMemo')||'').trim()) return true;
-  return free ? ((_val('#freeSupplier').trim() || _val('#freeProduct').trim()).length>0)
-              : !!_val('#inProduct');
-};
-window.confirmLeaveFromInput = function(){
-  if (typeof openModalBase !== "function"){
-    if (confirm("未追加があります。追加して戻りますか？\nキャンセルで編集を続けます。")) {
-      const before=(store.entries||[]).length; addLine();
-      if ((store.entries||[]).length > before){ navigate("home"); refreshHome(); }
-    }
-    return;
-  }
-  openModalBase("未追加の入力があります", `
-    <div style="margin-top:4px">どうしますか？</div>
-    <ul style="margin:8px 0 0 16px">
-      <li><b>追加して戻る</b>：明細に追加してホームへ</li>
-      <li><b>破棄</b>：入力中の内容は捨ててホームへ</li>
-    </ul>
-  `);
-  const ok = $('#modalOK'), del=$('#modalDelete'), cancel=$('#modalCancel');
-  ok.textContent="追加して戻る"; del.textContent="破棄"; del.classList.remove("hidden"); del.classList.add("danger","small");
-  ok.onclick = ()=>{ const b=(store.entries||[]).length; addLine(); const s=(store.entries||[]).length>b; closeModal(); if (s){ navigate("home"); refreshHome(); } };
-  del.onclick = ()=>{ closeModal(); navigate("home"); refreshHome(); };
-  cancel.onclick = closeModal;
-  setTimeout(()=> ok && ok.focus(), 0);
-};
-(function(){
-  if (window.__boundBtnSave) return;
-  document.addEventListener("click", (e) => {
-    const btn = e.target.closest("#btnSave");
-    if (!btn) return;
-    e.preventDefault();
-    try{
-      if (window.hasPendingInput && window.hasPendingInput()){
-        window.confirmLeaveFromInput ? window.confirmLeaveFromInput()
-                                     : (confirm("未追加があります。破棄して戻りますか？") && (navigate("home"), refreshHome()));
-      } else {
-        navigate("home"); refreshHome();
-      }
-    }catch(err){
-      console.error("btnSave handler error:", err);
-      navigate("home"); refreshHome();
-    }
-  });
-  window.__boundBtnSave = true;
-})();
 
 document.addEventListener("click",(e)=>{ if(e.target.id==="btnClear"){ $("#inQty").value=1;$("#inPrice").value="";$("#inMemo").value="";$("#inProduct").value="";$("#priceHistory").innerHTML=""; }});
 
