@@ -2108,20 +2108,68 @@ window.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-<!-- v0: #btnSave（完了）恒久配線：ここが正式 -->
+<!-- v0: #btnSave（完了）恒久配線：未追加チェック付き（正規実装・最小） -->
 <script id="bind-btnsave">
 (()=> {
-  if (window.__boundBtnSave) return;    // 二重配線ガード
+  if (window.__boundBtnSave) return;
+
+  const $q = (s)=>document.querySelector(s);
+  const val = (s)=>{ const el=$q(s); return (el && 'value' in el) ? el.value : ''; };
+  const checked = (s)=>{ const el=$q(s); return !!(el && el.checked); };
+
+  // ローカル関数：未追加の有無（グローバル汚さない）
+  const hasPending = ()=>{
+    const free = checked('#chkFree');
+    const price = Number(val('#inPrice')||0);
+    const qty   = Number(val('#inQty')||1);
+    if (price>0) return true;
+    if (qty!==1) return true;
+    if ((val('#inMemo')||'').trim()) return true;
+    return free
+      ? ((val('#freeSupplier').trim() || val('#freeProduct').trim()).length>0)
+      : !!val('#inProduct');
+  };
+
   document.addEventListener('click', (e) => {
     const hit = e.target.closest('#btnSave');
     if (!hit) return;
     e.preventDefault();
-    navigate('home');
+
+    if (hasPending()) {
+      if (typeof openModalBase === 'function') {
+        openModalBase("未追加の入力があります", `
+          <div style="margin-top:4px">どうしますか？</div>
+          <ul style="margin:8px 0 0 16px">
+            <li><b>追加して戻る</b>：明細に追加してホームへ</li>
+            <li><b>破棄</b>：入力中の内容は捨ててホームへ</li>
+            <li><b>編集を続ける</b></li>
+          </ul>
+        `);
+        const ok = $('#modalOK'), del = $('#modalDelete'), cancel = $('#modalCancel');
+        ok.textContent="追加して戻る";
+        del.textContent="破棄";
+        del.classList.remove("hidden"); del.classList.add("danger","small");
+        ok.onclick   = ()=>{ const b=(store.entries||[]).length; addLine(); const added=(store.entries||[]).length>b; closeModal(); if (added){ navigate('home'); refreshHome(); } };
+        del.onclick  = ()=>{ closeModal(); navigate('home'); refreshHome(); };
+        cancel.onclick = closeModal;
+        setTimeout(()=> ok && ok.focus(), 0);
+      } else {
+        if (confirm("未追加があります。追加して戻りますか？\nキャンセルで編集を続けます。")) {
+          const b=(store.entries||[]).length; addLine();
+          if ((store.entries||[]).length > b) { navigate('home'); refreshHome(); }
+        }
+      }
+      return;
+    }
+
+    navigate('home'); 
     refreshHome();
   });
+
   window.__boundBtnSave = true;
 })();
 </script>
+
 
 <!-- update: 2025-10-01 -->
 </body>
