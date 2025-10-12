@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
-<title>仕入れ管理｜MVP v0.8.0</title>
+<link rel="manifest" href="./manifest.webmanifest?v=0.8.4">
+<link rel="apple-touch-icon" href="./icons/icon-180-v223i.png">
+<title>仕入れ管理｜MVP v0.8.1</title>
 <style>
 :root{
   --brand:#FFC107; --brand-ink:#1A1300;
@@ -103,6 +105,21 @@ textarea{min-height:84px;resize:vertical}
 [data-theme="dark"] #adSlot .ad{ background:#2a2a1f; border-color:#8a7b1b; }
 #adSlot small{ color:var(--muted); }
 .tlp-badge, #tlpBadge { pointer-events: none; }
+</style>
+<style>
+  /* === EULA Hard Consent === */
+  #eulaOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.6);z-index:2147483647;}
+  #eulaOverlay.show{display:flex;}
+  #eulaDialog{max-width:640px;width:min(92vw,640px);background:#111;color:#fff;border-radius:14px;
+    box-shadow:0 12px 40px rgba(0,0,0,.45); padding:20px; outline:0;}
+  #eulaDialog h2{margin:0 0 8px;font-size:1.1rem}
+  #eulaDialog p{margin:.6em 0;line-height:1.6}
+  #eulaActions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+  #btnEulaAgree{padding:.7em 1.1em;border:0;border-radius:10px;cursor:pointer}
+  #btnEulaAgree{background:#00a86b;color:#fff}
+  #eulaLinks a{color:#9ad5ff;text-decoration:underline}
+  body.eula-locked{overflow:hidden}
 </style>
 </head>
 <body>
@@ -247,6 +264,7 @@ textarea{min-height:84px;resize:vertical}
       </div><hr>
       <div class="row" style="gap:10px"><button class="btn primary" id="btnBackupNow" type="button">今すぐバックアップ</button><button class="btn ghost" id="btnRestore" type="button">バックアップから復元</button><input type="file" id="fileRestore" accept="application/json" class="hidden"></div>
     </div>
+   
 
     <div class="card" style="margin-top:12px">
       <div class="section-title">年度アーカイブ</div>
@@ -268,7 +286,7 @@ textarea{min-height:84px;resize:vertical}
         <h3>無料版</h3>
         <ul>
           <li>広告あり（控えめ表示）</li>
-          <li>仕入れ先 <b>5社</b>まで／商品 <b>合計50品</b>まで（1社10品目安）</li>
+          <li>仕入れ先 <b>5社</b>まで／商品 <b>合計50品</b></li>
           <li>出力範囲：<b>当月のみ</b></li>
         </ul>
         <button class="btn ghost small" id="btnUseFree" type="button">このプランを使う</button>
@@ -278,7 +296,7 @@ textarea{min-height:84px;resize:vertical}
         <h3>ミドル（¥700）</h3>
         <ul>
           <li>広告なし</li>
-          <li>仕入れ先 <b>15社</b>まで／1社<b>15品</b>（合計225品）</li>
+          <li>仕入れ先 <b>15社</b>まで／商品<b>合計200品</b></li>
           <li>出力範囲：<b>年度（1月〜今月）</b></li>
         </ul>
         <button class="btn primary small" id="mockBuyMid" type="button">アップグレードする</button>
@@ -288,7 +306,7 @@ textarea{min-height:84px;resize:vertical}
         <h3>プロ（¥1,500）</h3>
         <ul>
           <li>広告なし</li>
-          <li>上限なし</li>
+          <li>仕入先数・商品数に上限なし</li>
           <li>出力範囲：<b>無制限</b></li>
         </ul>
         <button class="btn primary small" id="mockBuyPro" type="button">フル機能で使う</button>
@@ -300,10 +318,16 @@ textarea{min-height:84px;resize:vertical}
   <section id="page-rights" class="hidden" data-title="Licenses & Notices">
     <div class="card">
       <h3>Licenses & Notices</h3>
-      <section><h4>App & Version</h4><p>Tabco Ledger Plus<sup>™</sup> v0.8.0</p></section>
+      <section><h4>App & Version</h4><p>Tabco Ledger Plus<sup>™</sup> v0.8.1</p></section>
       <section><h4>Copyright</h4><p>© 2025 チカキッサ.タブコ. All rights reserved.</p></section>
       <section><h4>Trademark Notice</h4><p><strong>Tabco Ledger Plus<sup>™</sup></strong> and related logos are trademarks of Tabco.</p></section>
-　　　<section><h4>EULA（使用許諾）</h4><p>本アプリのご利用によりEULA（使用許諾契約）に同意したものとみなされます。 <a href="#" id="open-eula">EULAを開く</a></p></section>
+　　　<section id="rights"><h4>EULA（使用許諾）</h4><p>本アプリのご利用によりEULA（使用許諾契約）に同意したものとみなされます。</p><ol>
+        <li><b>ライセンス付与：</b>非独占・譲渡不可。再配布/逆コンパイル禁止。</li>
+        <li><b>データとプライバシー：</b>出力データの管理は利用者の責任。</li>
+        <li><b>知的財産：</b>本ソフト/名称/ロゴ等は開発者に帰属。</li>
+        <li><b>保証の否認：</b>現状有姿。損害・逸失利益等は免責。</li>
+        <li><b>準拠法・裁判管轄：</b>日本法・京都地方裁判所。</li>
+      </ol></section>
       <section><h4>データとプライバシー</h4><p>データは基本的にお使いの端末に保存されます。クラウドバックアップを選んだ場合は、お客様自身のアカウントへ保存されます。</p></section>
       <section>
         <h4>エクスポート（Excel XML）</h4>
@@ -395,7 +419,7 @@ function enableSelectOnFocus(){
 /* === Plans: 単一の真実（SOT） ============================= */
 const PlanRules = {
   free:   { exportMax: 'month',  supplierMax: 5,  productTotalMax: 50,  productPerSupplierMax: 10,  ads: true  },
-  middle: { exportMax: 'fiscal', supplierMax: 15, productTotalMax: 225, productPerSupplierMax: 15,  ads: false },
+  middle: { exportMax: 'fiscal', supplierMax: 15, productTotalMax: 200, productPerSupplierMax: 15,  ads: false },
   pro:    { exportMax: 'all',    supplierMax: Infinity, productTotalMax: Infinity, productPerSupplierMax: Infinity, ads: false }
 };
 const EXPORT_KEYS = ['month','fiscal','all'];
@@ -781,24 +805,37 @@ function renderTodayList(){
 
 /* ===== Supplier/Product ===== */
 function renderSuppliers(){
-  const list=$("#supplierList"); if(!list) return;
-  list.innerHTML="";
-  store.suppliers.filter(s=>!s.deleted).forEach(s=>{
-    const prodCount=store.products.filter(p=>!p.deleted&&p.supplier_id===s.id).length;
-    const item=document.createElement("div"); item.className="list-item supplier";
-    item.innerHTML=`
-      <div class="tapzone">
+  const list = $("#supplierList");
+  if (!list) return;
+  list.innerHTML = "";
+
+  const suppliers = (store.suppliers || []).filter(s => !s.deleted);
+  const products  = (store.products || store.items || []);
+
+  suppliers.forEach(s => {
+    const prodCount = products.filter(p => !p?.deleted && (p.supplier_id ?? p.supplierId) === s.id).length;
+
+    const item = document.createElement("div");
+    item.className = "list-item supplier";
+    item.setAttribute("data-id", s.id);            // ← 行にIDを通す
+
+    item.innerHTML = `
+      <div class="tapzone" data-id="${s.id}">
         <b>${s.name}</b>
-        <div class="muted">担当:${s.contact||"-"}　TEL:${s.phone||"-"}　INV:${s.invoice_number||"-"}</div>
+        <div class="muted">担当:${s.contact || "-" }　TEL:${s.phone || "-" }　INV:${s.invoice_number || "-" }</div>
         <div class="muted">｜商品${prodCount}件</div>
       </div>
       <div class="ops-col">
-        <button class="btn op small square addp" type="button"><span class="twoline">＋<br>商品追加</span></button>
-        <button class="btn op small square edit" type="button">編集</button>
-      </div>`;
+        <button class="btn op small square addp" type="button" data-id="${s.id}">
+          <span class="twoline">＋<br>商品追加</span>
+        </button>
+        <button class="btn op small square edit" type="button" data-id="${s.id}">編集</button>
+      </div>
+    `;
     list.appendChild(item);
   });
 }
+
 function fillFilterSupplier(){
   const sel=$("#filterProdSupplier"); if(!sel) return;
   const cur=sel.value;
@@ -809,26 +846,40 @@ function fillFilterSupplier(){
   if(cur && [...sel.options].some(o=>o.value===cur)) sel.value=cur;
 }
 document.addEventListener("click",(e)=>{
-  const addp=e.target.closest("#supplierList .addp");
-  const edit=e.target.closest("#supplierList .edit");
-  const tap =e.target.closest("#supplierList .tapzone");
-  if(addp){
-    const item=addp.closest(".list-item");
-    const name=item.querySelector("b").textContent;
-    const sup=store.suppliers.find(s=>s.name===name);
-    if(sup){ tryAddProductStart(sup.id); }
-  }else if(edit){
-    const item=edit.closest(".list-item");
-    const name=item.querySelector("b").textContent;
-    const sup=store.suppliers.find(s=>s.name===name);
-    if(sup){ openSupplierModal(sup); }
-  }else if(tap){
-    const item=tap.closest(".list-item");
-    const name=item.querySelector("b").textContent;
-    const sup=store.suppliers.find(s=>s.name===name);
-    if(sup){ navigate("products"); $("#filterProdSupplier").value=sup.id; renderProducts(); }
+  const root = document.getElementById("supplierList");
+  if (!root) return;
+
+  const addp = e.target.closest("#supplierList .addp");
+  const edit = e.target.closest("#supplierList .edit");
+  const tap  = e.target.closest("#supplierList .tapzone");
+  const host = e.target.closest("#supplierList .list-item.supplier,[data-id]");
+
+  // 押された要素 or 行から ID を取得（最優先で data-id を参照）
+  const id = (e.target.getAttribute?.("data-id"))
+          || (host && host.getAttribute("data-id"));
+
+  if (addp){
+    if (!id) return alert("仕入先IDが見つかりません");
+    tryAddProductStart(id);
+    return;
+  }
+  if (edit){
+    if (!id) return alert("仕入先IDが見つかりません");
+    const sup = (store.suppliers||[]).find(s=>s.id===id);
+    if (!sup) return alert("仕入先が見つかりません");
+    openSupplierModal(sup);
+    return;
+  }
+  if (tap){
+    if (!id) return;
+    navigate("products");
+    const sel = $("#filterProdSupplier");
+    if (sel){ sel.value = id; }
+    renderProducts();
+    return;
   }
 });
+
 function renderProducts(){
   const list=$("#productList"); if(!list) return;
   const sid=$("#filterProdSupplier").value;
@@ -903,12 +954,48 @@ function openSupplierModal(s){
   };
   $("#modalOK").onclick=onOK;
 
-  if(s){
-    const delBtn=$("#modalDelete"); delBtn.classList.remove("hidden");
-    delBtn.onclick=()=>{ if(confirm("削除しますか？")){ s.deleted=true; DB.save(store); renderSuppliers(); refreshHome(); closeModal(); } };
-    $(".actions").insertBefore(delBtn, $("#modalCancel"));
-  }
+ if (s) {
+  var delBtn = document.querySelector("#modalDelete");
+  if (delBtn) delBtn.classList.remove("hidden");
+
+  if (delBtn) delBtn.onclick = function () {
+    var sid = s.id;
+    var products = Array.isArray(store.products) ? store.products : [];
+    var prodLinked = products.filter(function(p){
+      return !p.deleted && p.supplier_id === sid;
+    }).length;
+
+    var ok = confirm(
+      "仕入先「" + s.name + "」を削除します。\n" +
+      "関連商品 " + prodLinked + " 件も同時に削除されます。よろしいですか？"
+    );
+    if (!ok) return;
+
+    // 1) 商品カスケード（物理削除）
+    if (Array.isArray(store.products)) {
+      store.products = store.products.filter(function(p){ return p.supplier_id !== sid; });
+    }
+
+    // 2) 仕入先を物理削除（配列から除去）
+    var i = (store.suppliers || []).findIndex(function(x){ return x && x.id === sid; });
+    if (i >= 0) store.suppliers.splice(i, 1);
+
+    // 3) 保存 & 再描画 & プランUI更新
+    DB.save(store);
+    renderSuppliers();
+    fillFilterSupplier();
+    renderProducts();
+    refreshHome();
+    try { enforcePlan(); applyPlanUI(); } catch(e) {}
+
+    closeModal();
+  };
+
+  var actions = document.querySelector(".actions");
+  var cancelBtn = document.querySelector("#modalCancel");
+  if (actions && delBtn && cancelBtn) actions.insertBefore(delBtn, cancelBtn);
 }
+} 
 function tryAddSupplier(){
   const limit = PlanRules[store.settings.plan||'free'].supplierMax;
   const count = store.suppliers.filter(x=>!x.deleted).length;
@@ -1235,31 +1322,267 @@ function backupNow(){
   store.settings.lastBackupAt=Date.now(); DB.save(store); refreshHome();
   const bk=$("#bkLast"); if(bk) bk.textContent=new Date(store.settings.lastBackupAt).toLocaleString("ja-JP");
 }
-document.addEventListener("click",(e)=>{ if(e.target.id==="btnBackupNow") backupNow(); });
-document.addEventListener("click",(e)=>{ if(e.target.id==="btnRestore") $("#fileRestore").click(); });
+// Backup はそのまま
+// ---- Plan enforcement (端末プランに基づくロック計算) ----
+function getPlan(){
+  return (store && store.settings && store.settings.plan) || 'free';
+}
+
+// TODO: 実運用の上限に合わせて調整
+
+function enforcePlan(){
+  const plan = getPlan();
+  const lim  = PLAN_LIMITS[plan] || PLAN_LIMITS.free;
+
+  const mkLocks = (arr, limit) => {
+    if (!Array.isArray(arr)) return [];
+    const locks = [];
+    for (let i = limit; i < arr.length; i++) {
+      const item = arr[i];
+      const id = item && (item.id ?? item.uuid ?? item.code);
+      locks.push(id != null ? id : i);
+    }
+    return locks;
+  };
+
+  store.planLocks = {
+    suppliers: mkLocks(store.suppliers, lim.suppliers),
+    products:  mkLocks(store.products,  lim.products),
+    entries:   mkLocks(store.entries,   lim.entries),
+  };
+
+  try { DB.save(store); } catch(_) {}
+}
+
+  // 端末プラン上限（必要に応じて調整）
+window.PLAN_LIMITS = {
+  free:   { suppliers: 5,  products: 50,  entries: 1000 },
+  middle: { suppliers: 15, products: 200, entries: 5000 },
+  pro:    { suppliers: Infinity, products: Infinity, entries: Infinity }
+};
+  const PLAN_LIMITS = window.PLAN_LIMITS;
+
+// === Save Guard for modal save (#modalOK / .btn--save) ===
+(() => {
+  const SEL_SAVE = '#modalOK, .btn--save';         // さっき当たった保存ボタン
+  const DLG_SEL  = '[role="dialog"], .modal, .dialog, .sheet';
+
+  // ダイアログ→エンティティ推定（IDやクラス名に合わせて必要なら足す）
+  // 置き換え：ダイアログ→エンティティ推定
+const resolveEntity = (dlg) => {
+  const h = (location.hash || '').toLowerCase();     // ← まずハッシュを見る
+  if (h.includes('supplier')) return 'suppliers';
+  if (h.includes('product'))  return 'products';
+  if (h.includes('entry') || h.includes('home')) return 'entries';
+
+  // フォールバック：要素の id/class から推定
+  const idc = (dlg.id || dlg.className || '').toLowerCase();
+  if (idc.includes('supplier')) return 'suppliers';
+  if (idc.includes('product'))  return 'products';
+  if (idc.includes('entry'))    return 'entries';
+
+  // 最後の保険（日本語ラベル等）
+  const txt = (dlg.textContent || '').toLowerCase();
+  if (txt.includes('仕入先') || txt.includes('supplier')) return 'suppliers';
+  if (txt.includes('商品')   || txt.includes('product'))  return 'products';
+
+  return 'entries';
+};
+
+  // 編集か新規か判定（hidden [name="index"] を推奨；無ければ新規扱い）
+  const getEditingIndex = (dlg) => {
+    const v = dlg.querySelector('[name="index"]')?.value;
+    if (v === '' || v == null) return -1;
+    const n = +v;
+    return Number.isFinite(n) ? n : -1;
+  };
+
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest(SEL_SAVE);
+    if (!btn) return;
+
+    const dlg = btn.closest(DLG_SEL) || document;
+    const entity = resolveEntity(dlg);
+
+    const plan   = (window.store?.settings?.plan) || 'free';
+    const lim    = (window.PLAN_LIMITS && PLAN_LIMITS[plan]) || {suppliers:Infinity,products:Infinity,entries:Infinity};
+    const count  = (window.store?.[entity]?.length) ?? 0;
+
+    const idx    = getEditingIndex(dlg);
+    const isNew  = (idx < 0); // -1 などは新規
+
+    if (isNew && count >= (lim[entity] ?? Infinity)) {
+      e.preventDefault();
+      e.stopPropagation();
+      alert('この端末のプラン上限です：' +
+            `${entity} は ${lim[entity]} 件まで（現在 ${count} 件）`);
+      return;
+    }
+    // 通過＝保存許可（既存編集 or 余裕あり）
+  }, true);
+})();
+
+// 復元直後などに呼んで“ロック対象”だけ計算して保存
+window.enforcePlan = function(){
+  const plan = (store && store.settings && store.settings.plan) || 'free';
+  const lim  = window.PLAN_LIMITS[plan] || window.PLAN_LIMITS.free;
+
+  const mkLocks = (arr, limit) => {
+    if (!Array.isArray(arr)) return [];
+    const locks = [];
+    for (let i = limit; i < arr.length; i++) {
+      const it = arr[i];
+      const id = it && (it.id ?? it.uuid ?? it.code);
+      locks.push(id != null ? id : i);
+    }
+    return locks;
+  };
+
+  store.planLocks = {
+    suppliers: mkLocks(store.suppliers, lim.suppliers),
+    products:  mkLocks(store.products,  lim.products),
+    entries:   mkLocks(store.entries,   lim.entries),
+  };
+
+  try { DB.save(store); } catch(_) {}
+};
+// ---- Central guards (まだUIには接続しない) ----
+
+// entity: "suppliers" | "products" | "entries"
+window.canCreate = function(entity){
+  const plan = (store && store.settings && store.settings.plan) || 'free';
+  const lim  = window.PLAN_LIMITS[plan] || window.PLAN_LIMITS.free;
+  const count = (store && Array.isArray(store[entity])) ? store[entity].length : 0;
+  const limit = lim[entity] ?? 0;
+  return count < limit;               // 上限未満なら新規追加OK
+};
+
+// itemを編集できるか（超過分は閲覧のみ）
+window.isLocked = function(entity, item, index){
+  if (!store || !store.planLocks) return false;
+  const locks = store.planLocks[entity] || [];
+  const id = item && (item.id ?? item.uuid ?? item.code);
+  const key = (id != null) ? id : index;
+  return locks.includes(key);         // trueなら“編集不可”
+};
+// ---- Plan UI wiring (Addボタンだけ最小で無効化) ----
+window.applyPlanUI = function(){
+  const btns = [
+    { sel: '#btnAddSupplier', entity: 'suppliers', label: '仕入先の追加' },
+    { sel: '#btnAddProduct',  entity: 'products',  label: '商品の追加' },
+    { sel: '#btnAddEntry',    entity: 'entries',   label: '仕入入力の追加' },
+  ];
+  btns.forEach(({sel, entity, label})=>{
+    const el = document.querySelector(sel);
+    if(!el) return; // ボタンが存在しなければ何もしない（安全）
+    const ok = window.canCreate ? window.canCreate(entity) : true;
+    el.disabled = !ok;
+    el.title = ok ? '' : `この端末のプランでは「${label}」の上限に達しています`;
+    el.classList.toggle('is-disabled', !ok); // あれば見た目用
+  });
+};
+// ---- 保存ガード：ロック行は保存できないよう中央で止める ----
+document.addEventListener('click', (e) => {
+  // 保存ボタン候補（IDは必要に応じて実IDに置換）
+  const targets = new Map([
+    ['#btnSaveSupplier', {entity:'suppliers', getIndex:()=> document.querySelector('#supplierForm [name="index"]')?.value}],
+    ['#btnSaveProduct',  {entity:'products',  getIndex:()=> document.querySelector('#productForm  [name="index"]')?.value}],
+    ['#btnSaveEntry',    {entity:'entries',   getIndex:()=> document.querySelector('#entryForm    [name="index"]')?.value}],
+  ]);
+
+  for (const [sel, cfg] of targets) {
+    const btn = e.target.closest(sel);
+    if (!btn) continue;
+
+    if (!(window.isLocked && window.canCreate)) return; // まだ未定義なら何もしない
+
+    const {entity, getIndex} = cfg;
+    // 編集対象インデックス（フォームの隠しinputなどから取得）
+    let idx = Number(getIndex?.() ?? -1);
+    if (Number.isNaN(idx)) idx = -1;
+
+    // 新規作成は canCreate() を、既存編集は isLocked() をチェック
+    const isCreate = (idx < 0);
+    let blocked = false;
+
+    if (isCreate) {
+      blocked = !canCreate(entity);
+      if (blocked) alert(`この端末のプランでは ${entity} の新規作成上限に達しています。`);
+    } else {
+      const item = (store?.[entity] ?? [])[idx];
+      blocked = isLocked(entity, item, idx);
+      if (blocked) alert(`この端末のプランでは、この${entity==='entries'?'仕入入力':entity==='products'?'商品':'仕入先'}は編集できません。`);
+    }
+
+    if (blocked) { e.preventDefault(); e.stopPropagation(); return; }
+  }
+}, true);
+
+  document.addEventListener("click",(e)=>{ if(e.target.id==="btnBackupNow") saveBackupStrict(); });
+
+// Restore: クリック → 毎回クリアして同一ファイルでも change が発火
+document.addEventListener("click",(e)=>{
+  if(e.target.id!=="btnRestore") return;
+  const input = document.getElementById("fileRestore");
+  if(!input) return;
+  input.value = "";   // ←重要：同じファイルでも再選択で発火させる
+  input.click();
+});
+
+// Restore: 読み込み＋適用（全ての終了経路で input をリセット）
 document.addEventListener("change",(e)=>{
   if(e.target.id!=="fileRestore") return;
-  const f=e.target.files[0]; if(!f) return;
-  if(!confirm("バックアップから復元します。現在のデータは置き換えられます。続行しますか？")) return;
-  const r=new FileReader();
-  r.onload=()=>{
+
+  const input = e.target;
+  const f = input.files && input.files[0];
+  if(!f){ input.value=''; return; }
+
+  if(!confirm("バックアップから復元します。現在のデータは置き換えられます。続行しますか？")){
+    input.value='';   // ←キャンセル時もクリア
+    return;
+  }
+
+  const r = new FileReader();
+
+  r.onerror = () => {
+    alert("バックアップの読み込みに失敗しました（I/Oエラー）");
+    input.value = '';
+  };
+
+  r.onload = () => {
     try{
-      const data=JSON.parse(r.result); if(!data.tables) throw 0;
-      store.suppliers=data.tables.suppliers||[];
-      store.products=data.tables.products||[];
-      store.entries=data.tables.entries||[];
-      store.priceHistory=data.tables.priceHistory||{};
-      store.settings=Object.assign({
+      const data = JSON.parse(String(r.result||""));
+      if(!data || !data.tables) throw 0;
+
+      // 既存の適用処理（そのまま）
+      store.suppliers = data.tables.suppliers || [];
+      store.products  = data.tables.products  || [];
+      store.entries   = data.tables.entries   || [];
+      store.priceHistory = data.tables.priceHistory || {};
+      store.settings = Object.assign({
         theme:store.settings.theme, plan:store.settings.plan, autoClear:true,
-        historyShowBoth:true, showTaxFlags:false, recentProducts:store.settings.recentProducts||[], hisRangeDays:30
+        historyShowBoth:true, showTaxFlags:false,
+        recentProducts:store.settings.recentProducts||[], hisRangeDays:30
       }, data.tables.settings||{});
       DB.save(store);
+
       alert("復元しました");
-      applyTheme(); refreshHome(); initInputPage(); renderSuppliers(); fillFilterSupplier(); renderProducts(); renderHistory();renderTodayList(); navigate("home"); enableSelectOnFocus();
-    }catch{ alert("復元に失敗しました。ファイルをご確認ください。"); }
+      enforcePlan();
+      applyPlanUI();
+      applyTheme(); refreshHome(); initInputPage();
+      renderSuppliers(); fillFilterSupplier(); renderProducts();
+      renderHistory(); renderTodayList(); navigate("home");
+      enableSelectOnFocus();
+    }catch{
+      alert("復元に失敗しました。ファイルをご確認ください。");
+    }finally{
+      input.value = '';  // ←毎回必ずクリア（Android/PC 連続選択・無反応対策）
+    }
   };
+
   r.readAsText(f);
 });
+
 function refreshFiscalLabel(){
   const y=new Date().getFullYear();
   const el=$("#fiscalLabel"); if(el) el.textContent=`対象：${y}年（1月〜12月）`;
@@ -1345,115 +1668,14 @@ function init(){
 init();
 </script>
 
-<!-- ===== TLP EULA Modal (既存どおり) ===== -->
-<div id="tlpEula" class="tlp-eula-overlay" aria-hidden="true">
-  <div class="tlp-eula-dialog" role="dialog" aria-modal="true" aria-labelledby="tlp-eula-title">
-    <header class="tlp-eula-header">
-      <h2 id="tlp-eula-title">エンドユーザー使用許諾契約（EULA）</h2>
-      <button id="tlpEulaClose" type="button" class="tlp-eula-close" aria-label="閉じる">×</button>
-    </header>
-    <section class="tlp-eula-body">
-      <p><strong>App:</strong> Tabco Ledger Plus / <strong>Version:</strong> 0.8.0 /
-         <strong>EULA Ver:</strong> <span id="tlp-eula-ver-label">2025-09-08</span></p>
-      <ol>
-        <li><b>ライセンス付与：</b>非独占・譲渡不可。再配布/逆コンパイル禁止。</li>
-        <li><b>データとプライバシー：</b>出力データの管理は利用者の責任。</li>
-        <li><b>知的財産：</b>本ソフト/名称/ロゴ等は開発者に帰属。</li>
-        <li><b>保証の否認：</b>現状有姿。損害・逸失利益等は免責。</li>
-        <li><b>準拠法・裁判管轄：</b>日本法・京都地方裁判所。</li>
-      </ol>
-      <p class="tlp-muted">※本番文面は後で差し替え可能</p>
-    </section>
-    <footer class="tlp-eula-footer">
-      <button id="tlpEulaDecline" type="button" class="btn btn-outline">同意しない</button>
-      <button id="tlpEulaAccept" type="button" class="btn btn-primary">同意する</button>
-    </footer>
-  </div>
-</div>
 
-<style>
-:root{ color-scheme: light dark; --tlp-footer-h: 0px; }
-.tlp-eula-overlay{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background: rgba(15,23,42,.60); z-index: 2147483647; padding:16px; }
-.tlp-eula-overlay.is-open{ display:flex; }
-.tlp-eula-dialog{ width:100%; max-width:720px; border-radius:16px; overflow:hidden; background:#fff; color:#111; border:1px solid #e5e7eb; box-shadow:0 16px 64px rgba(0,0,0,.35); box-sizing:border-box; }
-:root{ --z-eula: 2147483647; --z-modal: 3000; --z-actions: 2000; --z-floating: 1000; }
-.tlp-eula-overlay{ z-index: var(--z-eula) !important; }
-:where([role="dialog"],[aria-modal="true"],.modal,.dialog,.popup,.confirm,.sheet,.drawer){ z-index: var(--z-modal) !important; }
-:where(.tlp-form-actions,.form-actions,.footer-actions,.actions,.btn-row){ z-index: var(--z-actions) !important; }
-.tlp-eula-header, .tlp-eula-footer{ display:flex; align-items:center; gap:8px; padding:12px 16px; background:#f9fafb; border-bottom:1px solid #e5e7eb; }
-.tlp-eula-footer{ justify-content:flex-end; border-top:1px solid #e5e7eb; border-bottom:none; }
-.tlp-eula-header h2{ margin:0; font-size:1.05rem; }
-.tlp-eula-close{ margin-left:auto; border:1px solid #e5e7eb; border-radius:10px; background:#fff; padding:6px 10px; cursor:pointer; }
-.tlp-eula-body{ max-height:60vh; overflow:auto; padding:16px 18px; }
-.tlp-muted{ opacity:.7; }
-.btn{ padding:10px 14px; border-radius:10px; border:1px solid #e5e7eb; cursor:pointer; }
-.btn-outline{ background:#fff; color:#111; }
-.btn-primary{ background:#111; color:#fff; }
-@media (prefers-color-scheme: dark){
-  .tlp-eula-overlay{ background: rgba(0,0,0,.5); }
-  .tlp-eula-dialog{ background:#121212; color:#f5f5f5; border-color:#2a2a2a; box-shadow:0 20px 70px rgba(0,0,0,.6); }
-  .tlp-eula-header, .tlp-eula-footer{ background:#171717; border-color:#2a2a2a; }
-  .tlp-eula-close{ background:#1f1f1f; color:#f5f5f5; border-color:#2a2a2a; }
-  .btn-outline{ background:#1f1f1f; color:#f5f5f5; border-color:#2a2a2a; }
-  .btn-primary{ background:#f5f5f5; color:#121212; border-color:#d4d4d4; }
-  a{ color:#4da3ff; }
-}
-</style>
-
-<script>
-(function(){
-  const overlay = document.getElementById('tlpEula');
-  const btnAccept = document.getElementById('tlpEulaAccept');
-  const btnDecline = document.getElementById('tlpEulaDecline');
-  const btnClose = document.getElementById('tlpEulaClose');
-  const verLabel = document.getElementById('tlp-eula-ver-label');
-  const LOCK_MODE = false;
-  const REQUIRED_EULA_VERSION =
-    (window.__tlp_meta && __tlp_meta.eulaVersion) ||
-    (verLabel ? verLabel.textContent.trim() : '1.0');
-  if (verLabel) verLabel.textContent = REQUIRED_EULA_VERSION;
-
-  function isOpen(){ return overlay.classList.contains('is-open'); }
-  function open(){
-    overlay.classList.add('is-open');
-    overlay.setAttribute('aria-hidden','false');
-    document.body.classList.add('tlp-modal-open');
-    setTimeout(()=>{ (btnAccept || btnClose)?.focus(); }, 0);
-  }
-  function close(){
-    if (LOCK_MODE) return;
-    overlay.classList.remove('is-open');
-    overlay.setAttribute('aria-hidden','true');
-    document.body.classList.remove('tlp-modal-open');
-  }
-  overlay.addEventListener('click', (e)=>{ if (!LOCK_MODE && e.target === overlay) close(); });
-  document.addEventListener('keydown', (e)=>{ if (!LOCK_MODE && e.key === 'Escape' && isOpen()) close(); });
-  btnClose?.addEventListener('click', close);
-  btnDecline?.addEventListener('click', ()=>{ close(); document.dispatchEvent(new CustomEvent('tlp:eula-declined')); });
-  btnAccept?.addEventListener('click', ()=>{
-    try {
-      localStorage.setItem('tlp_eula_version', REQUIRED_EULA_VERSION);
-      localStorage.setItem('tlp_eula_version_accepted', REQUIRED_EULA_VERSION);
-      localStorage.setItem('tlp_eula_accepted_at', new Date().toISOString());
-    } catch(_) {}
-    document.dispatchEvent(new CustomEvent('tlp:eula-accepted', { detail:{ version: REQUIRED_EULA_VERSION }}));
-    close();
-  });
-  try {
-    const saved = localStorage.getItem('tlp_eula_version');
-    if (saved !== REQUIRED_EULA_VERSION) open();
-  } catch(_){ open(); }
-  window.tlpOpenEula = open;
-  window.tlpCloseEula = close;
-})();
-</script>
 
 <script>
 (()=>{ 'use strict';
   const TLP = (window.TLP = window.TLP || {});
   const meta = (window.__tlp_meta || {});
   const REQUIRED_EULA_VERSION = String(meta.eulaVersion || '2025-09-08');
-  TLP.APP = Object.assign({ NAME:'Tabco Ledger Plus', VERSION:'0.8.0', EULA_VERSION: REQUIRED_EULA_VERSION }, TLP.APP || {});
+  TLP.APP = Object.assign({ NAME:'Tabco Ledger Plus', VERSION:'0.8.1', EULA_VERSION: REQUIRED_EULA_VERSION }, TLP.APP || {});
   const LS = window.localStorage;
   const KEYS = { EULA_VER_NEW:'tlp_eula_version', EULA_VER_OLD:'tlp_eula_version_accepted', EULA_AT:'tlp_eula_accepted_at', LICENSE:'tlp_license_status' };
   TLP.keys = KEYS;
@@ -1493,9 +1715,9 @@ init();
   window.__tlp_meta = Object.assign({
     app: "Tabco Ledger Plus",
     brand: "Tabco Ledger Plus",
-    version: (window.TLP && TLP.APP && TLP.APP.VERSION) || "0.8.0",
+    version: (window.TLP && TLP.APP && TLP.APP.VERSION) || "0.8.1",
     eulaVersion: (window.TLP && TLP.APP && TLP.APP.EULA_VERSION) || "2025-09-08",
-    build: "v0.8.0-20250908",
+    build: "v0.8.1-20250930",
     site: "cafetabco.com"
   }, window.__tlp_meta || {});
 })();
@@ -1533,7 +1755,7 @@ init();
     const el = document.createElement('div');
     el.id = 'tlp-brand-badge-rights';
     el.setAttribute('role','note');
-    el.textContent = 'Tabco Ledger Plus\u2122 v0.8.0';
+    el.textContent = 'Tabco Ledger Plus\u2122 v0.8.1';
     return el;
   }
   function mountRightsBadge(){
@@ -1564,7 +1786,7 @@ init();
 (()=>{try{
   const meta = window.__tlp_meta || {};
   const eulaVer = meta.eulaVersion || "2025-09-08";
-  console.log("[TLP] diag boot v0.8.0 (minimal)");
+  console.log("[TLP] diag boot v0.8.1 (minimal)");
   window.addEventListener("keydown", (e)=>{
     if(e.altKey && e.key.toLowerCase()==="e"){
       e.preventDefault();
@@ -1620,7 +1842,7 @@ init();
   };
   ensure('rights-appinfo', `<h4>アプリ情報</h4><p><b>App:</b> ${APP_NAME} / <b>Version:</b> ${VERSION} / <b>Build:</b> ${BUILD}</p><p><b>EULA:</b> ${EULA_VER} / <b>© ${CURRENT_Y} ${PUBLISHER}. All rights reserved.</b></p>`);
   ensure('rights-privacy', `<h4>プライバシーポリシー</h4><p>本アプリは入力データを<b>端末ローカル</b>に保存します。バックアップ機能利用時のみ、利用者自身のクラウドに保存されます。</p><p>詳細は <a href="https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/" target="_blank" rel="noopener">プライバシーポリシー</a> をご覧ください。</p>`);
-  ensure('rights-eula-note', `<h4>使用許諾（EULA）</h4><p>本アプリの利用により、<a href="#" id="rights-open-eula">EULA（使用許諾契約）</a>に同意したものとみなされます。</p>`);
+  ensure('rights-eula-note', `<h4>使用許諾（EULA）</h4><p>本アプリの利用により、<a href="./#rights">EULA（使用許諾契約）</a>に同意したものとみなされます。</p>`);
   page.addEventListener('click', (e)=>{ const a = e.target.closest('#rights-open-eula'); if(!a) return; e.preventDefault(); if (typeof window.tlpOpenEula === 'function') window.tlpOpenEula(); else if (window.TLP && typeof TLP.showEula === 'function') TLP.showEula(); else alert('EULAを表示できませんでした。'); });
 ensure('rights-support', `<h4>お問い合わせ</h4><p>Webサイト：<a href="https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/" target="_blank" rel="noopener noreferrer">https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/</a></p>`);
   ensure('rights-trademark', `<h4>商標について</h4><p>“${APP_NAME}” および関連ロゴは ${PUBLISHER} の商標です。記載の会社名・製品名は各社の商標または登録商標です。</p>`);
@@ -1644,5 +1866,208 @@ document.addEventListener("focusin", (e)=>{
   setTimeout(()=>{ try{ inp.select && inp.select(); }catch(_){} }, 0);
 });
 </script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js?v=0.8.3'); // 末尾の?vで更新検知を確実化
+  }
+</script>
+<!-- === EULA Hard Consent (blocking) === -->
+<div id="eulaOverlay" aria-modal="true" role="dialog" aria-labelledby="eulaTitle">
+  <div id="eulaDialog" tabindex="-1">
+    <h2 id="eulaTitle">利用許諾契約（EULA）への同意が必要です</h2>
+  <p>本アプリのご利用には、次の利用許諾契約（EULA）への同意が必要です。</p>
+<ul style="margin:.6em 0 0 1.2em;line-height:1.6">
+  <li><b>ライセンス付与：</b>非独占・譲渡不可。再配布／逆コンパイル禁止。</li>
+  <li><b>データとプライバシー：</b>出力データの管理は利用者の責任。</li>
+  <li><b>知的財産：</b>本ソフト／名称／ロゴ等は開発者に帰属。</li>
+  <li><b>保証の否認：</b>現状有姿。損害・逸失利益等は免責。</li>
+  <li><b>準拠法・裁判管轄：</b>日本法・京都地方裁判所。</li>
+</ul>
+<div id="eulaLinks" style="margin-top:.6em">
+  <p>
+    <a href="./#rights" target="_blank" rel="noopener">EULA本文</a> ・
+    <a href="https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/" target="_blank" rel="noopener">プライバシーポリシー</a> ・
+    <a href="https://cafetabco.com/tabco-ledger-plus-仕入れ管理アプリ/" target="_blank" rel="noopener">お問い合わせ</a>
+  </p>
+</div>
+
+    <div id="eulaActions">
+      <button id="btnEulaAgree" type="button" autofocus>同意する</button>
+    </div>
+  </div>
+</div>
+<script>
+/* === EULA Hard Consent === */
+(() => {
+  const EULA_VERSION = "1.0.0";              // ← EULA本文を更新したら上げる
+  const EULA_KEY = "tlp.eula.accepted";      // localStorageキー
+
+  const $overlay = document.getElementById('eulaOverlay');
+  const $dialog  = document.getElementById('eulaDialog');
+  const $agree   = document.getElementById('btnEulaAgree');
+
+  function getAccepted(){
+    try { return JSON.parse(localStorage.getItem(EULA_KEY) || "null"); }
+    catch(e){ return null; }
+  }
+  function setAccepted(){
+    const payload = { version: EULA_VERSION, ts: new Date().toISOString() };
+    try { localStorage.setItem(EULA_KEY, JSON.stringify(payload)); }
+    catch(e){
+      alert("ブラウザの保存領域にアクセスできないため、アプリを利用できません。設定をご確認ください。");
+      return;
+    }
+  }
+  function needsConsent(){
+    const saved = getAccepted();
+    return !saved || saved.version !== EULA_VERSION;
+  }
+  function lockUI(lock){
+    document.body.classList.toggle('eula-locked', lock);
+    // 背景クリック/Escで閉じられないようにする
+    if(lock){
+      $overlay.addEventListener('click', eat, {capture:true});
+      document.addEventListener('keydown', blockEsc, {capture:true});
+      // フォーカスをダイアログ内にトラップ
+      setTimeout(()=> ($agree || $dialog).focus(), 0);
+      document.addEventListener('focus', trapFocus, true);
+    }else{
+      $overlay.removeEventListener('click', eat, {capture:true});
+      document.removeEventListener('keydown', blockEsc, {capture:true});
+      document.removeEventListener('focus', trapFocus, true);
+    }
+  }
+  function eat(ev){
+    // オーバーレイ/背景クリックの伝播を止める
+    if(ev.target === $overlay) ev.stopPropagation();
+    if(ev.target === $overlay) ev.preventDefault();
+  }
+  function blockEsc(ev){
+    if(ev.key === 'Escape'){ ev.preventDefault(); ev.stopPropagation(); }
+  }
+  function trapFocus(ev){
+    if(!$overlay.classList.contains('show')) return;
+    if(!$dialog.contains(ev.target)){
+      ev.stopPropagation();
+      ($agree || $dialog).focus();
+    }
+  }
+  function openEula(){
+    $overlay.classList.add('show');
+    lockUI(true);
+  }
+  function closeEula(){
+    $overlay.classList.remove('show');
+    lockUI(false);
+  }
+
+  // 同意ボタン
+  $agree.addEventListener('click', () => {
+    setAccepted();
+    closeEula();
+  });
+
+  // 起動後チェック（既存initの後でも先でも安全に動くようDOMContentLoadedで実行）
+  window.addEventListener('DOMContentLoaded', () => {
+    if (needsConsent()) openEula();
+  });
+})();
+</script>
+<script>
+/* === Disable legacy (soft) EULA triggers === */
+window.addEventListener('DOMContentLoaded', () => {
+  // 1) よくある関数名を無効化（存在するものだけ上書き）
+  ['openEula','showEula','openEULAModal','showEULAModal'].forEach(fn=>{
+    if (typeof window[fn] === 'function') window[fn] = function(){};
+  });
+
+  // 2) クリック系トリガーを無効化（よくあるセレクタ）
+  const sels = [
+    '#btnEula','#btnOpenEula','#linkEula',
+    '[data-open="eula"]','[data-modal="eula"]'
+  ];
+  sels.forEach(s=>{
+    document.querySelectorAll(s).forEach(el=>{
+      el.replaceWith(el.cloneNode(true)); // 全リスナー剥がし
+      el.setAttribute?.('data-eula-soft-disabled','1');
+    });
+  });
+
+  // 3) 旧オーバーレイが万一表示されたら即座に隠す（代表的ID/クラス）
+  const hide = sel => document.querySelectorAll(sel).forEach(n=>{
+    n.style.display='none'; n.setAttribute('aria-hidden','true');
+  });
+  hide('#eulaModal'); hide('#modalEula'); hide('.eula-modal'); hide('[data-role="eula-modal"]');
+});
+</script>
+<script>
+// --- Strictバックアップ（表示対象と同じ集合だけ保存） ---
+// 非表示/削除/無効フラグの共通判定
+function isFlagged(o){
+  return !!(o && (
+    o.deleted === true || o.isDeleted === true || o._deleted === true ||
+    o.hidden  === true || o.archived === true ||
+    o.active  === false|| o.enabled  === false|| o.visible  === false
+  ));
+}
+
+// クリーンスナップショットを作る（UIで見えるデータだけ）
+function getCleanSnapshot(s){
+  s = s || {};
+  // 1) 仕入先：フラグ無＆idあり
+  const suppliers = (s.suppliers||[]).filter(x => !isFlagged(x) && x && x.id);
+  const supSet = new Set(suppliers.map(x => x.id));
+
+  // 2) 商品：フラグ無＆id/名前あり＆仕入先に実在リンク＆id重複排除
+  const seenProd = new Set();
+  const products = [];
+  for (const p of (s.products||[])) {
+    if (!p || isFlagged(p)) continue;
+    if (!p.id) continue;
+    if (!p.name || !String(p.name).trim()) continue;
+   const sid = p.supplierId ?? p.supplier_id ?? null;
+if (sid==null || !supSet.has(sid)) continue; // 未紐づけ/不正リンクは除外
+    if (seenProd.has(p.id)) continue;        // 重複idは先勝ち
+    products.push(p);
+    seenProd.add(p.id);
+  }
+  const prodSet = new Set(products.map(p => p.id));
+
+  // 3) 履歴：フラグ無＆参照整合（product/supplierが存在する場合のみ許可）
+  const history = (s.history||[]).filter(h => {
+    if (!h || isFlagged(h)) return false;
+    const pidOk = (h.productId  == null) || prodSet.has(h.productId);
+    const sidOk = (h.supplierId == null) || supSet.has(h.supplierId);
+    return pidOk && sidOk;
+  });
+
+  // 4) そのほか（設定類）はそのまま持ち越す
+  return { ...s, suppliers, products, history };
+}
+
+// 既存の「バックアップ保存」に適用する（※ここだけ置き換え）
+// 例）元が saveJson(store) なら → saveJson(getCleanSnapshot(store))
+window.saveBackupStrict = function(){
+  const clean = getCleanSnapshot(store);
+ const payload = {                                    // ★ ここから
+    tables: {
+      suppliers: clean.suppliers || [],
+      products:  clean.products  || [],
+      entries:   clean.entries   || [],
+      priceHistory: clean.priceHistory || []
+    },
+    settings: clean.settings || { plan:'Free' },
+    version:  clean.version  || 'v0.8.4'
+  };                                                   // ★ ここまで
+  const blob  = new Blob([JSON.stringify(payload)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `backup_strict_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(a.href);
+};
+window.backupNow = function(){ saveBackupStrict(); };
+</script>
+<!-- update: 2025-10-01 -->
 </body>
 </html>
