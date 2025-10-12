@@ -2108,6 +2108,20 @@ window.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
+<!-- v0: #btnSave（完了）恒久配線：ここが正式 -->
+<script id="bind-btnsave">
+(()=> {
+  if (window.__boundBtnSave) return;    // 二重配線ガード
+  document.addEventListener('click', (e) => {
+    const hit = e.target.closest('#btnSave');
+    if (!hit) return;
+    e.preventDefault();
+    navigate('home');
+    refreshHome();
+  });
+  window.__boundBtnSave = true;
+})();
+</script>
 
 <!-- update: 2025-10-01 -->
 </body>
