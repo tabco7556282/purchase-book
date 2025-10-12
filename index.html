@@ -6,7 +6,40 @@
 <link rel="manifest" href="./manifest.webmanifest?v=0.8.4">
 <link rel="apple-touch-icon" href="./icons/icon-180-v223i.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/themes/material_orange.css">
-<title>仕入れ管理｜v0 検証用</title>
+<style>
+  :root { --fp-accent: #ffb300; } /* アクセント色（見やすい黄橙） */
+
+  /* 全体を少し大きく＆数字を太く */
+  .flatpickr-calendar { font-size: 16px; }
+  .flatpickr-day {
+    font-weight: 700;
+    letter-spacing: .2px;           /* ほんの少し字間を足して読みやすく */
+    border-radius: 10px;
+  }
+
+  /* 今日の枠をくっきり */
+  .flatpickr-day.today:not(.selected) {
+    box-shadow: inset 0 0 0 2px var(--fp-accent);
+  }
+
+  /* 選択色を高コントラストに */
+  .flatpickr-day.selected,
+  .flatpickr-day.startRange,
+  .flatpickr-day.endRange {
+    background: var(--fp-accent) !important;
+    color: #111 !important;         /* 黒字でくっきり */
+  }
+
+  /* 曜日ヘッダもしっかり */
+  .flatpickr-weekday { font-weight: 800; color:#e9e9e9; }
+
+  /* 無効/他月の日付は弱めに（暗色テーマ向け） */
+  .flatpickr-day.disabled, .flatpickr-day.nextMonthDay, .flatpickr-day.prevMonthDay {
+    color: #888 !important;
+  }
+</style>
+
+  <title>仕入れ管理｜v0 検証用</title>
 <style>
 :root{
   --brand:#FFC107; --brand-ink:#1A1300;
