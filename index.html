@@ -2075,38 +2075,48 @@ window.backupNow = function(){ saveBackupStrict(); };
   .fp-btn:hover{filter:brightness(0.97)}
 </style>
 
+<style>
+  .fp-btnbar{display:flex;gap:.5rem;padding:.5rem;border-top:1px solid #eee}
+  .fp-btn{padding:.4rem .8rem;border:1px solid #ddd;border-radius:.5rem;background:#f6f6f6;cursor:pointer}
+  .fp-btn:hover{filter:brightness(0.97)}
+</style>
+
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('input[type="date"], input[data-datepicker]').forEach(el => {
-    // ネイティブ日付UIを無効化して統一UIに
-    el.setAttribute('type', 'text');
+window.addEventListener('DOMContentLoaded', function () {
+  var nodes = document.querySelectorAll('input[type="date"], input[data-datepicker]');
+  for (var i = 0; i < nodes.length; i++) {
+    var el = nodes[i];
+    el.type = 'text'; // ネイティブUIを無効化
 
     flatpickr(el, {
       dateFormat: 'Y-m-d',
-      locale: flatpickr.l10ns.ja,
+      locale: 'ja',          // ja.js 読み込み済み前提
       disableMobile: true,
       allowInput: true,
-      closeOnSelect: false,      // 選択で自動クローズしない
-      onOpen: (sel, str, inst) => { inst._orig = el.value || null; },
-      onReady: (sel, str, inst) => {
-        const c = inst.calendarContainer;
-        if (c.querySelector('.fp-btnbar')) return;
-        const bar = document.createElement('div');
+      closeOnSelect: false,  // 選択で自動クローズしない
+      onOpen: function(selectedDates, str, inst){
+        inst._orig = inst.input.value || null;
+      },
+      onReady: function(selectedDates, str, inst){
+        var c = inst.calendarContainer;
+        if (c.querySelector('.fp-btnbar')) return; // 二重追加防止
+        var bar = document.createElement('div');
         bar.className = 'fp-btnbar';
-        bar.innerHTML = `
-          <button type="button" class="fp-btn fp-clear">削除</button>
-          <span style="flex:1"></span>
-          <button type="button" class="fp-btn fp-cancel">キャンセル</button>
-          <button type="button" class="fp-btn fp-ok">設定</button>`;
+        bar.innerHTML =
+          '<button type="button" class="fp-btn fp-clear">削除</button>' +
+          '<span style="flex:1"></span>' +
+          '<button type="button" class="fp-btn fp-cancel">キャンセル</button>' +
+          '<button type="button" class="fp-btn fp-ok">設定</button>';
         c.appendChild(bar);
-        bar.querySelector('.fp-clear').onclick  = () => { inst.clear(); inst.close(); };
-        bar.querySelector('.fp-cancel').onclick = () => { inst.setDate(inst._orig, false, 'Y-m-d'); inst.close(); };
-        bar.querySelector('.fp-ok').onclick     = () => { inst.close(); };
+        bar.querySelector('.fp-clear').onclick  = function(){ inst.clear(); inst.close(); };
+        bar.querySelector('.fp-cancel').onclick = function(){ inst.setDate(inst._orig, false, 'Y-m-d'); inst.close(); };
+        bar.querySelector('.fp-ok').onclick     = function(){ inst.close(); };
       }
     });
-  });
+  }
 });
 </script>
+
 
 <!-- update: 2025-10-01 -->
 </body>
