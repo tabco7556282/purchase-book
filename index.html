@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
 <link rel="manifest" href="./manifest.webmanifest?v=0.8.4">
 <link rel="apple-touch-icon" href="./icons/icon-180-v223i.png">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <title>仕入れ管理｜v0 検証用</title>
 <style>
 :root{
@@ -2067,6 +2068,21 @@ window.saveBackupStrict = function(){
   URL.revokeObjectURL(a.href);
 };
 window.backupNow = function(){ saveBackupStrict(); };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ja.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('input[type="date"], input[data-datepicker]').forEach(el => {
+    el.setAttribute('type', 'text');                // ネイティブUIを無効化
+    flatpickr(el, {
+      dateFormat: 'Y-m-d',
+      locale: flatpickr.l10ns.ja,
+      disableMobile: true,                          // モバイルでも統一UI
+      allowInput: true
+    });
+  });
+});
 </script>
 <!-- update: 2025-10-01 -->
 </body>
