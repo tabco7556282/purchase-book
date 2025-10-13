@@ -754,6 +754,7 @@ function addLine(){
 
 document.addEventListener("click",(e)=>{ if(e.target.id==="btnClear"){ $("#inQty").value=1;$("#inPrice").value="";$("#inMemo").value="";$("#inProduct").value="";$("#priceHistory").innerHTML=""; }});
 
+
 /* 商品編集委譲 */
 document.addEventListener("click",(e)=>{
   const btn = e.target.closest("#productList .edit");
