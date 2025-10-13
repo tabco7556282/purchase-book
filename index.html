@@ -752,7 +752,37 @@ function addLine(){
   }
 }
 
-document.addEventListener("click",(e)=>{ if(e.target.id==="btnClear"){ $("#inQty").value=1;$("#inPrice").value="";$("#inMemo").value="";$("#inProduct").value="";$("#priceHistory").innerHTML=""; }});
+document.addEventListener("click", (e) => {
+  if (e.target.id !== "btnClear") return;
+
+  const set = (sel, val) => {
+    const el = document.querySelector(sel);
+    if (!el) return;
+    el.value = val;
+    el.dispatchEvent(new Event("input",  { bubbles:true }));
+    el.dispatchEvent(new Event("change", { bubbles:true }));
+  };
+
+  // 基本欄
+  set("#inQty", 1);
+  set("#inPrice", "");
+  set("#inMemo", "");
+  set("#inProduct", "");
+
+  // フリー入力
+  set("#freeSupplier", "");
+  set("#freeProduct", "");
+
+  // 検索欄（存在するものだけ全て空に）
+  ["#productSearch","#inProductSearch",'input[name="productSearch"]','input[placeholder*="商品"]']
+    .forEach(s => set(s, ""));
+  ["#supplierSearch","#inSupplierSearch",'input[name="supplierSearch"]','input[placeholder*="仕入"]']
+    .forEach(s => set(s, ""));
+
+  const ph = document.querySelector("#priceHistory");
+  if (ph) ph.innerHTML = "";
+});
+
 
 
 /* 商品編集委譲 */
