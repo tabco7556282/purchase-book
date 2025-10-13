@@ -2201,41 +2201,59 @@ window.addEventListener('DOMContentLoaded', function () {
 })();
 </script>
 
-<!-- v0: 復元直後にマスタの「＋追加」を再有効化 -->
+<!-- v0: 復元直後にマスタの「＋追加」を確実に再有効化（遅延描画に対応） -->
 <script id="fix-master-add-buttons">
 (() => {
+  const sels = {
+    product : '#btnAddProduct,[data-btn="add-product"],.product .btn-add',
+    supplier: '#btnAddSupplier,[data-btn="add-supplier"],.supplier .btn-add'
+  };
+
   const enable = (sel) => {
     const b = document.querySelector(sel);
-    if (!b) return;
+    if (!b) return false;
     b.disabled = false;
-    b.classList.remove('is-disabled','disabled');
+    b.classList.remove('is-disabled', 'disabled');
     b.removeAttribute('aria-disabled');
     b.style.pointerEvents = '';
-  };
-  const fix = () => {
-    enable('#btnAddProduct');   // 商品マスタ「＋追加」
-    enable('#btnAddSupplier');  // 仕入先マスタ「＋追加」
+    return true;
   };
 
-  // 1) 画面表示直後
-  document.addEventListener('DOMContentLoaded', fix);
+  const ready = () => {
+    const p = document.querySelector(sels.product);
+    const s = document.querySelector(sels.supplier);
+    return p && !p.disabled && !p.classList.contains('is-disabled') &&
+           s && !s.disabled && !s.classList.contains('is-disabled');
+  };
 
-  // 2) 復元やマスタ遷移の直後（クリック文言でざっくり捕捉）
+  // 繰り返し有効化（一定時間だけ）。描画が遅れても拾う
+  const startWatch = (ms = 8000) => {
+    const t0 = Date.now();
+    const id = setInterval(() => {
+      enable(sels.product);
+      enable(sels.supplier);
+      if (ready() || Date.now() - t0 > ms) clearInterval(id);
+    }, 120);
+  };
+
+  // 1) 初回
+  startWatch(8000);
+
+  // 2) 復元／マスタ遷移っぽい操作の直後に再ウォッチ
   document.addEventListener('click', (e) => {
     const t = (e.target.textContent || '').trim();
-    if (['復元','商品マスタ','仕入先マスタ','HOME','インポート']
+    if (['復元', '商品マスタ', '仕入先マスタ', 'HOME', 'インポート']
           .some(x => t.includes(x))) {
-      setTimeout(fix, 80);
+      setTimeout(() => startWatch(6000), 80);
     }
   }, true);
 
-  // 3) 要素が後から出るケースにも対応（短時間だけ監視）
-  const mo = new MutationObserver(() => fix());
+  // 3) DOM変化でもフォロー（描画が分割されるケース）
+  const mo = new MutationObserver(() => startWatch(4000));
   mo.observe(document.documentElement, { childList: true, subtree: true });
-  // 軽量化のため3秒後に停止（十分に反映済み）
-  setTimeout(() => mo.disconnect(), 3000);
 })();
 </script>
+
 
 <!-- update: 2025-10-01 -->
 </body>
