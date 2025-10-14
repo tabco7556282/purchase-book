@@ -2334,6 +2334,69 @@ document.addEventListener('DOMContentLoaded',()=>{ (enforcePlan||PlanLocks?.enfo
   }, 50);
 })();
 </script>
+<script id="tlp-plan-sync-v2">
+/* PLAN=localStorage に一本化。store.settings が差し替わっても常に plan をプロキシ。復元後も自動同期 */
+(function(){
+  // 実効プランの唯一のソース
+  function EFFECTIVE_PLAN(){ return localStorage.getItem('tlpPro')==='1' ? 'pro' : 'free'; }
+  window.PLAN = EFFECTIVE_PLAN; // 参照している箇所向けに上書き
+
+  // settings.plan を getter 化（settings が差し替わっても追随）
+  let _settingsRef = null;
+  function attachPlanGetter(obj){
+    if(!obj) return;
+    const d = Object.getOwnPropertyDescriptor(obj,'plan');
+    if(!d || ('value' in d)){
+      Object.defineProperty(obj,'plan',{
+        configurable:true, enumerable:true,
+        get: EFFECTIVE_PLAN, set(){ /* no-op */ }
+      });
+    }
+  }
+  function hookSettingsSetter(){
+    if(!window.store) return;
+    // 既存参照を保持
+    _settingsRef = store.settings || _settingsRef;
+    // settings に setter を仕込み、差し替え時に毎回 getter を付与
+    const desc = Object.getOwnPropertyDescriptor(store,'settings');
+    if(!desc || ('value' in desc)){
+      let val = _settingsRef;
+      Object.defineProperty(store,'settings',{
+        configurable:true, enumerable:true,
+        get(){ return val; },
+        set(v){ val = v; attachPlanGetter(val); }
+      });
+    }
+    attachPlanGetter(store.settings);
+  }
+
+  function syncUI(){
+    (window.enforcePlan || window.PlanLocks?.enforce)?.();
+    window.applyPlanUI?.();
+  }
+
+  // 起動時
+  document.addEventListener('DOMContentLoaded', ()=>{ hookSettingsSetter(); syncUI(); });
+
+  // 復元後（DB.load / fromJSON など）にも同期
+  function wrap(obj, name){
+    const f = obj && typeof obj[name]==='function' ? obj[name].bind(obj) : null;
+    if(!f) return;
+    obj[name] = async function(...args){
+      const r = await f(...args);
+      hookSettingsSetter(); // 差し替え後の settings にも getter を再付与
+      syncUI();
+      return r;
+    };
+  }
+  const wait = setInterval(()=>{
+    if(window.DB){
+      clearInterval(wait);
+      ['load','fromJSON','restore','merge','apply'].forEach(n=>wrap(DB,n));
+    }
+  }, 30);
+})();
+</script>
 
 
 
