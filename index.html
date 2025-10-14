@@ -2292,39 +2292,6 @@ window.addEventListener('DOMContentLoaded', function () {
 <script>
 document.addEventListener('DOMContentLoaded',()=>{ (enforcePlan||PlanLocks?.enforce)?.(localStorage.getItem('tlpPro')==='1'?'PRO':'FREE'); });
 </script>
-<script>
-/* TLP: plan-proxy + restore-sync (final) */
-(function(){
-  function sync(){
-    (window.enforcePlan || window.PlanLocks?.enforce)?.();
-    window.applyPlanUI?.();
-  }
-  function bindStorePlanProxy(){
-    try{
-      if(!window.store || !store.settings) return;
-      const d = Object.getOwnPropertyDescriptor(store.settings,'plan');
-      if(!d || ('value' in d)){
-        Object.defineProperty(store.settings,'plan',{
-          configurable:true, enumerable:true,
-          get(){ return localStorage.getItem('tlpPro')==='1' ? 'pro' : 'free'; },
-          set(_){ /* no-op */ }
-        });
-      }
-    }catch(e){}
-  }
-  // 起動時
-  document.addEventListener('DOMContentLoaded', ()=>{ bindStorePlanProxy(); sync(); });
-  // 復元後（DB.load）
-  const orig = window.DB?.load?.bind(DB);
-  if(orig){
-    DB.load = async function(...args){
-      const r = await orig(...args);
-      bindStorePlanProxy(); sync();
-      return r;
-    };
-  }
-})();
-</script>
 
 
 
