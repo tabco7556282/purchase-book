@@ -2292,6 +2292,48 @@ window.addEventListener('DOMContentLoaded', function () {
 <script>
 document.addEventListener('DOMContentLoaded',()=>{ (enforcePlan||PlanLocks?.enforce)?.(localStorage.getItem('tlpPro')==='1'?'PRO':'FREE'); });
 </script>
+<script id="tlp-plan-sync">
+/* PLAN=localStorage, store.settings.plan をプロキシ, 復元後に同期 */
+(function(){
+  // 実効プラン：localStorage.tlpPro を唯一のソースに
+  function PLAN(){ return localStorage.getItem('tlpPro')==='1' ? 'pro' : 'free'; }
+  window.PLAN = PLAN;
+
+  // store.settings.plan を PLAN に合わせる（getter 化）
+  function bindProxy(){
+    if (!window.store || !store.settings) return;
+    const d = Object.getOwnPropertyDescriptor(store.settings,'plan');
+    if (!d || ('value' in d)) {
+      Object.defineProperty(store.settings,'plan',{
+        configurable:true, enumerable:true,
+        get: PLAN, set(){} // 固定
+      });
+    }
+  }
+
+  // 上限再計算＋UI反映
+  function sync(){
+    (window.enforcePlan || window.PlanLocks?.enforce)?.();
+    window.applyPlanUI?.();
+  }
+
+  // 起動時
+  document.addEventListener('DOMContentLoaded', ()=>{ bindProxy(); sync(); });
+
+  // 復元完了（DB.load）後にも毎回同期
+  const wait = setInterval(()=>{
+    if (window.DB && typeof DB.load==='function'){
+      clearInterval(wait);
+      const orig = DB.load.bind(DB);
+      DB.load = async function(...args){
+        const r = await orig(...args);
+        bindProxy(); sync();
+        return r;
+      };
+    }
+  }, 50);
+})();
+</script>
 
 
 
