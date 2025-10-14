@@ -1347,7 +1347,8 @@ function backupNow(){
 // Backup はそのまま
 // ---- Plan enforcement (端末プランに基づくロック計算) ----
 function getPlan(){
-  return (store && store.settings && store.settings.plan) || 'free';
+  try { return (localStorage.getItem('tlpPro') === '1') ? 'pro' : 'free'; }
+  catch(_) { return 'free'; }
 }
 
 // TODO: 実運用の上限に合わせて調整
@@ -1446,8 +1447,8 @@ const resolveEntity = (dlg) => {
 
 // 復元直後などに呼んで“ロック対象”だけ計算して保存
 window.enforcePlan = function(){
-  const plan = (store && store.settings && store.settings.plan) || 'free';
-  const lim  = window.PLAN_LIMITS[plan] || window.PLAN_LIMITS.free;
+  const plan = getPlan();
+ const lim  = window.PLAN_LIMITS[plan] || window.PLAN_LIMITS.free;
 
   const mkLocks = (arr, limit) => {
     if (!Array.isArray(arr)) return [];
@@ -1472,7 +1473,7 @@ window.enforcePlan = function(){
 
 // entity: "suppliers" | "products" | "entries"
 window.canCreate = function(entity){
-  const plan = (store && store.settings && store.settings.plan) || 'free';
+  const plan = getPlan();
   const lim  = window.PLAN_LIMITS[plan] || window.PLAN_LIMITS.free;
   const count = (store && Array.isArray(store[entity])) ? store[entity].length : 0;
   const limit = lim[entity] ?? 0;
