@@ -355,6 +355,7 @@ textarea{min-height:84px;resize:vertical}
           <li>出力範囲：<b>無制限</b></li>
         </ul>
         <button class="btn primary small" id="mockBuyPro" type="button">フル機能で使う</button>
+        <button id="btnEnterLicense" class="btn ghost small" type="button">コードを入力</button>
       </div>
     </div>
   </section>
@@ -1640,7 +1641,15 @@ document.addEventListener("click",(e)=>{
 });
 
 /* ===== License mock & UI sync ===== */
-function setPlan(p){ store.settings.plan=p; DB.save(store); refreshHome(); alert("プランが更新されました（デモ）"); syncLicenseButtons(); }
+function setPlan(p){
+store.settings.plan = p;
+DB.save(store);
+enforcePlan();          // 端末プランに基づくロック再計算
+applyPlanUI();          // 追加ボタンなどのUI反映
+refreshHome();
+alert("プランが更新されました（デモ）");
+syncLicenseButtons();
+}
 
 function renderRights(){
   try{
@@ -1665,6 +1674,29 @@ function syncLicenseButtons(){
 document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyMid") setPlan("middle"); });
 document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyPro") setPlan("pro"); });
 document.addEventListener("click",(e)=>{ if(e.target.id==="btnUseFree") setPlan("free"); });
+function openLicenseModal(){
+  openModalBase("ライセンスコード", `
+    <div class="grid">
+      <div class="label">コード</div>
+      <input id="licenseKey" type="text" placeholder="XXXX-XXXX-XXXX">
+    </div>
+  `);
+  const ok = document.getElementById('modalOK');
+  const cancel = document.getElementById('modalCancel');
+  const del = document.getElementById('modalDelete');
+  del.classList.add('hidden');
+  ok.textContent = "適用";
+  cancel.textContent = "閉じる";
+  ok.onclick = () => {
+    const k = (document.getElementById('licenseKey')?.value || '').trim();
+    if (!k) { alert("コードが無効です"); return; }
+    setPlan('pro');              // MVP: コード検証は後続
+    closeModal();
+  };
+}
+document.addEventListener('click', (e)=>{
+  if (e.target.id === 'btnEnterLicense') openLicenseModal();
+});
 
 /* ===== Init ===== */
 function init(){
@@ -1681,6 +1713,8 @@ function init(){
     showPage(location.hash.replace("#","")||"home");
     if ((location.hash||"") === "#history") { try{ renderHistory(); }catch(e){ console.error(e); } }
     syncLicenseButtons();
+    enforcePlan();
+    applyPlanUI();
   }catch(err){
     console.error("init failed:", err);
     alert("初期化中に問題が発生しました。ページを再読み込みしてください。");
