@@ -2292,6 +2292,19 @@ window.addEventListener('DOMContentLoaded', function () {
 <script>
 document.addEventListener('DOMContentLoaded',()=>{ (enforcePlan||PlanLocks?.enforce)?.(localStorage.getItem('tlpPro')==='1'?'PRO':'FREE'); });
 </script>
+<script>
+/* TLP: restore後に実効プランを必ず同期 */
+(function(){
+  const orig = window.DB?.load?.bind(DB);
+  if(!orig) return;
+  DB.load = async function(...args){
+    const r = await orig(...args);
+    (window.enforcePlan || window.PlanLocks?.enforce)?.();
+    window.applyPlanUI?.();
+    return r;
+  };
+})();
+</script>
 
 
 <!-- update: 2025-10-01 -->
