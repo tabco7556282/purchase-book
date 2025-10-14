@@ -2253,6 +2253,9 @@ window.addEventListener('DOMContentLoaded', function () {
   mo.observe(document.documentElement, { childList: true, subtree: true });
 })();
 </script>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{ (enforcePlan||PlanLocks?.enforce)?.(localStorage.getItem('tlpPro')==='1'?'PRO':'FREE'); });
+</script>
 
 
 <!-- update: 2025-10-01 -->
