@@ -1688,7 +1688,8 @@ function openLicenseModal(){
   ok.textContent = "適用";
   cancel.textContent = "閉じる";
   ok.onclick = () => {
-    const k = (document.getElementById('licenseKey')?.value || '').trim();
+    localStorage.setItem('tlpPro','1');
+const k = (document.getElementById('licenseKey')?.value || '').trim();
     if (!k) { alert("コードが無効です"); return; }
     setPlan('pro');              // MVP: コード検証は後続
     closeModal();
