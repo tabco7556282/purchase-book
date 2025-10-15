@@ -959,11 +959,8 @@ function openSupplierModal(s){
     if(!s){
       const limit = PlanRules[getPlan()].supplierMax;
       const count = store.suppliers.filter(x=>!x.deleted).length;
-      if (!window.canCreate('suppliers')) {
-  const lim = PlanRules[getPlan()].supplierMax;
-  alert(`このプランでは仕入れ先は ${lim} 社までです。Plans からアップグレードをご検討ください。`);
-  return;
-}
+      if(count >= limit){ alert(`このプランでは仕入れ先は ${limit} 社までです。Plans からアップグレードをご検討ください。`); return; }
+    }
     const contact=$("#mSupContact").value.trim();
     const phone  =$("#mSupPhone").value.trim();
     const inv    =$("#mSupInv").value.trim();
