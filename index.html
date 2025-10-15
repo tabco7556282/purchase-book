@@ -1643,7 +1643,7 @@ document.addEventListener("click",(e)=>{
 
 /* ===== License mock & UI sync ===== */
 function setPlan(p){
-store.settings.plan = p;
+if (p==='pro') localStorage.setItem('tlpPro','1'); else localStorage.removeItem('tlpPro');
 DB.save(store);
 enforcePlan();          // 端末プランに基づくロック再計算
 applyPlanUI();          // 追加ボタンなどのUI反映
@@ -1666,7 +1666,7 @@ function renderRights(){
   }catch(e){ console.warn('renderRights skipped:', e); }
 }
 function syncLicenseButtons(){
-  const p = store.settings.plan||'free';
+  const p = getPlan();
   const btnFree = $('#btnUseFree'), btnMid = $('#mockBuyMid'), btnPro = $('#mockBuyPro');
   if(btnFree){ btnFree.disabled = (p==='free'); btnFree.textContent = (p==='free')?'使用中':'このプランを使う'; }
   if(btnMid){ btnMid.disabled = (p==='middle'); btnMid.textContent = (p==='middle')?'使用中':'アップグレードする'; }
