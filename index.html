@@ -1726,7 +1726,6 @@ const k = (document.getElementById('licenseKey')?.value || '').trim();
 document.addEventListener('click', (e)=>{
   if (e.target.id === 'btnEnterLicense') openLicenseModal();
 });
-<script>
 /* ===== Legal modals ===== */
 const EULA_HTML = `
   <section class="legal">
@@ -1758,7 +1757,7 @@ document.addEventListener('click', (e)=>{
   if(e.target.id==='openPrivacy'){ openModalBase('プライバシーポリシー', PRIV_HTML); }
 });
 </script>
-
+<script>
 /* ===== Init ===== */
 function init(){
   try{
