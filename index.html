@@ -630,13 +630,13 @@ function calcTotals(days){
 function refreshAds(){
   const slot = $("#adSlot");
   if(!slot) return;
-  const on = (store.settings.plan||"free")==="free";
+  const on = (getPlan()==='free');
   slot.classList.toggle("visible", on);
 }
 function refreshHome(){
   $("#kpiWeek").textContent = yen(calcTotals(7));
   $("#kpiMonth").textContent = yen(calcTotals(30));
-  const p=store.settings.plan||"free";
+  const p = getPlan();
   $("#pillPlan").textContent  = "プラン："+planJp(p);
   const bk=store.settings.lastBackupAt?new Date(store.settings.lastBackupAt):null;
   $("#pillBackup").textContent = bk?("最終バックアップ："+bk.toLocaleString("ja-JP")):"最終バックアップ：未実施";
@@ -1328,7 +1328,7 @@ function exportData(rangeKey){
 
 /* === 出力モーダル（プラン連動） === */
 function ModalExport(){
-  const plan = store.settings.plan || "free";
+  const plan = getPlan();
   openModalBase("データ出力", `
     <div class="grid" id="ModalExport">
       <div class="label">出力範囲</div>
@@ -1600,8 +1600,8 @@ document.addEventListener("change",(e)=>{
       store.products  = data.tables.products  || [];
       store.entries   = data.tables.entries   || [];
       store.priceHistory = data.tables.priceHistory || {};
-      store.settings = Object.assign({
-        theme:store.settings.theme, plan:store.settings.plan, autoClear:true,
+       store.settings = Object.assign({
+      theme:store.settings.theme, /* planは保存しない */, autoClear:true,
         historyShowBoth:true, showTaxFlags:false,
         recentProducts:store.settings.recentProducts||[], hisRangeDays:30
       }, data.tables.settings||{});
@@ -1648,8 +1648,7 @@ document.addEventListener("click",(e)=>{
   if(e.target.id!=="btnFactoryReset") return;
   if(!confirm("バックアップは取得済みですか？\n\n未取得の場合は「キャンセル」でバックアップ設定へ移動します。")){ navigate("backup"); return; }
   if(!confirm("本当に全データを削除しますか？\nこの操作は取り消せません。")) return;
-  const keep={
-    theme:store.settings.theme, plan:store.settings.plan, autoClear:store.settings.autoClear,
+  const keep={ theme:store.settings.theme, /* planなし */, autoClear:store.settings.autoClear,
     lastBackupAt:store.settings.lastBackupAt, historyShowBoth:store.settings.historyShowBoth,
     showTaxFlags:store.settings.showTaxFlags, recentProducts:store.settings.recentProducts||[], hisRangeDays:store.settings.hisRangeDays||30
   };
