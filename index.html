@@ -1652,7 +1652,7 @@ document.addEventListener("click",(e)=>{
   if(e.target.id!=="btnFactoryReset") return;
   if(!confirm("バックアップは取得済みですか？\n\n未取得の場合は「キャンセル」でバックアップ設定へ移動します。")){ navigate("backup"); return; }
   if(!confirm("本当に全データを削除しますか？\nこの操作は取り消せません。")) return;
-  const keep={ theme:store.settings.theme, /* planなし */, autoClear:store.settings.autoClear,
+  const keep={ theme:store.settings.theme,autoClear:store.settings.autoClear,
     lastBackupAt:store.settings.lastBackupAt, historyShowBoth:store.settings.historyShowBoth,
     showTaxFlags:store.settings.showTaxFlags, recentProducts:store.settings.recentProducts||[], hisRangeDays:store.settings.hisRangeDays||30
   };
