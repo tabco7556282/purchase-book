@@ -1019,7 +1019,7 @@ function openSupplierModal(s){
 }
 } 
 function tryAddSupplier(){
-  const limit = PlanRules[store.settings.plan||'free'].supplierMax;
+  const limit = PlanRules[getPlan()].supplierMax;
   const count = store.suppliers.filter(x=>!x.deleted).length;
   if(count >= limit){ alert(`このプランでは仕入れ先は ${limit} 社までです。Plans からアップグレードをご検討ください。`); return; }
   openSupplierModal(null);
