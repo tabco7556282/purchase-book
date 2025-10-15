@@ -1427,9 +1427,9 @@ const resolveEntity = (dlg) => {
     const dlg = btn.closest(DLG_SEL) || document;
     const entity = resolveEntity(dlg);
 
-   const plan = getPLAN();
+   const plan = getPlan();
     const lim    = (window.PLAN_LIMITS && PLAN_LIMITS[plan]) || {suppliers:Infinity,products:Infinity,entries:Infinity};
-    const count  = (window.store?.[entity]?.length) ?? 0;
+    const count = (window.store?.[entity]||[]).filter(x=>!x.deleted).length;
 
     const idx    = getEditingIndex(dlg);
     const isNew  = (idx < 0); // -1 などは新規
