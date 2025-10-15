@@ -926,8 +926,11 @@ function renderProducts(){
 document.addEventListener("change",(e)=>{ if(e.target.id==="filterProdSupplier") renderProducts(); });
 
 /* ===== モーダル基盤 ===== */
-function closeModal(){ $("#modalHost").classList.add("hidden"); $("#modalHost").setAttribute("aria-hidden","true"); }
+function closeModal(){const __host = document.getElementById('modalHost');
+if (__host && __host.contains(document.activeElement)) (window._prevFocus || document.body).focus();
+ $("#modalHost").classList.add("hidden"); $("#modalHost").setAttribute("aria-hidden","true"); }
 function openModalBase(title,bodyHTML){
+  window._prevFocus = document.activeElement;
   $("#modalTitle").textContent=title;
   $("#modalBody").innerHTML=bodyHTML;
   const host=$("#modalHost");
@@ -937,6 +940,7 @@ function openModalBase(title,bodyHTML){
   del.classList.add("hidden");
   ok.classList.add("btn--save"); cancel.classList.add("btn--cancel"); del.classList.add("btn--delete");
   host.classList.remove("hidden"); host.setAttribute("aria-hidden","false");
+document.querySelector('#modalHost :is(input,button,select,textarea,[tabindex]:not([tabindex="-1"]))')?.focus();
 }
 (function(){
   const host=$("#modalHost"); if(!host||host.__bound) return;
