@@ -358,6 +358,13 @@ textarea{min-height:84px;resize:vertical}
         <button id="btnEnterLicense" class="btn ghost small" type="button">コードを入力</button>
       </div>
     </div>
+  <!-- Legal links (EULA / Privacy) -->
+<footer id="legalLinks" class="legal-mini" style="margin-top:16px;text-align:center;font-size:12px;opacity:.8">
+  <button id="openEula" class="btn btn--link" style="padding:0 6px">利用規約(EULA)</button>・
+  <button id="openPrivacy" class="btn btn--link" style="padding:0 6px">プライバシーポリシー</button>
+  <div style="margin-top:4px">最終更新：<span id="legalUpdated">2025-10-15</span></div>
+</footer>
+
   </section>
 
   <!-- RIGHTS（省略せず既存どおり） -->
@@ -1719,6 +1726,38 @@ const k = (document.getElementById('licenseKey')?.value || '').trim();
 document.addEventListener('click', (e)=>{
   if (e.target.id === 'btnEnterLicense') openLicenseModal();
 });
+<script>
+/* ===== Legal modals ===== */
+const EULA_HTML = `
+  <section class="legal">
+    <p>本アプリの利用により、以下に同意したものとみなします。</p>
+    <ul>
+      <li>ライセンス：非独占・譲渡不可・再配布不可。</li>
+      <li>禁止事項：不正アクセス、リバースエンジニアリング等。</li>
+      <li>免責：現状有姿で提供。間接損害は免責。</li>
+      <li>プラン：端末設定により機能制限あり（FREE/PRO）。</li>
+    </ul>
+    <p>問い合わせ：<a href="mailto:support@example.com">support@example.com</a></p>
+    <p style="font-size:12px;opacity:.7">改定：2025-10-15</p>
+  </section>`;
+const PRIV_HTML = `
+  <section class="legal">
+    <p>取得する情報と利用目的：</p>
+    <ul>
+      <li>アプリ内データ：端末内保存（バックアップ出力はユーザー操作）。</li>
+      <li>利用状況：品質改善のため匿名的に集計することがあります。</li>
+      <li>第三者提供：法令等の場合を除き行いません。</li>
+      <li>データ削除：アプリの「初期化」または問い合わせ先へ依頼ください。</li>
+    </ul>
+    <p>問い合わせ：<a href="mailto:support@example.com">support@example.com</a></p>
+    <p style="font-size:12px;opacity:.7">改定：2025-10-15</p>
+  </section>`;
+
+document.addEventListener('click', (e)=>{
+  if(e.target.id==='openEula'){ openModalBase('利用規約（EULA）', EULA_HTML); }
+  if(e.target.id==='openPrivacy'){ openModalBase('プライバシーポリシー', PRIV_HTML); }
+});
+</script>
 
 /* ===== Init ===== */
 function init(){
