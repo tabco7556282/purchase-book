@@ -935,20 +935,19 @@ document.addEventListener("change",(e)=>{ if(e.target.id==="filterProdSupplier")
 function closeModal(){
   const host = document.getElementById('modalHost');
 
-  // モーダル内にフォーカスが残っていたら、外へ移す
-  const target =
-    (window._prevFocus && document.contains(window._prevFocus))
-      ? window._prevFocus
-      : document.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])') || document.body;
+  // モーダル内にフォーカスが残っていたら、先に外へ移す（確実に body へ）
+  if (host && host.contains(document.activeElement)) {
+    document.body.setAttribute('tabindex','-1'); // 一時的にフォーカス可能化
+    document.body.focus({ preventScroll: true });
+  }
 
-  if (host && host.contains(document.activeElement)) target.focus({ preventScroll:true });
-
-  // フォーカス移動が反映された次フレームで非表示化（警告回避）
+  // 次フレームで非表示化（警告回避）
   setTimeout(() => {
     host?.classList.add('hidden');
     host?.setAttribute('aria-hidden','true');
   }, 0);
 }
+
 function openModalBase(title,bodyHTML){
   window._prevFocus = document.activeElement;
   $("#modalTitle").textContent=title;
