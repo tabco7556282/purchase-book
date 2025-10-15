@@ -1778,6 +1778,28 @@ document.addEventListener('click', (e)=>{
 });
 </script>
 <script>
+function showEulaConsentIfNeeded(){
+  if (localStorage.getItem('eulaAccepted') === '1') return;
+  openModalBase('利用規約（EULA）', EULA_HTML);
+  setTimeout(()=>{           // ボタン配置後に上書き
+    const ok = document.getElementById('modalOK');
+    const cancel = document.getElementById('modalCancel');
+    const del = document.getElementById('modalDelete');
+    del?.classList.add('hidden');
+    if (ok){
+      ok.textContent = '同意する';
+      ok.onclick = ()=>{ localStorage.setItem('eulaAccepted','1'); closeModal(); };
+    }
+    if (cancel){
+      cancel.textContent = '後で';
+      cancel.onclick = ()=>closeModal();
+    }
+  }, 0);
+}
+// 起動時に一度だけチェック
+document.addEventListener('DOMContentLoaded', ()=> setTimeout(showEulaConsentIfNeeded, 200));
+</script>
+<script>
 /* ===== Init ===== */
 function init(){
   try{
