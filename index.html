@@ -358,13 +358,6 @@ textarea{min-height:84px;resize:vertical}
         <button id="btnEnterLicense" class="btn ghost small" type="button">コードを入力</button>
       </div>
     </div>
-  <!-- Legal links (EULA / Privacy) -->
-<footer id="legalLinks" class="legal-mini" style="margin-top:16px;text-align:center;font-size:12px;opacity:.8">
-  <button id="openEula" class="btn btn--link" style="padding:0 6px">利用規約(EULA)</button>・
-  <button id="openPrivacy" class="btn btn--link" style="padding:0 6px">プライバシーポリシー</button>
-  <div style="margin-top:4px">最終更新：<span id="legalUpdated">2025-10-15</span></div>
-</footer>
-
   </section>
 
   <!-- RIGHTS（省略せず既存どおり） -->
@@ -643,7 +636,7 @@ function refreshAds(){
 function refreshHome(){
   $("#kpiWeek").textContent = yen(calcTotals(7));
   $("#kpiMonth").textContent = yen(calcTotals(30));
-  const p = getPlan(); document.querySelector('#pillPlan').textContent = `プラン：${p==='pro'?'プロ':'無料'}`;
+  const p = getPlan(); pill.textContent = `プラン：${p==='pro'?'プロ':'無料'}`;
   const bk=store.settings.lastBackupAt?new Date(store.settings.lastBackupAt):null;
   $("#pillBackup").textContent = bk?("最終バックアップ："+bk.toLocaleString("ja-JP")):"最終バックアップ：未実施";
   refreshAds();
@@ -935,19 +928,20 @@ document.addEventListener("change",(e)=>{ if(e.target.id==="filterProdSupplier")
 function closeModal(){
   const host = document.getElementById('modalHost');
 
-  // モーダル内にフォーカスが残っていたら、先に外へ移す（確実に body へ）
-  if (host && host.contains(document.activeElement)) {
-    document.body.setAttribute('tabindex','-1'); // 一時的にフォーカス可能化
-    document.body.focus({ preventScroll: true });
-  }
+  // モーダル内にフォーカスが残っていたら、外へ移す
+  const target =
+    (window._prevFocus && document.contains(window._prevFocus))
+      ? window._prevFocus
+      : document.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])') || document.body;
 
-  // 次フレームで非表示化（警告回避）
+  if (host && host.contains(document.activeElement)) target.focus({ preventScroll:true });
+
+  // フォーカス移動が反映された次フレームで非表示化（警告回避）
   setTimeout(() => {
     host?.classList.add('hidden');
     host?.setAttribute('aria-hidden','true');
   }, 0);
 }
-
 function openModalBase(title,bodyHTML){
   window._prevFocus = document.activeElement;
   $("#modalTitle").textContent=title;
@@ -1725,80 +1719,7 @@ const k = (document.getElementById('licenseKey')?.value || '').trim();
 document.addEventListener('click', (e)=>{
   if (e.target.id === 'btnEnterLicense') openLicenseModal();
 });
-/* ===== Legal modals ===== */
-const EULA_HTML = `
-  <section class="legal">
-    <p>本アプリの利用により、以下に同意したものとみなします。</p>
-    <ul>
-      <li>ライセンス：非独占・譲渡不可・再配布不可。</li>
-      <li>禁止事項：不正アクセス、リバースエンジニアリング等。</li>
-      <li>免責：現状有姿で提供。間接損害は免責。</li>
-      <li>プラン：端末設定により機能制限あり（FREE/PRO）。</li>
-    </ul>
-    <p>問い合わせ：<a href="mailto:support@example.com">support@example.com</a></p>
-    <p style="font-size:12px;opacity:.7">改定：2025-10-15</p>
-  </section>`;
-const PRIV_HTML = `
-  <section class="legal">
-    <p>取得する情報と利用目的：</p>
-    <ul>
-      <li>アプリ内データ：端末内保存（バックアップ出力はユーザー操作）。</li>
-      <li>利用状況：品質改善のため匿名的に集計することがあります。</li>
-      <li>第三者提供：法令等の場合を除き行いません。</li>
-      <li>データ削除：アプリの「初期化」または問い合わせ先へ依頼ください。</li>
-    </ul>
-    <p>問い合わせ：<a href="mailto:support@example.com">support@example.com</a></p>
-    <p style="font-size:12px;opacity:.7">改定：2025-10-15</p>
-  </section>`;
 
-document.addEventListener('click', (e)=>{
-  if(e.target.id==='openEula'){ openModalBase('利用規約（EULA）', EULA_HTML); }
-  if(e.target.id==='openPrivacy'){ openModalBase('プライバシーポリシー', PRIV_HTML); }
-});
-</script>
-<script>
-/* ===== Legal modals ===== */
-function legalReadOnly(){
-  // openModalBase がボタンを配置し終えてから隠す
-  setTimeout(()=>{
-    const ok = document.getElementById('modalOK');
-    const cancel = document.getElementById('modalCancel');
-    const del = document.getElementById('modalDelete');
-    ok?.classList.add('hidden');            // 保存ボタンを非表示
-    ok && (ok.onclick = null);              // 念のためクリック無効
-    del?.classList.add('hidden');           // 削除ボタンを非表示
-    if (cancel){ cancel.textContent = '閉じる'; cancel.onclick = ()=>closeModal(); }
-  }, 0);
-}
-
-document.addEventListener('click', (e)=>{
-  if(e.target.id==='openEula'){     openModalBase('利用規約（EULA）', EULA_HTML);     legalReadOnly(); }
-  if(e.target.id==='openPrivacy'){  openModalBase('プライバシーポリシー', PRIV_HTML);  legalReadOnly(); }
-});
-</script>
-<script>
-function showEulaConsentIfNeeded(){
-  if (localStorage.getItem('eulaAccepted') === '1') return;
-  openModalBase('利用規約（EULA）', EULA_HTML);
-  setTimeout(()=>{           // ボタン配置後に上書き
-    const ok = document.getElementById('modalOK');
-    const cancel = document.getElementById('modalCancel');
-    const del = document.getElementById('modalDelete');
-    del?.classList.add('hidden');
-    if (ok){
-      ok.textContent = '同意する';
-      ok.onclick = ()=>{ localStorage.setItem('eulaAccepted','1'); closeModal(); };
-    }
-    if (cancel){
-      cancel.textContent = '後で';
-      cancel.onclick = ()=>closeModal();
-    }
-  }, 0);
-}
-// 起動時に一度だけチェック
-document.addEventListener('DOMContentLoaded', ()=> setTimeout(showEulaConsentIfNeeded, 200));
-</script>
-<script>
 /* ===== Init ===== */
 function init(){
   try{
