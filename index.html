@@ -485,7 +485,7 @@ const PlanCap = {
   middle : { suppliers: 15, products: 225, perSupplier: 15 },
   pro    : { suppliers: Infinity, products: Infinity, perSupplier: Infinity }
 };
-const PLAN  = ()=> (store?.settings?.plan || 'free');  // 既にあればそのままでOK
+const PLAN = () => getPlan();
 const CAPS = (p = PLAN()) => {
   const c = PlanCap[p] || PlanCap.free;
   return {
@@ -957,7 +957,7 @@ function openSupplierModal(s){
   const onOK=()=>{
     const name=$("#mSupName").value.trim(); if(!name){ alert("社名を入力してください"); return; }
     if(!s){
-      const limit = PlanRules[store.settings.plan||'free'].supplierMax;
+      const limit = PlanRules[getPlan()].supplierMax;
       const count = store.suppliers.filter(x=>!x.deleted).length;
       if(count >= limit){ alert(`このプランでは仕入れ先は ${limit} 社までです。Plans からアップグレードをご検討ください。`); return; }
     }
@@ -1287,7 +1287,7 @@ function saveExcelXML(name, rows2d){
 }
 
 function exportData(rangeKey){
-  const plan = (store && store.settings && store.settings.plan) || 'free';
+  const plan = getPLAN();
   const key  = clampExportKey(rangeKey, plan);
   const range = getExportRange(key);
 
@@ -1427,7 +1427,7 @@ const resolveEntity = (dlg) => {
     const dlg = btn.closest(DLG_SEL) || document;
     const entity = resolveEntity(dlg);
 
-    const plan   = (window.store?.settings?.plan) || 'free';
+   const plan = getPLAN();
     const lim    = (window.PLAN_LIMITS && PLAN_LIMITS[plan]) || {suppliers:Infinity,products:Infinity,entries:Infinity};
     const count  = (window.store?.[entity]?.length) ?? 0;
 
