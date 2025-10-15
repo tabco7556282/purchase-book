@@ -1596,16 +1596,20 @@ document.addEventListener("change",(e)=>{
       if(!data || !data.tables) throw 0;
 
       // 既存の適用処理（そのまま）
-      store.suppliers = data.tables.suppliers || [];
-      store.products  = data.tables.products  || [];
-      store.entries   = data.tables.entries   || [];
-      store.priceHistory = data.tables.priceHistory || {};
-       store.settings = Object.assign({
-      theme:store.settings.theme, /* planは保存しない */, autoClear:true,
-        historyShowBoth:true, showTaxFlags:false,
-        recentProducts:store.settings.recentProducts||[], hisRangeDays:30
-      }, data.tables.settings||{});
-      DB.save(store);
+store.suppliers = data.tables.suppliers || [];
+store.products  = data.tables.products  || [];
+store.entries   = data.tables.entries   || [];
+store.priceHistory = data.tables.priceHistory || {};
+store.settings = Object.assign({
+  theme: store.settings.theme,
+  autoClear: true,
+  historyShowBoth: true,
+  showTaxFlags: false,
+  recentProducts: store.settings.recentProducts || [],
+  hisRangeDays: 30
+}, data.tables.settings || {});
+DB.save(store);
+
 
       alert("復元しました");
       enforcePlan();
@@ -2307,8 +2311,12 @@ window.addEventListener('DOMContentLoaded', function () {
 })();
 </script>
 <script>
-document.addEventListener('DOMContentLoaded',()=>{ (enforcePlan||PlanLocks?.enforce)?.(localStorage.getItem('tlpPro')==='1'?'PRO':'FREE'); });
+document.addEventListener('DOMContentLoaded', () => {
+  (window.enforcePlan || window.PlanLocks?.enforce)?.();
+  window.applyPlanUI?.();
+});
 </script>
+
 <script id="tlp-plan-sync">
 /* PLAN=localStorage, store.settings.plan をプロキシ, 復元後に同期 */
 (function(){
