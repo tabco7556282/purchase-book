@@ -926,9 +926,23 @@ function renderProducts(){
 document.addEventListener("change",(e)=>{ if(e.target.id==="filterProdSupplier") renderProducts(); });
 
 /* ===== モーダル基盤 ===== */
-function closeModal(){const __host = document.getElementById('modalHost');
-if (__host && __host.contains(document.activeElement)) (window._prevFocus || document.body).focus();
- $("#modalHost").classList.add("hidden"); $("#modalHost").setAttribute("aria-hidden","true"); }
+function closeModal(){
+  const host = document.getElementById('modalHost');
+
+  // モーダル内にフォーカスが残っていたら、外へ移す
+  const target =
+    (window._prevFocus && document.contains(window._prevFocus))
+      ? window._prevFocus
+      : document.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])') || document.body;
+
+  if (host && host.contains(document.activeElement)) target.focus({ preventScroll:true });
+
+  // フォーカス移動が反映された次フレームで非表示化（警告回避）
+  setTimeout(() => {
+    host?.classList.add('hidden');
+    host?.setAttribute('aria-hidden','true');
+  }, 0);
+}
 function openModalBase(title,bodyHTML){
   window._prevFocus = document.activeElement;
   $("#modalTitle").textContent=title;
