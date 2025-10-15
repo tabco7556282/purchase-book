@@ -630,14 +630,13 @@ function calcTotals(days){
 function refreshAds(){
   const slot = $("#adSlot");
   if(!slot) return;
-  const on = (getPlan()==='free');
+  const on = getPlan()==='free';   // ※ 括弧は不要。機能は同じ
   slot.classList.toggle("visible", on);
 }
 function refreshHome(){
   $("#kpiWeek").textContent = yen(calcTotals(7));
   $("#kpiMonth").textContent = yen(calcTotals(30));
-  const p = getPlan();
-  $("#pillPlan").textContent  = "プラン："+planJp(p);
+  const p = getPlan(); pill.textContent = `プラン：${p==='pro'?'プロ':'無料'}`;
   const bk=store.settings.lastBackupAt?new Date(store.settings.lastBackupAt):null;
   $("#pillBackup").textContent = bk?("最終バックアップ："+bk.toLocaleString("ja-JP")):"最終バックアップ：未実施";
   refreshAds();
