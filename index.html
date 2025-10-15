@@ -344,7 +344,7 @@ textarea{min-height:84px;resize:vertical}
           <li>仕入れ先 <b>15社</b>まで／商品<b>合計200品</b></li>
           <li>出力範囲：<b>年度（1月〜今月）</b></li>
         </ul>
-        <button class="btn primary small" id="mockBuyMid" type="button">アップグレードする</button>
+        <button id="mockBuyMid" class="btn" disabled title="準備中">準備中</button>
       </div>
 
       <div class="card">
@@ -1693,7 +1693,7 @@ function syncLicenseButtons(){
   if(btnMid){ btnMid.disabled = (p==='middle'); btnMid.textContent = (p==='middle')?'使用中':'アップグレードする'; }
   if(btnPro){ btnPro.disabled = (p==='pro'); btnPro.textContent = (p==='pro')?'使用中':'フル機能で使う'; }
 }
-document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyMid") setPlan("middle"); });
+document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyMid") alert("ミドルは準備中です"); });
 document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyPro") setPlan("pro"); });
 document.addEventListener("click",(e)=>{ if(e.target.id==="btnUseFree") setPlan("free"); });
 function openLicenseModal(){
