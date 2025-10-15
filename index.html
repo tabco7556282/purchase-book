@@ -1055,7 +1055,7 @@ function openProductModal(p,defaultSid){
     }
     // プラン制限チェック
     if(!p){
-      const rules = PlanRules[store.settings.plan||'free'];
+      const rules = PlanRules[getPlan()];
       const total = store.products.filter(x=>!x.deleted).length;
       if(total >= rules.productTotalMax){ alert(`このプランでは商品は合計 ${rules.productTotalMax} 品までです。Plans からアップグレードをご検討ください。`); return; }
       const per = store.products.filter(x=>!x.deleted && x.supplier_id===sid).length;
