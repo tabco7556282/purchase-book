@@ -1758,6 +1758,26 @@ document.addEventListener('click', (e)=>{
 });
 </script>
 <script>
+/* ===== Legal modals ===== */
+function legalReadOnly(){
+  // openModalBase がボタンを配置し終えてから隠す
+  setTimeout(()=>{
+    const ok = document.getElementById('modalOK');
+    const cancel = document.getElementById('modalCancel');
+    const del = document.getElementById('modalDelete');
+    ok?.classList.add('hidden');            // 保存ボタンを非表示
+    ok && (ok.onclick = null);              // 念のためクリック無効
+    del?.classList.add('hidden');           // 削除ボタンを非表示
+    if (cancel){ cancel.textContent = '閉じる'; cancel.onclick = ()=>closeModal(); }
+  }, 0);
+}
+
+document.addEventListener('click', (e)=>{
+  if(e.target.id==='openEula'){     openModalBase('利用規約（EULA）', EULA_HTML);     legalReadOnly(); }
+  if(e.target.id==='openPrivacy'){  openModalBase('プライバシーポリシー', PRIV_HTML);  legalReadOnly(); }
+});
+</script>
+<script>
 /* ===== Init ===== */
 function init(){
   try{
