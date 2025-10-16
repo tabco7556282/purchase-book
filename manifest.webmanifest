@@ -1,14 +1,16 @@
 {
-  "name": "仕入れ管理アプリ v0.8.1",
-  "short_name": "仕入れ管理 v0.8.1",
+ "name": "仕入れ管理 v0 検証用",
+"short_name": "仕入れ管理 v0",
   "version": "0.8.1",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#fff8e1",
   "theme_color": "#ff9800",
-  "icons": [
-    { "src": "icons/icon-180-v223i.png", "sizes": "180x180", "type": "image/png" },
-    { "src": "icons/icon-192-v223i.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icons/icon-512-v223i.png", "sizes": "512x512", "type": "image/png" }
-  ]
+ "icons": [
+  { "src": "alt/icon/icon-180-v223i.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+  { "src": "alt/icon/icon-192-v223i.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+  { "src": "alt/icon/icon-512-v223i.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+]
+
+
 }
