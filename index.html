@@ -1691,6 +1691,15 @@ function syncLicenseButtons(){
   if(btnFree){ btnFree.disabled = (p==='free'); btnFree.textContent = (p==='free')?'使用中':'このプランを使う'; }
   if(btnMid){ btnMid.disabled = (p==='middle'); btnMid.textContent = (p==='middle')?'使用中':'アップグレードする'; }
   if(btnPro){ btnPro.disabled = (p==='pro'); btnPro.textContent = (p==='pro')?'使用中':'フル機能で使う'; }
+// 追加：コード入力ボタンの表示制御
+ const btnEnter = $('#btnEnterLicense');
+ if (btnEnter) {
+   const hide = (p === 'pro');
+   btnEnter.classList.toggle('hidden', hide);
+   btnEnter.toggleAttribute('aria-hidden', hide);
+   btnEnter.disabled = hide;
+   hide ? (btnEnter.style.display = 'none') : btnEnter.style.removeProperty('display');
+ }
 }
 document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyMid") alert("ミドルは準備中です"); });
 document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyPro") setPlan("pro"); });
@@ -1709,9 +1718,11 @@ function openLicenseModal(){
   ok.textContent = "適用";
   cancel.textContent = "閉じる";
   ok.onclick = () => {
-    const k = (document.getElementById('licenseKey')?.value || '').trim().toUpperCase();
-    if (!k) { alert("コードが無効です"); return; }           // ここで止める
-    setPlan('pro');                                        // ← これだけでOK（tlpPro設定＋UI反映）
+    const raw = (document.getElementById('licenseKey')?.value || '');
+    const k = raw.toUpperCase().replace(/[^A-Z0-9]/g,''); // 正規化
+    if (PLAN() === 'pro') { alert('すでにプロ版です'); closeModal(); return; }
+    if (k.length < 12) { alert('コードが無効です'); return; } // 最低12桁
+    setPlan('pro'); // 検証スタブ：後続で本実装
     closeModal();
   };
 }
