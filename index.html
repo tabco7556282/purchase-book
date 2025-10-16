@@ -5,7 +5,52 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
 <link rel="manifest" href="./manifest.webmanifest?v=0.8.4">
 <link rel="apple-touch-icon" href="./icons/icon-180-v223i.png">
-<title>仕入れ管理｜MVP v0.8.1</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/themes/dark.css">
+
+<style>
+  :root { --fp-accent: #ffb300; } /* アクセント色（見やすい黄橙） */
+
+  /* 全体を少し大きく＆数字を太く */
+  .flatpickr-calendar { font-size: 16px; }
+  .flatpickr-day {
+    font-weight: 700;
+    letter-spacing: .2px;           /* ほんの少し字間を足して読みやすく */
+    border-radius: 10px;
+  }
+
+  /* 今日の枠をくっきり */
+  .flatpickr-day.today:not(.selected) {
+    box-shadow: inset 0 0 0 2px var(--fp-accent);
+  }
+
+  /* 選択色を高コントラストに */
+  .flatpickr-day.selected,
+  .flatpickr-day.startRange,
+  .flatpickr-day.endRange {
+    background: var(--fp-accent) !important;
+    color: #111 !important;         /* 黒字でくっきり */
+  }
+
+  /* 曜日ヘッダもしっかり */
+  .flatpickr-weekday { font-weight: 800; color:#e9e9e9; }
+
+  /* 無効/他月の日付は弱めに（暗色テーマ向け） */
+  .flatpickr-day.disabled, .flatpickr-day.nextMonthDay, .flatpickr-day.prevMonthDay {
+    color: #888 !important;
+  }
+</style>
+<style>
+  /* flatpickr が付いた入力にカレンダーアイコンを表示 */
+  .flatpickr-input{
+    background:
+      no-repeat right .6rem center / 1.1rem
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23bfbfbf' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='18' rx='2' ry='2'/><line x1='16' y1='2' x2='16' y2='6'/><line x1='8' y1='2' x2='8' y2='6'/><line x1='3' y1='10' x2='21' y2='10'/></svg>");
+    padding-right: 2rem; /* アイコン分の余白 */
+    cursor: pointer;
+  }
+</style>
+
+  <title>仕入れ管理｜v0 検証用</title>
 <style>
 :root{
   --brand:#FFC107; --brand-ink:#1A1300;
@@ -299,7 +344,7 @@ textarea{min-height:84px;resize:vertical}
           <li>仕入れ先 <b>15社</b>まで／商品<b>合計200品</b></li>
           <li>出力範囲：<b>年度（1月〜今月）</b></li>
         </ul>
-        <button class="btn primary small" id="mockBuyMid" type="button">アップグレードする</button>
+        <button id="mockBuyMid" class="btn" disabled title="準備中">準備中</button>
       </div>
 
       <div class="card">
@@ -310,6 +355,7 @@ textarea{min-height:84px;resize:vertical}
           <li>出力範囲：<b>無制限</b></li>
         </ul>
         <button class="btn primary small" id="mockBuyPro" type="button">フル機能で使う</button>
+        <button id="btnEnterLicense" class="btn ghost small" type="button">コードを入力</button>
       </div>
     </div>
   </section>
@@ -439,7 +485,7 @@ const PlanCap = {
   middle : { suppliers: 15, products: 225, perSupplier: 15 },
   pro    : { suppliers: Infinity, products: Infinity, perSupplier: Infinity }
 };
-const PLAN  = ()=> (store?.settings?.plan || 'free');  // 既にあればそのままでOK
+const PLAN = () => getPlan();
 const CAPS = (p = PLAN()) => {
   const c = PlanCap[p] || PlanCap.free;
   return {
@@ -584,14 +630,13 @@ function calcTotals(days){
 function refreshAds(){
   const slot = $("#adSlot");
   if(!slot) return;
-  const on = (store.settings.plan||"free")==="free";
+  const on = getPlan()==='free';   // ※ 括弧は不要。機能は同じ
   slot.classList.toggle("visible", on);
 }
 function refreshHome(){
   $("#kpiWeek").textContent = yen(calcTotals(7));
   $("#kpiMonth").textContent = yen(calcTotals(30));
-  const p=store.settings.plan||"free";
-  $("#pillPlan").textContent  = "プラン："+planJp(p);
+  const p = getPlan(); document.querySelector('#pillPlan').textContent = `プラン：${p==='pro'?'プロ':'無料'}`;
   const bk=store.settings.lastBackupAt?new Date(store.settings.lastBackupAt):null;
   $("#pillBackup").textContent = bk?("最終バックアップ："+bk.toLocaleString("ja-JP")):"最終バックアップ：未実施";
   refreshAds();
@@ -706,63 +751,39 @@ function addLine(){
     $("#inProduct").value=""; $("#inPrice").value=""; $("#inQty").value=1; $("#inMemo").value=""; $("#priceHistory").innerHTML="";
   }
 }
-/* ==== 完了（ホームへ） ==== */
-function _val(sel){ const el=document.querySelector(sel); return (el && 'value' in el) ? el.value : ''; }
-function _checked(sel){ const el=document.querySelector(sel); return !!(el && el.checked); }
-window.hasPendingInput = function(){
-  const free=_checked('#chkFree');
-  const price=Number(_val('#inPrice')||0);
-  const qty=Number(_val('#inQty')||1);
-  if(price>0) return true;
-  if(qty!==1) return true;
-  if((_val('#inMemo')||'').trim()) return true;
-  return free ? ((_val('#freeSupplier').trim() || _val('#freeProduct').trim()).length>0)
-              : !!_val('#inProduct');
-};
-window.confirmLeaveFromInput = function(){
-  if (typeof openModalBase !== "function"){
-    if (confirm("未追加があります。追加して戻りますか？\nキャンセルで編集を続けます。")) {
-      const before=(store.entries||[]).length; addLine();
-      if ((store.entries||[]).length > before){ navigate("home"); refreshHome(); }
-    }
-    return;
-  }
-  openModalBase("未追加の入力があります", `
-    <div style="margin-top:4px">どうしますか？</div>
-    <ul style="margin:8px 0 0 16px">
-      <li><b>追加して戻る</b>：明細に追加してホームへ</li>
-      <li><b>破棄</b>：入力中の内容は捨ててホームへ</li>
-    </ul>
-  `);
-  const ok = $('#modalOK'), del=$('#modalDelete'), cancel=$('#modalCancel');
-  ok.textContent="追加して戻る"; del.textContent="破棄"; del.classList.remove("hidden"); del.classList.add("danger","small");
-  ok.onclick = ()=>{ const b=(store.entries||[]).length; addLine(); const s=(store.entries||[]).length>b; closeModal(); if (s){ navigate("home"); refreshHome(); } };
-  del.onclick = ()=>{ closeModal(); navigate("home"); refreshHome(); };
-  cancel.onclick = closeModal;
-  setTimeout(()=> ok && ok.focus(), 0);
-};
-(function(){
-  if (window.__boundBtnSave) return;
-  document.addEventListener("click", (e) => {
-    const btn = e.target.closest("#btnSave");
-    if (!btn) return;
-    e.preventDefault();
-    try{
-      if (window.hasPendingInput && window.hasPendingInput()){
-        window.confirmLeaveFromInput ? window.confirmLeaveFromInput()
-                                     : (confirm("未追加があります。破棄して戻りますか？") && (navigate("home"), refreshHome()));
-      } else {
-        navigate("home"); refreshHome();
-      }
-    }catch(err){
-      console.error("btnSave handler error:", err);
-      navigate("home"); refreshHome();
-    }
-  });
-  window.__boundBtnSave = true;
-})();
 
-document.addEventListener("click",(e)=>{ if(e.target.id==="btnClear"){ $("#inQty").value=1;$("#inPrice").value="";$("#inMemo").value="";$("#inProduct").value="";$("#priceHistory").innerHTML=""; }});
+document.addEventListener("click", (e) => {
+  if (e.target.id !== "btnClear") return;
+
+  const set = (sel, val) => {
+    const el = document.querySelector(sel);
+    if (!el) return;
+    el.value = val;
+    el.dispatchEvent(new Event("input",  { bubbles:true }));
+    el.dispatchEvent(new Event("change", { bubbles:true }));
+  };
+
+  // 基本欄
+  set("#inQty", 1);
+  set("#inPrice", "");
+  set("#inMemo", "");
+  set("#inProduct", "");
+
+  // フリー入力
+  set("#freeSupplier", "");
+  set("#freeProduct", "");
+
+  // 検索欄（存在するものだけ全て空に）
+  ["#productSearch","#inProductSearch",'input[name="productSearch"]','input[placeholder*="商品"]']
+    .forEach(s => set(s, ""));
+  ["#supplierSearch","#inSupplierSearch",'input[name="supplierSearch"]','input[placeholder*="仕入"]']
+    .forEach(s => set(s, ""));
+
+  const ph = document.querySelector("#priceHistory");
+  if (ph) ph.innerHTML = "";
+});
+
+
 
 /* 商品編集委譲 */
 document.addEventListener("click",(e)=>{
@@ -904,8 +925,31 @@ function renderProducts(){
 document.addEventListener("change",(e)=>{ if(e.target.id==="filterProdSupplier") renderProducts(); });
 
 /* ===== モーダル基盤 ===== */
-function closeModal(){ $("#modalHost").classList.add("hidden"); $("#modalHost").setAttribute("aria-hidden","true"); }
+function closeModal(){
+  const host = document.getElementById('modalHost');
+  const pickOutside = () =>
+    (window._prevFocus && document.contains(window._prevFocus) && window._prevFocus) ||
+    document.querySelector('#btnHome, header a, header button, nav a, main, body') || document.body;
+
+  let out = pickOutside();
+  if (host && host.contains(document.activeElement)) {
+    if (out === document.body && !out.hasAttribute('tabindex')) out.setAttribute('tabindex','-1');
+    out.focus({ preventScroll:true });
+    if (out === document.body) out.removeAttribute('tabindex');
+  }
+  requestAnimationFrame(() => {
+    if (host && host.contains(document.activeElement)) {
+      out = pickOutside();
+      if (out === document.body && !out.hasAttribute('tabindex')) out.setAttribute('tabindex','-1');
+      out.focus({ preventScroll:true });
+      if (out === document.body) out.removeAttribute('tabindex');
+    }
+    host?.classList.add('hidden');
+    host?.setAttribute('aria-hidden','true');
+  });
+}
 function openModalBase(title,bodyHTML){
+  window._prevFocus = document.activeElement;
   $("#modalTitle").textContent=title;
   $("#modalBody").innerHTML=bodyHTML;
   const host=$("#modalHost");
@@ -915,6 +959,7 @@ function openModalBase(title,bodyHTML){
   del.classList.add("hidden");
   ok.classList.add("btn--save"); cancel.classList.add("btn--cancel"); del.classList.add("btn--delete");
   host.classList.remove("hidden"); host.setAttribute("aria-hidden","false");
+document.querySelector('#modalHost :is(input,button,select,textarea,[tabindex]:not([tabindex="-1"]))')?.focus();
 }
 (function(){
   const host=$("#modalHost"); if(!host||host.__bound) return;
@@ -935,7 +980,7 @@ function openSupplierModal(s){
   const onOK=()=>{
     const name=$("#mSupName").value.trim(); if(!name){ alert("社名を入力してください"); return; }
     if(!s){
-      const limit = PlanRules[store.settings.plan||'free'].supplierMax;
+      const limit = PlanRules[getPlan()].supplierMax;
       const count = store.suppliers.filter(x=>!x.deleted).length;
       if(count >= limit){ alert(`このプランでは仕入れ先は ${limit} 社までです。Plans からアップグレードをご検討ください。`); return; }
     }
@@ -997,7 +1042,7 @@ function openSupplierModal(s){
 }
 } 
 function tryAddSupplier(){
-  const limit = PlanRules[store.settings.plan||'free'].supplierMax;
+  const limit = PlanRules[getPlan()].supplierMax;
   const count = store.suppliers.filter(x=>!x.deleted).length;
   if(count >= limit){ alert(`このプランでは仕入れ先は ${limit} 社までです。Plans からアップグレードをご検討ください。`); return; }
   openSupplierModal(null);
@@ -1033,7 +1078,7 @@ function openProductModal(p,defaultSid){
     }
     // プラン制限チェック
     if(!p){
-      const rules = PlanRules[store.settings.plan||'free'];
+      const rules = PlanRules[getPlan()];
       const total = store.products.filter(x=>!x.deleted).length;
       if(total >= rules.productTotalMax){ alert(`このプランでは商品は合計 ${rules.productTotalMax} 品までです。Plans からアップグレードをご検討ください。`); return; }
       const per = store.products.filter(x=>!x.deleted && x.supplier_id===sid).length;
@@ -1067,7 +1112,7 @@ function openProductModal(p,defaultSid){
   }
 }
 function tryAddProductStart(defaultSid){
-  const rules = PlanRules[store.settings.plan||'free'];
+  const rules = PlanRules[getPlan()];
   const total = store.products.filter(x=>!x.deleted).length;
   if(total >= rules.productTotalMax){ alert(`このプランでは商品は合計 ${rules.productTotalMax} 品までです。Plans からアップグレードをご検討ください。`); return; }
   openProductModal(null, defaultSid);
@@ -1265,7 +1310,7 @@ function saveExcelXML(name, rows2d){
 }
 
 function exportData(rangeKey){
-  const plan = (store && store.settings && store.settings.plan) || 'free';
+  const plan = PLAN(); // もしくは getPlan()
   const key  = clampExportKey(rangeKey, plan);
   const range = getExportRange(key);
 
@@ -1288,7 +1333,7 @@ function exportData(rangeKey){
 
 /* === 出力モーダル（プラン連動） === */
 function ModalExport(){
-  const plan = store.settings.plan || "free";
+  const plan = getPlan();
   openModalBase("データ出力", `
     <div class="grid" id="ModalExport">
       <div class="label">出力範囲</div>
@@ -1325,7 +1370,8 @@ function backupNow(){
 // Backup はそのまま
 // ---- Plan enforcement (端末プランに基づくロック計算) ----
 function getPlan(){
-  return (store && store.settings && store.settings.plan) || 'free';
+  try { return (localStorage.getItem('tlpPro') === '1') ? 'pro' : 'free'; }
+  catch(_) { return 'free'; }
 }
 
 // TODO: 実運用の上限に合わせて調整
@@ -1404,9 +1450,9 @@ const resolveEntity = (dlg) => {
     const dlg = btn.closest(DLG_SEL) || document;
     const entity = resolveEntity(dlg);
 
-    const plan   = (window.store?.settings?.plan) || 'free';
+   const plan = getPlan();
     const lim    = (window.PLAN_LIMITS && PLAN_LIMITS[plan]) || {suppliers:Infinity,products:Infinity,entries:Infinity};
-    const count  = (window.store?.[entity]?.length) ?? 0;
+    const count = (window.store?.[entity]||[]).filter(x=>!x.deleted).length;
 
     const idx    = getEditingIndex(dlg);
     const isNew  = (idx < 0); // -1 などは新規
@@ -1424,8 +1470,8 @@ const resolveEntity = (dlg) => {
 
 // 復元直後などに呼んで“ロック対象”だけ計算して保存
 window.enforcePlan = function(){
-  const plan = (store && store.settings && store.settings.plan) || 'free';
-  const lim  = window.PLAN_LIMITS[plan] || window.PLAN_LIMITS.free;
+  const plan = getPlan();
+ const lim  = window.PLAN_LIMITS[plan] || window.PLAN_LIMITS.free;
 
   const mkLocks = (arr, limit) => {
     if (!Array.isArray(arr)) return [];
@@ -1450,7 +1496,7 @@ window.enforcePlan = function(){
 
 // entity: "suppliers" | "products" | "entries"
 window.canCreate = function(entity){
-  const plan = (store && store.settings && store.settings.plan) || 'free';
+  const plan = getPlan();
   const lim  = window.PLAN_LIMITS[plan] || window.PLAN_LIMITS.free;
   const count = (store && Array.isArray(store[entity])) ? store[entity].length : 0;
   const limit = lim[entity] ?? 0;
@@ -1555,16 +1601,20 @@ document.addEventListener("change",(e)=>{
       if(!data || !data.tables) throw 0;
 
       // 既存の適用処理（そのまま）
-      store.suppliers = data.tables.suppliers || [];
-      store.products  = data.tables.products  || [];
-      store.entries   = data.tables.entries   || [];
-      store.priceHistory = data.tables.priceHistory || {};
-      store.settings = Object.assign({
-        theme:store.settings.theme, plan:store.settings.plan, autoClear:true,
-        historyShowBoth:true, showTaxFlags:false,
-        recentProducts:store.settings.recentProducts||[], hisRangeDays:30
-      }, data.tables.settings||{});
-      DB.save(store);
+store.suppliers = data.tables.suppliers || [];
+store.products  = data.tables.products  || [];
+store.entries   = data.tables.entries   || [];
+store.priceHistory = data.tables.priceHistory || {};
+store.settings = Object.assign({
+  theme: store.settings.theme,
+  autoClear: true,
+  historyShowBoth: true,
+  showTaxFlags: false,
+  recentProducts: store.settings.recentProducts || [],
+  hisRangeDays: 30
+}, data.tables.settings || {});
+DB.save(store);
+
 
       alert("復元しました");
       enforcePlan();
@@ -1607,8 +1657,7 @@ document.addEventListener("click",(e)=>{
   if(e.target.id!=="btnFactoryReset") return;
   if(!confirm("バックアップは取得済みですか？\n\n未取得の場合は「キャンセル」でバックアップ設定へ移動します。")){ navigate("backup"); return; }
   if(!confirm("本当に全データを削除しますか？\nこの操作は取り消せません。")) return;
-  const keep={
-    theme:store.settings.theme, plan:store.settings.plan, autoClear:store.settings.autoClear,
+  const keep={ theme:store.settings.theme,autoClear:store.settings.autoClear,
     lastBackupAt:store.settings.lastBackupAt, historyShowBoth:store.settings.historyShowBoth,
     showTaxFlags:store.settings.showTaxFlags, recentProducts:store.settings.recentProducts||[], hisRangeDays:store.settings.hisRangeDays||30
   };
@@ -1619,7 +1668,15 @@ document.addEventListener("click",(e)=>{
 });
 
 /* ===== License mock & UI sync ===== */
-function setPlan(p){ store.settings.plan=p; DB.save(store); refreshHome(); alert("プランが更新されました（デモ）"); syncLicenseButtons(); }
+function setPlan(p){
+if (p==='pro') localStorage.setItem('tlpPro','1'); else localStorage.removeItem('tlpPro');
+DB.save(store);
+enforcePlan();          // 端末プランに基づくロック再計算
+applyPlanUI();          // 追加ボタンなどのUI反映
+refreshHome();
+alert("プランが更新されました（デモ）");
+syncLicenseButtons();
+}
 
 function renderRights(){
   try{
@@ -1635,15 +1692,56 @@ function renderRights(){
   }catch(e){ console.warn('renderRights skipped:', e); }
 }
 function syncLicenseButtons(){
-  const p = store.settings.plan||'free';
+  const p = getPlan();
   const btnFree = $('#btnUseFree'), btnMid = $('#mockBuyMid'), btnPro = $('#mockBuyPro');
   if(btnFree){ btnFree.disabled = (p==='free'); btnFree.textContent = (p==='free')?'使用中':'このプランを使う'; }
   if(btnMid){ btnMid.disabled = (p==='middle'); btnMid.textContent = (p==='middle')?'使用中':'アップグレードする'; }
   if(btnPro){ btnPro.disabled = (p==='pro'); btnPro.textContent = (p==='pro')?'使用中':'フル機能で使う'; }
+// 追加：コード入力ボタンの表示制御
+ const btnEnter = $('#btnEnterLicense');
+ if (btnEnter) {
+   const hide = (p === 'pro');
+   btnEnter.classList.toggle('hidden', hide);
+   btnEnter.toggleAttribute('aria-hidden', hide);
+   btnEnter.disabled = hide;
+   hide ? (btnEnter.style.display = 'none') : btnEnter.style.removeProperty('display');
+ }
 }
-document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyMid") setPlan("middle"); });
+document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyMid") alert("ミドルは準備中です"); });
 document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyPro") setPlan("pro"); });
 document.addEventListener("click",(e)=>{ if(e.target.id==="btnUseFree") setPlan("free"); });
+function openLicenseModal(){
+  openModalBase("ライセンスコード", `
+    <div class="grid">
+      <div class="label">コード</div>
+      <input id="licenseKey" type="text" placeholder="XXXX-XXXX-XXXX">
+    </div>
+  `);
+  const ok = document.getElementById('modalOK');
+  const cancel = document.getElementById('modalCancel');
+  const del = document.getElementById('modalDelete');
+  del.classList.add('hidden');
+  ok.textContent = "適用";
+  cancel.textContent = "閉じる";
+  const inp = document.getElementById('licenseKey');
+ const norm = () => (inp?.value || '').toUpperCase().replace(/[^A-Z0-9]/g,''); // 正規化
+ const setOkState = () => { ok.disabled = norm().length < 12; };
+ setOkState();
+ inp?.addEventListener('input', setOkState);
+ inp?.addEventListener('keydown', (e) => {
+   if (e.key === 'Enter' && !ok.disabled) { e.preventDefault(); ok.click(); }
+ });
+  ok.onclick = () => {
+    const k = norm();
+    if (PLAN() === 'pro') { alert('すでにプロ版です'); closeModal(); return; }
+    if (k.length < 12) { alert('コードが無効です'); return; } // 最低12桁
+    closeModal();                               // 先にフォーカス退避（a11y）
+   requestAnimationFrame(() => setPlan('pro'));// 次フレームでUI更新
+  };
+}
+document.addEventListener('click', (e)=>{
+  if (e.target.id === 'btnEnterLicense') openLicenseModal();
+});
 
 /* ===== Init ===== */
 function init(){
@@ -1660,6 +1758,8 @@ function init(){
     showPage(location.hash.replace("#","")||"home");
     if ((location.hash||"") === "#history") { try{ renderHistory(); }catch(e){ console.error(e); } }
     syncLicenseButtons();
+    enforcePlan();
+    applyPlanUI();
   }catch(err){
     console.error("init failed:", err);
     alert("初期化中に問題が発生しました。ページを再読み込みしてください。");
@@ -1696,14 +1796,10 @@ init();
     }
   };
   TLP.showEula = function(){
-    if (typeof window.tlpOpenEula === 'function'){ window.tlpOpenEula(); return; }
-    const r = document.getElementById('tlpEula');
-    if (r){
-      r.style.display = 'flex';
-      r.setAttribute('aria-hidden','false');
-      document.body.classList.add('tlp-modal-open');
-    }
-  };
+   if (typeof window.tlpOpenEula === 'function'){ window.tlpOpenEula(); return; }
+   const ov = document.getElementById('eulaOverlay');
+   if (ov){ ov.classList.add('show'); document.body.classList.add('eula-locked'); }
+ };
   document.addEventListener('tlp:eula-accepted', ()=>{ TLP.eula.accept(); });
   document.addEventListener('tlp:eula-declined', ()=>{ TLP.license.set('trial'); });
   document.addEventListener('DOMContentLoaded', ()=>{ if (TLP.eula.needs()) TLP.showEula(); });
@@ -1899,7 +1995,11 @@ document.addEventListener("focusin", (e)=>{
 <script>
 /* === EULA Hard Consent === */
 (() => {
-  const EULA_VERSION = "1.0.0";              // ← EULA本文を更新したら上げる
+  const EULA_VERSION = String(
+   (window.__tlp_meta && __tlp_meta.eulaVersion) ||
+   (window.TLP?.APP?.EULA_VERSION) ||
+   "2025-09-08" // フォールバック（日付）
+ );
   const EULA_KEY = "tlp.eula.accepted";      // localStorageキー
 
   const $overlay = document.getElementById('eulaOverlay');
@@ -1963,15 +2063,33 @@ document.addEventListener("focusin", (e)=>{
 
   // 同意ボタン
   $agree.addEventListener('click', () => {
-    setAccepted();
-    closeEula();
-  });
+ 　setAccepted();                    // ハード保存 {version:EULA_VERSION, ts}
+   try { document.dispatchEvent(new Event('tlp:eula-accepted')); } catch(_){}
+   try { TLP?.eula?.accept?.(); } catch(_){}
+  closeEula();
+　});
 
   // 起動後チェック（既存initの後でも先でも安全に動くようDOMContentLoadedで実行）
   window.addEventListener('DOMContentLoaded', () => {
     if (needsConsent()) openEula();
   });
 })();
+window.tlpOpenEula = function(){
+  const ov = document.getElementById('eulaOverlay');
+  const ok = document.getElementById('btnEulaAgree');
+  if (!ov) return false;
+  ov.classList.add('show');
+  document.body.classList.add('eula-locked');
+  setTimeout(()=> ok?.focus(), 0);
+  return true;
+};
+window.tlpCloseEula = function(){
+  const ov = document.getElementById('eulaOverlay');
+  if (!ov) return false;
+  ov.classList.remove('show');
+  document.body.classList.remove('eula-locked');
+  return true;
+};
 </script>
 <script>
 /* === Disable legacy (soft) EULA triggers === */
@@ -2068,6 +2186,285 @@ window.saveBackupStrict = function(){
 };
 window.backupNow = function(){ saveBackupStrict(); };
 </script>
+<style>
+  .fp-btnbar{display:flex;gap:.5rem;padding:.5rem;border-top:1px solid #eee}
+  .fp-btn{padding:.4rem .8rem;border:1px solid #ddd;border-radius:.5rem;background:#f6f6f6;cursor:pointer}
+  .fp-btn:hover{filter:brightness(0.97)}
+</style>
+
+<style>
+  .fp-btnbar{display:flex;gap:.5rem;padding:.5rem;border-top:1px solid #eee}
+  .fp-btn{padding:.4rem .8rem;border:1px solid #ddd;border-radius:.5rem;background:#f6f6f6;cursor:pointer}
+  .fp-btn:hover{filter:brightness(0.97)}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/ja.js"></script>
+<script>
+window.addEventListener('DOMContentLoaded', function () {
+  var nodes = document.querySelectorAll('input[type="date"], input[data-datepicker]');
+  for (var i = 0; i < nodes.length; i++) {
+    var el = nodes[i];
+    el.type = 'text'; // ネイティブUIを無効化
+
+    flatpickr(el, {
+      dateFormat: 'Y-m-d',
+      locale: 'ja',          // ja.js 読み込み済み前提
+      disableMobile: true,
+      allowInput: true,
+      closeOnSelect: false,  // 選択で自動クローズしない
+      onOpen: function(selectedDates, str, inst){
+        inst._orig = inst.input.value || null;
+      },
+      onReady: function(selectedDates, str, inst){
+        var c = inst.calendarContainer;
+        if (c.querySelector('.fp-btnbar')) return; // 二重追加防止
+        var bar = document.createElement('div');
+        bar.className = 'fp-btnbar';
+        bar.innerHTML =
+          '<button type="button" class="fp-btn fp-clear">削除</button>' +
+          '<span style="flex:1"></span>' +
+          '<button type="button" class="fp-btn fp-cancel">キャンセル</button>' +
+          '<button type="button" class="fp-btn fp-ok">設定</button>';
+        c.appendChild(bar);
+        bar.querySelector('.fp-clear').onclick  = function(){ inst.clear(); inst.close(); };
+        bar.querySelector('.fp-cancel').onclick = function(){ inst.setDate(inst._orig, false, 'Y-m-d'); inst.close(); };
+        bar.querySelector('.fp-ok').onclick     = function(){ inst.close(); };
+      }
+    });
+  }
+});
+</script>
+
+<!-- v0: #btnSave（完了）恒久配線：未追加チェック付き（正規実装・最小） -->
+<script id="bind-btnsave">
+(()=> {
+  if (window.__boundBtnSave) return;
+
+  const $q = (s)=>document.querySelector(s);
+  const val = (s)=>{ const el=$q(s); return (el && 'value' in el) ? el.value : ''; };
+  const checked = (s)=>{ const el=$q(s); return !!(el && el.checked); };
+
+  // ローカル関数：未追加の有無（グローバル汚さない）
+  const hasPending = ()=>{
+    const free = checked('#chkFree');
+    const price = Number(val('#inPrice')||0);
+    const qty   = Number(val('#inQty')||1);
+    if (price>0) return true;
+    if (qty!==1) return true;
+    if ((val('#inMemo')||'').trim()) return true;
+    return free
+      ? ((val('#freeSupplier').trim() || val('#freeProduct').trim()).length>0)
+      : !!val('#inProduct');
+  };
+
+  document.addEventListener('click', (e) => {
+    const hit = e.target.closest('#btnSave');
+    if (!hit) return;
+    e.preventDefault();
+
+    if (hasPending()) {
+      if (typeof openModalBase === 'function') {
+        openModalBase("未追加の入力があります", `
+          <div style="margin-top:4px">どうしますか？</div>
+          <ul style="margin:8px 0 0 16px">
+            <li><b>追加して戻る</b>：明細に追加してホームへ</li>
+            <li><b>破棄</b>：入力中の内容は捨ててホームへ</li>
+            <li><b>編集を続ける</b></li>
+          </ul>
+        `);
+        const ok = $('#modalOK'), del = $('#modalDelete'), cancel = $('#modalCancel');
+        ok.textContent="追加して戻る";
+        del.textContent="破棄";
+        del.classList.remove("hidden"); del.classList.add("danger","small");
+        ok.onclick   = ()=>{ const b=(store.entries||[]).length; addLine(); const added=(store.entries||[]).length>b; closeModal(); if (added){ navigate('home'); refreshHome(); } };
+        del.onclick  = ()=>{ closeModal(); navigate('home'); refreshHome(); };
+        cancel.onclick = closeModal;
+        setTimeout(()=> ok && ok.focus(), 0);
+      } else {
+        if (confirm("未追加があります。追加して戻りますか？\nキャンセルで編集を続けます。")) {
+          const b=(store.entries||[]).length; addLine();
+          if ((store.entries||[]).length > b) { navigate('home'); refreshHome(); }
+        }
+      }
+      return;
+    }
+
+    navigate('home'); 
+    refreshHome();
+  });
+
+  window.__boundBtnSave = true;
+})();
+</script>
+
+<!-- v0: 復元直後にマスタの「＋追加」を確実に再有効化（遅延描画に対応） -->
+<script id="fix-master-add-buttons">
+(() => {
+  const sels = {
+    product : '#btnAddProduct,[data-btn="add-product"],.product .btn-add',
+    supplier: '#btnAddSupplier,[data-btn="add-supplier"],.supplier .btn-add'
+  };
+
+  const enable = (sel) => {
+    const b = document.querySelector(sel);
+    if (!b) return false;
+    b.disabled = false;
+    b.classList.remove('is-disabled', 'disabled');
+    b.removeAttribute('aria-disabled');
+    b.style.pointerEvents = '';
+    return true;
+  };
+
+  const ready = () => {
+    const p = document.querySelector(sels.product);
+    const s = document.querySelector(sels.supplier);
+    return p && !p.disabled && !p.classList.contains('is-disabled') &&
+           s && !s.disabled && !s.classList.contains('is-disabled');
+  };
+
+  // 繰り返し有効化（一定時間だけ）。描画が遅れても拾う
+  const startWatch = (ms = 8000) => {
+    const t0 = Date.now();
+    const id = setInterval(() => {
+      enable(sels.product);
+      enable(sels.supplier);
+      if (ready() || Date.now() - t0 > ms) clearInterval(id);
+    }, 120);
+  };
+
+  // 1) 初回
+  startWatch(8000);
+
+  // 2) 復元／マスタ遷移っぽい操作の直後に再ウォッチ
+  document.addEventListener('click', (e) => {
+    const t = (e.target.textContent || '').trim();
+    if (['復元', '商品マスタ', '仕入先マスタ', 'HOME', 'インポート']
+          .some(x => t.includes(x))) {
+      setTimeout(() => startWatch(6000), 80);
+    }
+  }, true);
+
+  // 3) DOM変化でもフォロー（描画が分割されるケース）
+  const mo = new MutationObserver(() => startWatch(4000));
+  mo.observe(document.documentElement, { childList: true, subtree: true });
+})();
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  (window.enforcePlan || window.PlanLocks?.enforce)?.();
+  window.applyPlanUI?.();
+});
+</script>
+
+<script id="tlp-plan-sync">
+/* PLAN=localStorage, store.settings.plan をプロキシ, 復元後に同期 */
+(function(){
+  // 実効プラン：localStorage.tlpPro を唯一のソースに
+  function PLAN(){ return localStorage.getItem('tlpPro')==='1' ? 'pro' : 'free'; }
+  window.PLAN = PLAN;
+
+  // store.settings.plan を PLAN に合わせる（getter 化）
+  function bindProxy(){
+    if (!window.store || !store.settings) return;
+    const d = Object.getOwnPropertyDescriptor(store.settings,'plan');
+    if (!d || ('value' in d)) {
+      Object.defineProperty(store.settings,'plan',{
+        configurable:true, enumerable:true,
+        get: PLAN, set(){} // 固定
+      });
+    }
+  }
+
+  // 上限再計算＋UI反映
+  function sync(){
+    (window.enforcePlan || window.PlanLocks?.enforce)?.();
+    window.applyPlanUI?.();
+  }
+
+  // 起動時
+  document.addEventListener('DOMContentLoaded', ()=>{ bindProxy(); sync(); });
+
+  // 復元完了（DB.load）後にも毎回同期
+  const wait = setInterval(()=>{
+    if (window.DB && typeof DB.load==='function'){
+      clearInterval(wait);
+      const orig = DB.load.bind(DB);
+      DB.load = async function(...args){
+        const r = await orig(...args);
+        bindProxy(); sync();
+        return r;
+      };
+    }
+  }, 50);
+})();
+</script>
+<script id="tlp-plan-sync-v2">
+/* PLAN=localStorage に一本化。store.settings が差し替わっても常に plan をプロキシ。復元後も自動同期 */
+(function(){
+  // 実効プランの唯一のソース
+  function EFFECTIVE_PLAN(){ return localStorage.getItem('tlpPro')==='1' ? 'pro' : 'free'; }
+  window.PLAN = EFFECTIVE_PLAN; // 参照している箇所向けに上書き
+
+  // settings.plan を getter 化（settings が差し替わっても追随）
+  let _settingsRef = null;
+  function attachPlanGetter(obj){
+    if(!obj) return;
+    const d = Object.getOwnPropertyDescriptor(obj,'plan');
+    if(!d || ('value' in d)){
+      Object.defineProperty(obj,'plan',{
+        configurable:true, enumerable:true,
+        get: EFFECTIVE_PLAN, set(){ /* no-op */ }
+      });
+    }
+  }
+  function hookSettingsSetter(){
+    if(!window.store) return;
+    // 既存参照を保持
+    _settingsRef = store.settings || _settingsRef;
+    // settings に setter を仕込み、差し替え時に毎回 getter を付与
+    const desc = Object.getOwnPropertyDescriptor(store,'settings');
+    if(!desc || ('value' in desc)){
+      let val = _settingsRef;
+      Object.defineProperty(store,'settings',{
+        configurable:true, enumerable:true,
+        get(){ return val; },
+        set(v){ val = v; attachPlanGetter(val); }
+      });
+    }
+    attachPlanGetter(store.settings);
+  }
+
+  function syncUI(){
+    (window.enforcePlan || window.PlanLocks?.enforce)?.();
+    window.applyPlanUI?.();
+  }
+
+  // 起動時
+  document.addEventListener('DOMContentLoaded', ()=>{ hookSettingsSetter(); syncUI(); });
+
+  // 復元後（DB.load / fromJSON など）にも同期
+  function wrap(obj, name){
+    const f = obj && typeof obj[name]==='function' ? obj[name].bind(obj) : null;
+    if(!f) return;
+    obj[name] = async function(...args){
+      const r = await f(...args);
+      hookSettingsSetter(); // 差し替え後の settings にも getter を再付与
+      syncUI();
+      return r;
+    };
+  }
+  const wait = setInterval(()=>{
+    if(window.DB){
+      clearInterval(wait);
+      ['load','fromJSON','restore','merge','apply'].forEach(n=>wrap(DB,n));
+    }
+  }, 30);
+})();
+</script>
+
+
+
 <!-- update: 2025-10-01 -->
 </body>
 </html>

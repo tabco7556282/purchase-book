@@ -1,42 +1,58 @@
-// sw.js  —— v0.8.1
-const CACHE = 'tlp-cache-v0.8.4';
-const ASSETS = [
-  
-  'index.html',
-  'manifest.webmanifest?v=0.8.4',
-  'icons/icon-192-v223i.png',
-  'icons/icon-512-v223i.png',
-  'icons/icon-180-v223i.png',
+// sw.js (v0 debug)
+const CACHE = 'tlp-v0-20251012a';
+const PRECACHE = [
+  './',
+  './index.html',
+  // 必要ならここに CSS/JS を追加（例: './app.js', './style.css'）
 ];
 
-// 即時適用
-self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE)));
   self.skipWaiting();
 });
 
-self.addEventListener('activate', e => {
+self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
+    )
   );
+  self.clients.claim();
 });
 
-// cache-first（失敗時は index.html をフォールバック）
-self.addEventListener('fetch', e => {
+self.addEventListener('fetch', (e) => {
   const req = e.request;
-  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+
+  // manifest / icon は常にネットワーク（＝キャッシュしない）
+  if (/\bmanifest\.(webmanifest|json)$/.test(url.pathname) || url.pathname.includes('/icon/')) {
+    e.respondWith(fetch(req));
+    return;
+  }
+
+  // HTMLは network-first（オフライン時のみ index.html）
+  if (req.mode === 'navigate') {
+    e.respondWith(
+      fetch(req)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+          return res;
+        })
+        .catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+
+  // それ以外は cache-first
   e.respondWith(
-    caches.match(req).then(hit => {
+    caches.match(req).then((hit) => {
       if (hit) return hit;
-      return fetch(req).then(res => {
+      return fetch(req).then((res) => {
         const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(req, copy));
+        caches.open(CACHE).then((c) => c.put(req, copy));
         return res;
-      }).catch(() => caches.match('/index.html'));
+      });
     })
   );
 });
-
-
