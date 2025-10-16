@@ -1813,7 +1813,11 @@ async function verifyLicense(code, timeoutMs = 8000){
   }
 
   const ctrl = new AbortController(); const t = setTimeout(()=>ctrl.abort(), timeoutMs);
-  try{
+  // これを try の前あたりに追加
+if (!LICENSE.USE_MOCK && typeof navigator !== 'undefined' && navigator && navigator.onLine === false){
+  return { ok:false, reason:'offline' };
+}
+try{
     const res = await fetch(LICENSE.VERIFY_URL, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ code:norm, app:'tlp', ver:(window.TLP?.APP?.VERSION||'0.0.0') }),
@@ -2009,8 +2013,11 @@ document.addEventListener("focusin", (e)=>{
 </script>
 <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js?v=0.8.3'); // 末尾の?vで更新検知を確実化
-  }
+  try {
+    navigator.serviceWorker.register('./sw.js?v=0.8.3')
+      .catch(()=>{}); // ← 追加：オフライン時の未捕捉エラーを抑止
+  } catch(_) {}
+}
 </script>
 <!-- === EULA Hard Consent (blocking) === -->
 <div id="eulaOverlay" aria-modal="true" role="dialog" aria-labelledby="eulaTitle">
@@ -2246,7 +2253,11 @@ window.backupNow = function(){ saveBackupStrict(); };
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/ja.js"></script>
 <script>
+// （既存の “flatpickr 初期化” ブロックと差し替え）
 window.addEventListener('DOMContentLoaded', function () {
+  // ★ 追加：CDN未読込・オフライン初回などで flatpickr が無い場合は何もしない
+  if (typeof window.flatpickr !== 'function') return;
+
   var nodes = document.querySelectorAll('input[type="date"], input[data-datepicker]');
   for (var i = 0; i < nodes.length; i++) {
     var el = nodes[i];
@@ -2273,12 +2284,13 @@ window.addEventListener('DOMContentLoaded', function () {
           '<button type="button" class="fp-btn fp-ok">設定</button>';
         c.appendChild(bar);
         bar.querySelector('.fp-clear').onclick  = function(){ inst.clear(); inst.close(); };
-        bar.querySelector('.fp-cancel').onclick = function(){ inst.setDate(inst._orig, false, 'Y-m-d'); inst.close(); };
+        bar.querySelector('.fp-cancel').onclick = function(){ inst.setDate(inst._orig, false, "Y-m-d"); inst.close(); };
         bar.querySelector('.fp-ok').onclick     = function(){ inst.close(); };
       }
     });
   }
 });
+
 </script>
 
 <!-- v0: #btnSave（完了）恒久配線：未追加チェック付き（正規実装・最小） -->
