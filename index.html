@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://api.example.com">
 <link rel="manifest" href="./manifest.webmanifest?v=0.8.4">
 <link rel="apple-touch-icon" href="./icons/icon-180-v223i.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/themes/dark.css">
@@ -1746,6 +1748,7 @@ document.addEventListener('click', (e)=>{
 /* ===== Init ===== */
 function init(){
   try{
+    syncOfflineGrace?.();
     applyTheme();
     refreshHome();
     initInputPage();
@@ -1795,7 +1798,49 @@ init();
       }catch(_){} TLP.license.set('licensed');
     }
   };
-  TLP.showEula = function(){
+  /* ===== License Verify (C-1) ===== */
+window.LICENSE = { USE_MOCK: true, VERIFY_URL: 'https://api.example.com/license/verify', GRACE_MS: 7*86400000 };
+
+async function verifyLicense(code, timeoutMs = 8000){
+  const norm = String(code||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if (norm.length < 12) return { ok:false, reason:'invalid' };
+
+  // モック（後で VERIFY_URL に切替）
+  if (LICENSE.USE_MOCK){
+    await new Promise(r=>setTimeout(r, 400));             // 疑似レイテンシ
+    const ok = norm === 'ABCDEFGH1234' || norm === 'ABCDEFGH0000' || norm === 'ABCDEFGHIJKL' || norm === 'ABCDEFGH1234'.replace(/-/g,'');
+    return ok ? { ok:true, plan:'pro', exp:'2099-12-31T00:00:00Z' } : { ok:false, reason:'invalid' };
+  }
+
+  const ctrl = new AbortController(); const t = setTimeout(()=>ctrl.abort(), timeoutMs);
+  try{
+    const res = await fetch(LICENSE.VERIFY_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ code:norm, app:'tlp', ver:(window.TLP?.APP?.VERSION||'0.0.0') }),
+      signal: ctrl.signal, keepalive:true
+    });
+    if (!res.ok) return { ok:false, reason: res.status===403?'invalid':'network' };
+    const data = await res.json().catch(()=> ({}));
+    return { ok: data?.plan==='pro', plan:data?.plan, exp:data?.exp, data };
+  }catch(e){ return { ok:false, reason: (e?.name==='AbortError'?'timeout':'network') }; }
+  finally{ clearTimeout(t); }
+}
+
+function applyLicensed(info){
+  try{
+    localStorage.setItem('tlpPro','1');
+    localStorage.setItem('tlpLicenseFreshAt', String(Date.now()));
+    if (info?.exp) localStorage.setItem('tlpLicenseExp', info.exp);
+  }catch(_){}
+  setPlan('pro');
+}
+
+function syncOfflineGrace(){
+  const freshAt = Number(localStorage.getItem('tlpLicenseFreshAt')||0);
+  const fresh = Date.now() - freshAt < LICENSE.GRACE_MS;
+  if (fresh) localStorage.setItem('tlpPro','1'); else localStorage.removeItem('tlpPro');
+}
+TLP.showEula = function(){
    if (typeof window.tlpOpenEula === 'function'){ window.tlpOpenEula(); return; }
    const ov = document.getElementById('eulaOverlay');
    if (ov){ ov.classList.add('show'); document.body.classList.add('eula-locked'); }
