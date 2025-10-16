@@ -1310,7 +1310,7 @@ function saveExcelXML(name, rows2d){
 }
 
 function exportData(rangeKey){
-  const plan = getPLAN();
+  const plan = PLAN(); // もしくは getPlan()
   const key  = clampExportKey(rangeKey, plan);
   const range = getExportRange(key);
 
