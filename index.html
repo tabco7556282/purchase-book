@@ -927,20 +927,26 @@ document.addEventListener("change",(e)=>{ if(e.target.id==="filterProdSupplier")
 /* ===== モーダル基盤 ===== */
 function closeModal(){
   const host = document.getElementById('modalHost');
+  const pickOutside = () =>
+    (window._prevFocus && document.contains(window._prevFocus) && window._prevFocus) ||
+    document.querySelector('#btnHome, header a, header button, nav a, main, body') || document.body;
 
-  // モーダル内にフォーカスが残っていたら、外へ移す
-  const target =
-    (window._prevFocus && document.contains(window._prevFocus))
-      ? window._prevFocus
-      : document.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])') || document.body;
-
-  if (host && host.contains(document.activeElement)) target.focus({ preventScroll:true });
-
-  // フォーカス移動が反映された次フレームで非表示化（警告回避）
-  setTimeout(() => {
+  let out = pickOutside();
+  if (host && host.contains(document.activeElement)) {
+    if (out === document.body && !out.hasAttribute('tabindex')) out.setAttribute('tabindex','-1');
+    out.focus({ preventScroll:true });
+    if (out === document.body) out.removeAttribute('tabindex');
+  }
+  requestAnimationFrame(() => {
+    if (host && host.contains(document.activeElement)) {
+      out = pickOutside();
+      if (out === document.body && !out.hasAttribute('tabindex')) out.setAttribute('tabindex','-1');
+      out.focus({ preventScroll:true });
+      if (out === document.body) out.removeAttribute('tabindex');
+    }
     host?.classList.add('hidden');
     host?.setAttribute('aria-hidden','true');
-  }, 0);
+  });
 }
 function openModalBase(title,bodyHTML){
   window._prevFocus = document.activeElement;
