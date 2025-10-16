@@ -1773,14 +1773,10 @@ init();
     }
   };
   TLP.showEula = function(){
-    if (typeof window.tlpOpenEula === 'function'){ window.tlpOpenEula(); return; }
-    const r = document.getElementById('tlpEula');
-    if (r){
-      r.style.display = 'flex';
-      r.setAttribute('aria-hidden','false');
-      document.body.classList.add('tlp-modal-open');
-    }
-  };
+   if (typeof window.tlpOpenEula === 'function'){ window.tlpOpenEula(); return; }
+   const ov = document.getElementById('eulaOverlay');
+   if (ov){ ov.classList.add('show'); document.body.classList.add('eula-locked'); }
+ };
   document.addEventListener('tlp:eula-accepted', ()=>{ TLP.eula.accept(); });
   document.addEventListener('tlp:eula-declined', ()=>{ TLP.license.set('trial'); });
   document.addEventListener('DOMContentLoaded', ()=>{ if (TLP.eula.needs()) TLP.showEula(); });
@@ -1976,7 +1972,11 @@ document.addEventListener("focusin", (e)=>{
 <script>
 /* === EULA Hard Consent === */
 (() => {
-  const EULA_VERSION = "1.0.0";              // ← EULA本文を更新したら上げる
+  const EULA_VERSION = String(
+   (window.__tlp_meta && __tlp_meta.eulaVersion) ||
+   (window.TLP?.APP?.EULA_VERSION) ||
+   "2025-09-08" // フォールバック（日付）
+ );
   const EULA_KEY = "tlp.eula.accepted";      // localStorageキー
 
   const $overlay = document.getElementById('eulaOverlay');
@@ -2040,15 +2040,33 @@ document.addEventListener("focusin", (e)=>{
 
   // 同意ボタン
   $agree.addEventListener('click', () => {
-    setAccepted();
-    closeEula();
-  });
++   setAccepted();                    // ハード保存 {version:EULA_VERSION, ts}
++   try { document.dispatchEvent(new Event('tlp:eula-accepted')); } catch(_){}
++   try { TLP?.eula?.accept?.(); } catch(_){}
++   closeEula();
++ });
 
   // 起動後チェック（既存initの後でも先でも安全に動くようDOMContentLoadedで実行）
   window.addEventListener('DOMContentLoaded', () => {
     if (needsConsent()) openEula();
   });
 })();
+window.tlpOpenEula = function(){
+  const ov = document.getElementById('eulaOverlay');
+  const ok = document.getElementById('btnEulaAgree');
+  if (!ov) return false;
+  ov.classList.add('show');
+  document.body.classList.add('eula-locked');
+  setTimeout(()=> ok?.focus(), 0);
+  return true;
+};
+window.tlpCloseEula = function(){
+  const ov = document.getElementById('eulaOverlay');
+  if (!ov) return false;
+  ov.classList.remove('show');
+  document.body.classList.remove('eula-locked');
+  return true;
+};
 </script>
 <script>
 /* === Disable legacy (soft) EULA triggers === */
