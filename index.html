@@ -1728,8 +1728,8 @@ function openLicenseModal(){
     const k = raw.toUpperCase().replace(/[^A-Z0-9]/g,''); // 正規化
     if (PLAN() === 'pro') { alert('すでにプロ版です'); closeModal(); return; }
     if (k.length < 12) { alert('コードが無効です'); return; } // 最低12桁
-    setPlan('pro'); // 検証スタブ：後続で本実装
-    closeModal();
+    closeModal();                                // 先に外へフォーカス退避
+ requestAnimationFrame(() => setPlan('pro')); // 次フレームでUI更新（警告回避）
   };
 }
 document.addEventListener('click', (e)=>{
