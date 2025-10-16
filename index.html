@@ -1723,13 +1723,20 @@ function openLicenseModal(){
   del.classList.add('hidden');
   ok.textContent = "適用";
   cancel.textContent = "閉じる";
+  const inp = document.getElementById('licenseKey');
+ const norm = () => (inp?.value || '').toUpperCase().replace(/[^A-Z0-9]/g,''); // 正規化
+ const setOkState = () => { ok.disabled = norm().length < 12; };
+ setOkState();
+ inp?.addEventListener('input', setOkState);
+ inp?.addEventListener('keydown', (e) => {
+   if (e.key === 'Enter' && !ok.disabled) { e.preventDefault(); ok.click(); }
+ });
   ok.onclick = () => {
-    const raw = (document.getElementById('licenseKey')?.value || '');
-    const k = raw.toUpperCase().replace(/[^A-Z0-9]/g,''); // 正規化
+    const k = norm();
     if (PLAN() === 'pro') { alert('すでにプロ版です'); closeModal(); return; }
     if (k.length < 12) { alert('コードが無効です'); return; } // 最低12桁
-    closeModal();                                // 先に外へフォーカス退避
- requestAnimationFrame(() => setPlan('pro')); // 次フレームでUI更新（警告回避）
+    closeModal();                               // 先にフォーカス退避（a11y）
+   requestAnimationFrame(() => setPlan('pro'));// 次フレームでUI更新
   };
 }
 document.addEventListener('click', (e)=>{
