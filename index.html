@@ -1709,10 +1709,9 @@ function openLicenseModal(){
   ok.textContent = "適用";
   cancel.textContent = "閉じる";
   ok.onclick = () => {
-    localStorage.setItem('tlpPro','1');
-const k = (document.getElementById('licenseKey')?.value || '').trim();
-    if (!k) { alert("コードが無効です"); return; }
-    setPlan('pro');              // MVP: コード検証は後続
+    const k = (document.getElementById('licenseKey')?.value || '').trim().toUpperCase();
+    if (!k) { alert("コードが無効です"); return; }           // ここで止める
+    setPlan('pro');                                        // ← これだけでOK（tlpPro設定＋UI反映）
     closeModal();
   };
 }
