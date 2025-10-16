@@ -2040,11 +2040,11 @@ document.addEventListener("focusin", (e)=>{
 
   // 同意ボタン
   $agree.addEventListener('click', () => {
-+   setAccepted();                    // ハード保存 {version:EULA_VERSION, ts}
-+   try { document.dispatchEvent(new Event('tlp:eula-accepted')); } catch(_){}
-+   try { TLP?.eula?.accept?.(); } catch(_){}
-+   closeEula();
-+ });
+ 　setAccepted();                    // ハード保存 {version:EULA_VERSION, ts}
+   try { document.dispatchEvent(new Event('tlp:eula-accepted')); } catch(_){}
+   try { TLP?.eula?.accept?.(); } catch(_){}
+  closeEula();
+　});
 
   // 起動後チェック（既存initの後でも先でも安全に動くようDOMContentLoadedで実行）
   window.addEventListener('DOMContentLoaded', () => {
