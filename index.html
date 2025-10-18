@@ -1731,17 +1731,127 @@ function openLicenseModal(){
  inp?.addEventListener('keydown', (e) => {
    if (e.key === 'Enter' && !ok.disabled) { e.preventDefault(); ok.click(); }
  });
-  ok.onclick = () => {
-    const k = norm();
-    if (PLAN() === 'pro') { alert('すでにプロ版です'); closeModal(); return; }
-    if (k.length < 12) { alert('コードが無効です'); return; } // 最低12桁
-    closeModal();                               // 先にフォーカス退避（a11y）
-   requestAnimationFrame(() => setPlan('pro'));// 次フレームでUI更新
-  };
+ // === C-1 検証スタブ（あとでAPIに差し替え） ===
+async function verifyLicense(key){
+  // 疑似待機（UIの「確認中…」体験用）
+  await new Promise(r=>setTimeout(r, 500));
+  // ルール：ハイフン除去で12文字以上ならOK（開発用）
+  const ok = typeof key === 'string' && key.replace(/-/g,'').length >= 12;
+  return { ok, reason: ok ? null : 'invalid' };
+}
+// === OK ボタン ===
+ok.onclick = async (e) => {
+  e.preventDefault();                   // フォーム既定動作の無効化(保険)
+
+  const input = document.getElementById('licenseKey');
+  const k = (input?.value || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9-]/g, '')
+    .trim();
+
+  // 12文字未満は即NG（既存の無効化ロジックと揃える）
+  if (k.replace(/-/g, '').length < 12) {
+    alert('コードが無効です');
+    input?.focus();
+    return;
+  }
+
+  // ボタンUIロック
+  ok.disabled = true;
+  const prev = ok.textContent;
+  ok.textContent = '確認中…';
+
+  try {
+    // 検証関数が未配線でも動くように一時スタブ（配線後に勝手に上書きされます）
+    if (typeof window.verifyLicense !== 'function') {
+      window.verifyLicense = async () => ({ ok: true });
+    }
+
+    const r = await window.verifyLicense(k);
+    if (!r || !r.ok) {
+      alert('コードが無効か、確認に失敗しました');
+      return;
+    }
+
+    // 成功: Pro化 + 新鮮印を記録
+    localStorage.setItem('tlpPro', '1');
+    localStorage.setItem('tlpLicenseFreshAt', String(Date.now()));
+
+    // 既存のUI反映系を呼ぶ（存在チェック付き）
+    setPlan?.('pro');
+    refreshHome?.();
+    syncLicenseButtons?.();
+
+    closeModal();
+    alert('ライセンスを適用しました！');
+  } catch (err) {
+    console.error(err);
+    alert('通信エラーが発生しました。後でもう一度お試しください。');
+  } finally {
+    ok.disabled = false;
+    ok.textContent = prev;
+  }
+};
+
+
+
 }
 document.addEventListener('click', (e)=>{
   if (e.target.id === 'btnEnterLicense') openLicenseModal();
 });
+
+/* === License recheck nudge (C-1) === */
+(() => {
+  const DAY = 86400000;
+
+  function needsRecheck(){
+    try{
+      if (localStorage.getItem('tlpPro') !== '1') return false;
+      const v = +localStorage.getItem('tlpLicenseFreshAt') || 0;
+      if (!v) return true;
+      const ageDays = Math.floor((Date.now() - v) / DAY);
+      return ageDays >= 7;
+    }catch(_){ return false; }
+  }
+
+  function showNudge(){
+    const id = 'tlp-lic-nudge';
+    if (document.getElementById(id)) return;
+
+    const bar = document.createElement('div');
+    bar.id = id;
+    bar.setAttribute('role','status');
+    bar.style.cssText =
+      'position:fixed;left:12px;right:12px;bottom:12px;z-index:7000;' +
+      'background:#fffbdd;border:1px solid #e6db74;padding:10px 12px;' +
+      'border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.12);' +
+      'display:flex;gap:8px;align-items:center';
+    bar.innerHTML =
+      '<span>ライセンスの再確認が必要です。</span>' +
+      '<button id="licNudgeNow" class="btn small">今すぐ</button>' +
+      '<button id="licNudgeLater" class="btn ghost small">あとで</button>';
+    document.body.appendChild(bar);
+
+    document.getElementById('licNudgeNow').onclick = () => {
+      try {
+        // ライセンス入力モーダルを開く（既存の関数を利用）
+        if (typeof openLicenseModal === 'function') openLicenseModal();
+        else if (window.TLP && typeof TLP.openLicenseModal === 'function') TLP.openLicenseModal();
+        else alert('ライセンス画面を開けませんでした。');
+      } catch(_) {}
+
+      // とりあえず“確認試行”として打刻（成功時はOKハンドラで上書きされる）
+      try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch(_){}
+      bar.remove();
+    };
+    document.getElementById('licNudgeLater').onclick = () => { bar.remove(); };
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (needsRecheck()) showNudge();
+  });
+})();
+
 
 /* ===== Init ===== */
 function init(){
