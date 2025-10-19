@@ -1744,16 +1744,24 @@ function openLicenseModal(){
     if (k.length < 12) { alert('コードが無効です'); return; } // 最低12桁
     closeModal();                               // 先にフォーカス退避（a11y）
    requestAnimationFrame(() => setPlan('pro'));// 次フレームでUI更新
-  };
+  // 成功: Pro化 + 付随アンカー記録 の直後あたりに↓を追加
+try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch {}
+};
 }
 document.addEventListener('click', (e)=>{
   if (e.target.id === 'btnEnterLicense') openLicenseModal();
 });
+ /* === syncOfflineGrace fallback (起動時クラッシュ防止) === */
+  (() => {
+    if (typeof window.syncOfflineGrace !== 'function') {
+      window.syncOfflineGrace = async function (_ms) { /* no-op */ };
+    }
+  })();
 
 /* ===== Init ===== */
 function init(){
   try{
-    syncOfflineGrace?.();
+    window.syncOfflineGrace?.();
     applyTheme();
     refreshHome();
     initInputPage();
@@ -1842,6 +1850,7 @@ function applyLicensed(info){
     if (info?.exp) localStorage.setItem('tlpLicenseExp', info.exp);
   }catch(_){}
   setPlan('pro');
+try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch {}
 }
 
 function syncOfflineGrace(){
@@ -2516,12 +2525,18 @@ document.addEventListener('DOMContentLoaded', () => {
       return r;
     };
   }
-  const wait = setInterval(()=>{
-    if(window.DB){
-      clearInterval(wait);
-      ['load','fromJSON','restore','merge','apply'].forEach(n=>wrap(DB,n));
-    }
-  }, 30);
+  const wait = setInterval(() => {
+   if (!window.DB) return;              // まだ DB が来てない → そのまま待つ
+   clearInterval(wait);
+   try {
+     ['load','fromJSON','restore','merge','apply'].forEach(n => {
+       const fn = window[n];
+       if (typeof fn === 'function') fn();   // あれば呼ぶ、無ければスキップ
+     });
+   } catch (e) {
+     console.error('init stages failed:', e); // 初期化エラーはコンソールに出して継続
+   }
+ }, 30);
 })();
 </script>
 
