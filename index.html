@@ -413,7 +413,32 @@ textarea{min-height:84px;resize:vertical}
 window.tlpCheckoutMiddle = "https://buy.stripe.com/test_aFaaEY0sL4gb5iha2r1ck00";
   window.tlpCheckoutPro    = "https://buy.stripe.com/test_14A7sMb7p2839yx6Qf1ck01";
 window.tlpRedeemURL = "https://cafetabco.pussycat.jp/api/license/redeem.php";
- window.DEBUG_PAY = true; // テスト時だけtrue
+   function tlpDeviceId(){
+    let id = localStorage.getItem('tlpDeviceId');
+    if (!id) { id = crypto.randomUUID(); localStorage.setItem('tlpDeviceId', id); }
+    return id;
+  }
+
+  window.redeemCode = async (code) => {
+    const res  = await fetch(window.tlpRedeemURL, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ code: String(code).trim(), device_id: tlpDeviceId() })
+    });
+    const json = await res.json().catch(()=>({ok:false}));
+    console.log('redeem:', json);
+
+    if (json.ok) {
+      localStorage.setItem('tlpLicenseFreshAt', String(Date.now()));
+      if (json.plan === 'pro') localStorage.setItem('tlpPro','1');
+      if (window.applyLicensed) try{ applyLicensed({plan: json.plan, via:'redeem'});}catch(_){}
+      alert('ライセンス適用：'+json.plan);
+    } else {
+      alert('引換失敗：'+(json.reason||'unknown'));
+    }
+    return json;
+  };
+
+      window.DEBUG_PAY = true; // テスト時だけtrue
  window.buyMiddle = () => window.open(window.tlpCheckoutMiddle, "_blank", "noopener");
   window.buyPro    = () => window.open(window.tlpCheckoutPro,    "_blank", "noopener");
     // 4D: 画面右下にテスト購入ボタン（後で削除OK）
