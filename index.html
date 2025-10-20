@@ -1774,6 +1774,14 @@ function openLicenseModal(){
   const del = document.getElementById('modalDelete');
   del.classList.add('hidden');
   ok.textContent = "適用";
+ // 8E: OKでredeem
+ok.onclick = async () => {
+  const inp  = document.getElementById('licenseKey');
+  let code = (inp?.value || '').trim().toUpperCase();
+  if (!/^TLP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) { alert('コード形式が違います'); inp?.focus(); return; }
+  const r = await redeemCode(code);
+  if (r?.ok) cancel.click(); // 成功時は閉じる
+};
   cancel.textContent = "閉じる";
   const inp = document.getElementById('licenseKey');
  const norm = () => (inp?.value || '').toUpperCase().replace(/[^A-Z0-9]/g,''); // 正規化
