@@ -414,7 +414,23 @@ window.tlpCheckoutMiddle = "https://buy.stripe.com/test_aFaaEY0sL4gb5iha2r1ck00"
   window.tlpCheckoutPro    = "https://buy.stripe.com/test_14A7sMb7p2839yx6Qf1ck01";
    window.buyMiddle = () => window.open(window.tlpCheckoutMiddle, "_blank", "noopener");
   window.buyPro    = () => window.open(window.tlpCheckoutPro,    "_blank", "noopener");
-     /* ===== Storage ===== */
+    // 4D: 画面右下にテスト購入ボタン（後で削除OK）
+  (() => {
+    const inject = () => {
+      if (document.getElementById('tlp-buy-test')) return;
+      const box = document.createElement('div');
+      box.id = 'tlp-buy-test';
+      box.style = 'position:fixed;right:12px;bottom:12px;z-index:9999;background:#fff;padding:8px 10px;border:1px solid #ddd;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.1);font-size:12px';
+      const label = document.createElement('span'); label.textContent = '購入テスト：'; label.style = 'margin-right:6px';
+      const m = document.createElement('button'); m.textContent='Middle(¥700)'; m.style='margin-right:6px'; m.onclick=buyMiddle;
+      const p = document.createElement('button'); p.textContent='Pro(¥1,500)'; p.onclick=buyPro;
+      box.append(label, m, p);
+      document.body.appendChild(box);
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', inject);
+    else inject();
+  })();
+   /* ===== Storage ===== */
 const DB = {
   load(){
     const defaults = {
