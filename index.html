@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+<meta http-equiv="Content-Security-Policy"
+  content="default-src 'self'; connect-src 'self' https://cafetabco.pussycat.jp; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; manifest-src 'self'">
+
+
 <link rel="manifest" href="./manifest.webmanifest?v=0.8.4">
 <link rel="apple-touch-icon" href="./icons/icon-180-v223i.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/themes/dark.css">
@@ -403,7 +407,71 @@ textarea{min-height:84px;resize:vertical}
 </div>
 
 <script>
-/* ===== Storage ===== */
+window.tlpCheckoutMiddle = "https://buy.stripe.com/test_aFaaEY0sL4gb5iha2r1ck00";
+  window.tlpCheckoutPro    = "https://buy.stripe.com/test_14A7sMb7p2839yx6Qf1ck01";
+window.tlpRedeemURL = "https://cafetabco.pussycat.jp/api/license/redeem.php";
+   function tlpDeviceId(){
+    let id = localStorage.getItem('tlpDeviceId');
+    if (!id) { id = crypto.randomUUID(); localStorage.setItem('tlpDeviceId', id); }
+    return id;
+  }
+  window.tlpVerifyURL = "https://cafetabco.pussycat.jp/api/license/verify.php";
+
+  window.verifyLicense = async () => {
+    const url = window.tlpVerifyURL + "?device_id=" + encodeURIComponent(tlpDeviceId());
+    const res = await fetch(url);
+    const j = await res.json().catch(()=>({ok:false}));
+    if (j.ok) {
+      localStorage.setItem('tlpLicenseFreshAt', String(Date.now()));
+      if (j.plan === 'pro') localStorage.setItem('tlpPro','1');
+      if (window.applyLicensed) try{ applyLicensed({plan:j.plan, via:'verify'});}catch(_){}
+      alert('再検証OK：'+j.plan);
+    } else {
+      alert('再検証失敗：'+(j.reason||'unknown'));
+    }
+    return j;
+  };
+
+  window.redeemCode = async (code) => {
+    const res  = await fetch(window.tlpRedeemURL, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ code: String(code).trim(), device_id: tlpDeviceId() })
+    });
+    const json = await res.json().catch(()=>({ok:false}));
+    console.log('redeem:', json);
+
+    if (json.ok) {
+      localStorage.setItem('tlpLicenseFreshAt', String(Date.now()));
+      if (json.plan === 'pro') localStorage.setItem('tlpPro','1');
+      if (window.applyLicensed) try{ applyLicensed({plan: json.plan, via:'redeem'});}catch(_){}
+      alert('ライセンス適用：'+json.plan);
+    } else {
+      alert('引換失敗：'+(json.reason||'unknown'));
+    }
+    return json;
+  };
+
+      window.DEBUG_PAY = false;
+ window.buyMiddle = () => window.open(window.tlpCheckoutMiddle, "_blank", "noopener");
+  window.buyPro    = () => window.open(window.tlpCheckoutPro,    "_blank", "noopener");
+    // 4D: 画面右下にテスト購入ボタン（後で削除OK）
+  (() => {
+    if (!window.DEBUG_PAY) return;
+        const inject = () => {
+      if (document.getElementById('tlp-buy-test')) return;
+      const box = document.createElement('div');
+      box.id = 'tlp-buy-test';
+      box.style = 'position:fixed;right:12px;bottom:12px;z-index:9999;background:#fff;padding:8px 10px;border:1px solid #ddd;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.1);font-size:12px';
+      const label = document.createElement('span'); label.textContent = '購入テスト：'; label.style = 'margin-right:6px';
+      const m = document.createElement('button'); m.textContent='Middle(¥700)'; m.style='margin-right:6px'; m.onclick=buyMiddle;
+      const p = document.createElement('button'); p.textContent='Pro(¥1,500)'; p.onclick=buyPro;
+      box.append(label, m, p);
+      document.body.appendChild(box);
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', inject);
+    else inject();
+  })();
+   /* ===== Storage ===== */
 const DB = {
   load(){
     const defaults = {
@@ -1722,6 +1790,14 @@ function openLicenseModal(){
   const del = document.getElementById('modalDelete');
   del.classList.add('hidden');
   ok.textContent = "適用";
+ // 8E: OKでredeem
+ok.onclick = async () => {
+  const inp  = document.getElementById('licenseKey');
+  let code = (inp?.value || '').trim().toUpperCase();
+  if (!/^TLP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) { alert('コード形式が違います'); inp?.focus(); return; }
+  const r = await redeemCode(code);
+  if (r?.ok) cancel.click(); // 成功時は閉じる
+};
   cancel.textContent = "閉じる";
   const inp = document.getElementById('licenseKey');
  const norm = () => (inp?.value || '').toUpperCase().replace(/[^A-Z0-9]/g,''); // 正規化
@@ -1737,15 +1813,24 @@ function openLicenseModal(){
     if (k.length < 12) { alert('コードが無効です'); return; } // 最低12桁
     closeModal();                               // 先にフォーカス退避（a11y）
    requestAnimationFrame(() => setPlan('pro'));// 次フレームでUI更新
-  };
+  // 成功: Pro化 + 付随アンカー記録 の直後あたりに↓を追加
+try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch {}
+};
 }
 document.addEventListener('click', (e)=>{
   if (e.target.id === 'btnEnterLicense') openLicenseModal();
 });
+ /* === syncOfflineGrace fallback (起動時クラッシュ防止) === */
+  (() => {
+    if (typeof window.syncOfflineGrace !== 'function') {
+      window.syncOfflineGrace = async function (_ms) { /* no-op */ };
+    }
+  })();
 
 /* ===== Init ===== */
 function init(){
   try{
+    window.syncOfflineGrace?.();
     applyTheme();
     refreshHome();
     initInputPage();
@@ -1795,7 +1880,54 @@ init();
       }catch(_){} TLP.license.set('licensed');
     }
   };
-  TLP.showEula = function(){
+  /* ===== License Verify (C-1) ===== */
+window.LICENSE = { USE_MOCK: true, VERIFY_URL: 'https://api.example.com/license/verify', GRACE_MS: 7*86400000 };
+
+async function verifyLicense(code, timeoutMs = 8000){
+  const norm = String(code||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if (norm.length < 12) return { ok:false, reason:'invalid' };
+
+  // モック（後で VERIFY_URL に切替）
+  if (LICENSE.USE_MOCK){
+    await new Promise(r=>setTimeout(r, 400));             // 疑似レイテンシ
+    const ok = norm === 'ABCDEFGH1234' || norm === 'ABCDEFGH0000' || norm === 'ABCDEFGHIJKL' || norm === 'ABCDEFGH1234'.replace(/-/g,'');
+    return ok ? { ok:true, plan:'pro', exp:'2099-12-31T00:00:00Z' } : { ok:false, reason:'invalid' };
+  }
+
+  const ctrl = new AbortController(); const t = setTimeout(()=>ctrl.abort(), timeoutMs);
+  // これを try の前あたりに追加
+if (!LICENSE.USE_MOCK && typeof navigator !== 'undefined' && navigator && navigator.onLine === false){
+  return { ok:false, reason:'offline' };
+}
+try{
+    const res = await fetch(LICENSE.VERIFY_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ code:norm, app:'tlp', ver:(window.TLP?.APP?.VERSION||'0.0.0') }),
+      signal: ctrl.signal, keepalive:true
+    });
+    if (!res.ok) return { ok:false, reason: res.status===403?'invalid':'network' };
+    const data = await res.json().catch(()=> ({}));
+    return { ok: data?.plan==='pro', plan:data?.plan, exp:data?.exp, data };
+  }catch(e){ return { ok:false, reason: (e?.name==='AbortError'?'timeout':'network') }; }
+  finally{ clearTimeout(t); }
+}
+
+function applyLicensed(info){
+  try{
+    localStorage.setItem('tlpPro','1');
+    localStorage.setItem('tlpLicenseFreshAt', String(Date.now()));
+    if (info?.exp) localStorage.setItem('tlpLicenseExp', info.exp);
+  }catch(_){}
+  setPlan('pro');
+try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch {}
+}
+
+function syncOfflineGrace(){
+  const freshAt = Number(localStorage.getItem('tlpLicenseFreshAt')||0);
+  const fresh = Date.now() - freshAt < LICENSE.GRACE_MS;
+  if (fresh) localStorage.setItem('tlpPro','1'); else localStorage.removeItem('tlpPro');
+}
+TLP.showEula = function(){
    if (typeof window.tlpOpenEula === 'function'){ window.tlpOpenEula(); return; }
    const ov = document.getElementById('eulaOverlay');
    if (ov){ ov.classList.add('show'); document.body.classList.add('eula-locked'); }
@@ -1964,8 +2096,11 @@ document.addEventListener("focusin", (e)=>{
 </script>
 <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js?v=0.8.3'); // 末尾の?vで更新検知を確実化
-  }
+  try {
+    navigator.serviceWorker.register('./sw.js?v=0.8.3')
+      .catch(()=>{}); // ← 追加：オフライン時の未捕捉エラーを抑止
+  } catch(_) {}
+}
 </script>
 <!-- === EULA Hard Consent (blocking) === -->
 <div id="eulaOverlay" aria-modal="true" role="dialog" aria-labelledby="eulaTitle">
@@ -2201,7 +2336,11 @@ window.backupNow = function(){ saveBackupStrict(); };
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/ja.js"></script>
 <script>
+// （既存の “flatpickr 初期化” ブロックと差し替え）
 window.addEventListener('DOMContentLoaded', function () {
+  // ★ 追加：CDN未読込・オフライン初回などで flatpickr が無い場合は何もしない
+  if (typeof window.flatpickr !== 'function') return;
+
   var nodes = document.querySelectorAll('input[type="date"], input[data-datepicker]');
   for (var i = 0; i < nodes.length; i++) {
     var el = nodes[i];
@@ -2228,12 +2367,13 @@ window.addEventListener('DOMContentLoaded', function () {
           '<button type="button" class="fp-btn fp-ok">設定</button>';
         c.appendChild(bar);
         bar.querySelector('.fp-clear').onclick  = function(){ inst.clear(); inst.close(); };
-        bar.querySelector('.fp-cancel').onclick = function(){ inst.setDate(inst._orig, false, 'Y-m-d'); inst.close(); };
+        bar.querySelector('.fp-cancel').onclick = function(){ inst.setDate(inst._orig, false, "Y-m-d"); inst.close(); };
         bar.querySelector('.fp-ok').onclick     = function(){ inst.close(); };
       }
     });
   }
 });
+
 </script>
 
 <!-- v0: #btnSave（完了）恒久配線：未追加チェック付き（正規実装・最小） -->
@@ -2454,15 +2594,63 @@ document.addEventListener('DOMContentLoaded', () => {
       return r;
     };
   }
-  const wait = setInterval(()=>{
-    if(window.DB){
-      clearInterval(wait);
-      ['load','fromJSON','restore','merge','apply'].forEach(n=>wrap(DB,n));
+  const wait = setInterval(() => {
+   if (!window.DB) return;              // まだ DB が来てない → そのまま待つ
+   clearInterval(wait);
+   try {
+     ['load','fromJSON','restore','merge','apply'].forEach(n => {
+       const fn = window[n];
+       if (typeof fn === 'function') fn();   // あれば呼ぶ、無ければスキップ
+     });
+   } catch (e) {
+     console.error('init stages failed:', e); // 初期化エラーはコンソールに出して継続
+   }
+ }, 30);
+})();
+
+</script>
+<!-- C-1 Nudge: 全面置換版 -->
+<script>
+(()=> {
+  // 既存バーが残っていれば除去（重複防止）
+  document.getElementById('tlp-nudge')?.remove();
+
+  const fresh = Number(localStorage.getItem('tlpLicenseFreshAt') || 0);
+  const week  = 7 * 86400000;
+  if (Date.now() - fresh < week) return; // 7日以内なら出さない
+
+  // バー生成（上部固定・最前面）
+  const bar = document.createElement('div');
+  bar.id = 'tlp-nudge';
+  bar.setAttribute('role','region');
+  bar.setAttribute('aria-label','ライセンス再検証のご案内');
+  bar.style = "position:fixed;left:0;right:0;top:0;background:#111;color:#fff;padding:10px 12px;display:flex;gap:8px;align-items:center;justify-content:center;z-index:2147483647;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,.2)";
+  bar.innerHTML = '<span style="margin-right:8px">ライセンスの再検証から7日経過</span><button id="nudgeNow" style="padding:6px 10px">今すぐ</button><button id="nudgeLater" style="padding:6px 10px">あとで</button>';
+  document.body.appendChild(bar);
+
+  const removeBar = () => document.getElementById('tlp-nudge')?.remove();
+
+  // 「今すぐ」→ verify 成功: freshAt更新して閉じる / 失敗: 閉じてコード入力を開く
+  document.getElementById('nudgeNow').onclick = async () => {
+    try {
+      const r = await (window.verifyLicense ? window.verifyLicense() : Promise.resolve({ok:false,reason:'no_verify'}));
+      if (r && r.ok) {
+        localStorage.setItem('tlpLicenseFreshAt', String(Date.now()));
+        removeBar();
+      } else {
+        removeBar();
+        if (window.openLicenseModal) window.openLicenseModal();
+      }
+    } catch (_) {
+      removeBar();
+      if (window.openLicenseModal) window.openLicenseModal();
     }
-  }, 30);
+  };
+
+  // 「あとで」→ 閉じるだけ
+  document.getElementById('nudgeLater').onclick = removeBar;
 })();
 </script>
-
 
 
 <!-- update: 2025-10-01 -->
