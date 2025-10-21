@@ -2614,14 +2614,17 @@ document.addEventListener('DOMContentLoaded', () => {
   if (Date.now() - fresh < week) return;
 
   const bar = document.createElement('div');
+  bar.id = 'tlp-nudge';
   bar.style = "position:fixed;left:0;right:0;bottom:0;background:#111;color:#fff;padding:10px;display:flex;gap:8px;align-items:center;justify-content:center;z-index:9999";
   bar.innerHTML = 'ライセンスの再検証から7日経過　<button id="nudgeNow">今すぐ</button><button id="nudgeLater">あとで</button>';
   document.body.appendChild(bar);
 
   document.getElementById('nudgeNow').onclick = async () => {
   const r = await verifyLicense();
-  if (r?.ok) { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); bar.remove(); }
-  else { bar.remove(); if (window.openLicenseModal) openLicenseModal(); }
+  // 成功時
+if (r?.ok) { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); document.getElementById('tlp-nudge')?.remove(); }
+// 失敗時
+else { document.getElementById('tlp-nudge')?.remove(); if (window.openLicenseModal) openLicenseModal(); }
 };
   document.getElementById('nudgeLater').onclick = () => bar.remove();
 })();
