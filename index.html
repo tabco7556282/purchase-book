@@ -415,6 +415,22 @@ window.tlpRedeemURL = "https://cafetabco.pussycat.jp/api/license/redeem.php";
     if (!id) { id = crypto.randomUUID(); localStorage.setItem('tlpDeviceId', id); }
     return id;
   }
+  window.tlpVerifyURL = "https://cafetabco.pussycat.jp/api/license/verify.php";
+
+  window.verifyLicense = async () => {
+    const url = window.tlpVerifyURL + "?device_id=" + encodeURIComponent(tlpDeviceId());
+    const res = await fetch(url);
+    const j = await res.json().catch(()=>({ok:false}));
+    if (j.ok) {
+      localStorage.setItem('tlpLicenseFreshAt', String(Date.now()));
+      if (j.plan === 'pro') localStorage.setItem('tlpPro','1');
+      if (window.applyLicensed) try{ applyLicensed({plan:j.plan, via:'verify'});}catch(_){}
+      alert('再検証OK：'+j.plan);
+    } else {
+      alert('再検証失敗：'+(j.reason||'unknown'));
+    }
+    return j;
+  };
 
   window.redeemCode = async (code) => {
     const res  = await fetch(window.tlpRedeemURL, {
