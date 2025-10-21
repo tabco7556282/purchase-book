@@ -2619,10 +2619,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.body.appendChild(bar);
 
   document.getElementById('nudgeNow').onclick = async () => {
-    const r = await verifyLicense();
-    if (r?.ok) { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); bar.remove(); }
-    else if (window.openLicenseModal) openLicenseModal();
-  };
+  const r = await verifyLicense();
+  if (r?.ok) { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); bar.remove(); }
+  else { bar.remove(); if (window.openLicenseModal) openLicenseModal(); }
+};
   document.getElementById('nudgeLater').onclick = () => bar.remove();
 })();
 </script>
