@@ -2607,29 +2607,50 @@ document.addEventListener('DOMContentLoaded', () => {
    }
  }, 30);
 })();
-/* C-1 nudge (minimal) */
-(() => {
-  const fresh = Number(localStorage.getItem('tlpLicenseFreshAt')||0);
-  const week = 7*86400000;
-  if (Date.now() - fresh < week) return;
 
+</script>
+<!-- C-1 Nudge: 全面置換版 -->
+<script>
+(()=> {
+  // 既存バーが残っていれば除去（重複防止）
+  document.getElementById('tlp-nudge')?.remove();
+
+  const fresh = Number(localStorage.getItem('tlpLicenseFreshAt') || 0);
+  const week  = 7 * 86400000;
+  if (Date.now() - fresh < week) return; // 7日以内なら出さない
+
+  // バー生成（上部固定・最前面）
   const bar = document.createElement('div');
   bar.id = 'tlp-nudge';
-  bar.style = "position:fixed;left:0;right:0;top:0;background:#111;color:#fff;padding:10px;display:flex;gap:8px;align-items:center;justify-content:center;z-index:2147483647";
-  bar.innerHTML = 'ライセンスの再検証から7日経過　<button id="nudgeNow">今すぐ</button><button id="nudgeLater">あとで</button>';
+  bar.setAttribute('role','region');
+  bar.setAttribute('aria-label','ライセンス再検証のご案内');
+  bar.style = "position:fixed;left:0;right:0;top:0;background:#111;color:#fff;padding:10px 12px;display:flex;gap:8px;align-items:center;justify-content:center;z-index:2147483647;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,.2)";
+  bar.innerHTML = '<span style="margin-right:8px">ライセンスの再検証から7日経過</span><button id="nudgeNow" style="padding:6px 10px">今すぐ</button><button id="nudgeLater" style="padding:6px 10px">あとで</button>';
   document.body.appendChild(bar);
 
+  const removeBar = () => document.getElementById('tlp-nudge')?.remove();
+
+  // 「今すぐ」→ verify 成功: freshAt更新して閉じる / 失敗: 閉じてコード入力を開く
   document.getElementById('nudgeNow').onclick = async () => {
-  const r = await verifyLicense();
-  // 成功時
-if (r?.ok) { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); document.getElementById('tlp-nudge')?.remove(); }
-// 失敗時
-else { document.getElementById('tlp-nudge')?.remove(); if (window.openLicenseModal) openLicenseModal(); }
-};
-  document.getElementById('nudgeLater').onclick = () => bar.remove();
+    try {
+      const r = await (window.verifyLicense ? window.verifyLicense() : Promise.resolve({ok:false,reason:'no_verify'}));
+      if (r && r.ok) {
+        localStorage.setItem('tlpLicenseFreshAt', String(Date.now()));
+        removeBar();
+      } else {
+        removeBar();
+        if (window.openLicenseModal) window.openLicenseModal();
+      }
+    } catch (_) {
+      removeBar();
+      if (window.openLicenseModal) window.openLicenseModal();
+    }
+  };
+
+  // 「あとで」→ 閉じるだけ
+  document.getElementById('nudgeLater').onclick = removeBar;
 })();
 </script>
-
 
 
 <!-- update: 2025-10-01 -->
