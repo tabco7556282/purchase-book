@@ -1929,6 +1929,7 @@ function applyLicensed(info){
   }catch(_){}
   setPlan('pro');
 try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch {}
+try { refreshLicenseUI(); } catch(_) {}
 }
 
 
@@ -2679,15 +2680,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (r?.ok && label) label.textContent = `現在のプラン：${r.plan}`;
   };
 
-  // 初期表示：localStorageからざっくり表示
-  const plan = localStorage.getItem('tlpPro') === '1' ? 'pro' : 'middle/未適用';
-  if (label) label.textContent = `現在のプラン：${plan}`;
-});
-document.addEventListener('DOMContentLoaded', () => {
-  const pro = localStorage.getItem('tlpPro') === '1';
+function refreshLicenseUI(){
+  const isPro = localStorage.getItem('tlpPro') === '1';
+  const L = document.getElementById('licensePlanLabel');
+  if (L) {
+    const plan = isPro ? 'pro' : (localStorage.getItem('tlpLicenseFreshAt') ? 'middle/未適用' : 'free');
+    L.textContent = `現在のプラン：${plan}`;
+  }
   const cta = document.getElementById('plans-cta');
-  if (pro && cta) cta.style.display = 'none';
-});
+  if (cta) cta.style.display = isPro ? 'none' : '';
+}
+document.addEventListener('DOMContentLoaded', refreshLicenseUI);
+
 </script>
 
 
