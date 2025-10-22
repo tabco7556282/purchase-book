@@ -2655,6 +2655,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // 「あとで」→ 閉じるだけ
   document.getElementById('nudgeLater').onclick = removeBar;
 })();
+// 11B: Plansの購入ボタン
+document.addEventListener('DOMContentLoaded', () => {
+  const m = document.getElementById('btnBuyMiddle');
+  const p = document.getElementById('btnBuyPro');
+  if (m) m.onclick = buyMiddle;
+  if (p) p.onclick = buyPro;
+});
 </script>
 
 
