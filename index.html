@@ -1804,11 +1804,13 @@ ok.onclick = async () => {
   const inp  = document.getElementById('licenseKey');
   let code = (inp?.value || '').trim().toUpperCase();
   if (!/^TLP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) { alert('コード形式が違います'); inp?.focus(); return; }
- const r = await redeemCode(code);
-  if (r?.ok) {
-   try { applyLicensed(r); } catch (e) { console.error(e); }
-    cancel.click(); // 成功時は閉じる
-  }
+const r = await redeemCode(code);
+if (r?.ok) {
+  // 状態を確定させてから 1 リロードでUI揃える
+  try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch {}
+  if (r.plan === 'pro') localStorage.setItem('tlpPro','1'); else localStorage.removeItem('tlpPro');
+  location.reload();                         // ★これで確実に同期
+}
 };
   cancel.textContent = "閉じる";
   const inp = document.getElementById('licenseKey');
