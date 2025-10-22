@@ -2684,6 +2684,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const plan = localStorage.getItem('tlpPro') === '1' ? 'pro' : 'middle/未適用';
   if (label) label.textContent = `現在のプラン：${plan}`;
 });
+document.addEventListener('DOMContentLoaded', () => {
+  const pro = localStorage.getItem('tlpPro') === '1';
+  const cta = document.getElementById('plans-cta');
+  if (pro && cta) cta.style.display = 'none';
+});
 </script>
 
 
