@@ -1804,8 +1804,11 @@ ok.onclick = async () => {
   const inp  = document.getElementById('licenseKey');
   let code = (inp?.value || '').trim().toUpperCase();
   if (!/^TLP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) { alert('コード形式が違います'); inp?.focus(); return; }
-  const r = await redeemCode(code);
-  if (r?.ok) cancel.click(); // 成功時は閉じる
+ const r = await redeemCode(code);
+  if (r?.ok) {
+   try { applyLicensed(r); } catch (e) { console.error(e); }
+    cancel.click(); // 成功時は閉じる
+  }
 };
   cancel.textContent = "閉じる";
   const inp = document.getElementById('licenseKey');
