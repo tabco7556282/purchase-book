@@ -1930,6 +1930,8 @@ function applyLicensed(info){
   setPlan('pro');
 try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch {}
 }
+const L = document.getElementById('licensePlanLabel');
+if (L && info?.plan) L.textContent = `現在のプラン：${info.plan}`;
 
 function syncOfflineGrace(){
   const freshAt = Number(localStorage.getItem('tlpLicenseFreshAt')||0);
