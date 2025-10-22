@@ -2678,7 +2678,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (verBtn && window.verifyLicense) verBtn.onclick = async () => {
     const r = await verifyLicense();
     if (r?.ok && label) label.textContent = `現在のプラン：${r.plan}`;
-  };
+  });
 
 function refreshLicenseUI() {
   const isPro = localStorage.getItem('tlpPro') === '1';
