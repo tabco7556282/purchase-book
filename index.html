@@ -405,7 +405,11 @@ textarea{min-height:84px;resize:vertical}
     </div>
   </div>
 </div>
-
+<div id="plans-cta" style="margin:12px 0; display:flex; gap:8px; flex-wrap:wrap;">
+  <button id="btnBuyMiddle">Middle（¥700）を購入</button>
+  <button id="btnBuyPro">Pro（¥1,500）を購入</button>
+  <small style="opacity:.7;">テスト環境：実課金は発生しません</small>
+</div>
 <script>
 window.tlpCheckoutMiddle = "https://buy.stripe.com/test_aFaaEY0sL4gb5iha2r1ck00";
   window.tlpCheckoutPro    = "https://buy.stripe.com/test_14A7sMb7p2839yx6Qf1ck01";
@@ -531,11 +535,6 @@ function enableSelectOnFocus(){
 }
 
 /* === Plans: 単一の真実（SOT） ============================= */
-<div id="plans-cta" style="margin:12px 0; display:flex; gap:8px; flex-wrap:wrap;">
-  <button id="btnBuyMiddle">Middle（¥700）を購入</button>
-  <button id="btnBuyPro">Pro（¥1,500）を購入</button>
-  <small style="opacity:.7;">テスト環境：実課金は発生しません</small>
-</div>
 const PlanRules = {
   free:   { exportMax: 'month',  supplierMax: 5,  productTotalMax: 50,  productPerSupplierMax: 10,  ads: true  },
   middle: { exportMax: 'fiscal', supplierMax: 15, productTotalMax: 200, productPerSupplierMax: 15,  ads: false },
