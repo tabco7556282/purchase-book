@@ -365,7 +365,12 @@ textarea{min-height:84px;resize:vertical}
   </section>
 
   <!-- RIGHTS（省略せず既存どおり） -->
-  <section id="page-rights" class="hidden" data-title="Licenses & Notices">
+  <div id="license-actions" style="margin:12px 0; display:flex; gap:8px; flex-wrap:wrap;">
+  <button id="btnOpenLicense">コードを入力</button>
+  <button id="btnVerifyNow">再検証</button>
+  <span id="licensePlanLabel" style="opacity:.7;"></span>
+</div>
+<section id="page-rights" class="hidden" data-title="Licenses & Notices">
     <div class="card">
       <h3>Licenses & Notices</h3>
       <section><h4>App & Version</h4><p>Tabco Ledger Plus<sup>™</sup> v0.8.1</p></section>
@@ -2660,6 +2665,22 @@ document.addEventListener('DOMContentLoaded', () => {
   const p = document.getElementById('btnBuyPro');
   if (m) m.onclick = buyMiddle;
   if (p) p.onclick = buyPro;
+});
+// 11C: ライセンス操作ボタン
+document.addEventListener('DOMContentLoaded', () => {
+  const openBtn = document.getElementById('btnOpenLicense');
+  const verBtn  = document.getElementById('btnVerifyNow');
+  const label   = document.getElementById('licensePlanLabel');
+
+  if (openBtn && window.openLicenseModal) openBtn.onclick = () => openLicenseModal();
+  if (verBtn && window.verifyLicense) verBtn.onclick = async () => {
+    const r = await verifyLicense();
+    if (r?.ok && label) label.textContent = `現在のプラン：${r.plan}`;
+  };
+
+  // 初期表示：localStorageからざっくり表示
+  const plan = localStorage.getItem('tlpPro') === '1' ? 'pro' : 'middle/未適用';
+  if (label) label.textContent = `現在のプラン：${plan}`;
 });
 </script>
 
