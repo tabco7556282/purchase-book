@@ -2702,6 +2702,27 @@ document.addEventListener('DOMContentLoaded', refreshLicenseUI);
 
 </script>
 
+<script>
+fetch('/secure/stripe/links.php', { cache: 'no-store' })
+  .then(r => r.json())
+  .then(({ middle, pro }) => {
+    const bMid = document.getElementById('btnBuyMiddle');
+    const bPro = document.getElementById('btnBuyPro');
+    const nudge = document.getElementById('purchaseNudge'); // あれば
+
+    if (bMid) {
+      if (middle) { bMid.href = middle; bMid.style.display = ''; bMid.removeAttribute('aria-disabled'); }
+      else { bMid.style.display = 'none'; }
+    }
+    if (bPro) {
+      if (pro) { bPro.href = pro; bPro.style.display = ''; bPro.removeAttribute('aria-disabled'); }
+      else { bPro.style.display = 'none'; }
+    }
+    if (nudge && !middle && !pro) nudge.style.display = 'none';
+    console.log('[paylinks]', { middle, pro });
+  })
+  .catch(e => console.warn('paylinks fetch failed', e));
+</script>
 
 <!-- update: 2025-10-01 -->
 </body>
