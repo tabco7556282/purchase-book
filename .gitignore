@@ -1,0 +1,3 @@
+/secure/stripe/config.php
+/secure/stripe/storage/*
+!/secure/stripe/storage/.gitkeep
