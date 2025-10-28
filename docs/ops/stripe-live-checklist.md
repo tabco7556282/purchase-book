@@ -15,3 +15,4 @@
 - [ ] `/secure/stripe/storage/` 権限 700（必要に応じ 750→755）
 - [ ] バックアップ取得：`webhook.php`, `config.php`, `.htaccess`, `storage/*.csv, *.jsonl`
 - [ ] `orders.csv` が肥大化していたらローテーション（例：`orders-YYYYMM.csv` へ）
+2025-10-28 実行済
