@@ -6,6 +6,25 @@ $cfg = @include __DIR__.'/config.php';
 if (is_array($cfg) && !empty($cfg['STRIPE_SECRET_KEY_LIVE'])) {
   putenv('STRIPE_SECRET_KEY_LIVE='.$cfg['STRIPE_SECRET_KEY_LIVE']);
 }
+/**
+ * orders.csv を月初に自動アーカイブ（orders-YYYYMM.csv）へ
+ */
+function rotate_orders_csv_monthly(string $baseCsv): void {
+    if (!file_exists($baseCsv)) return;
+    $nowYm  = date('Ym');
+    $fileYm = date('Ym', filemtime($baseCsv));
+    if ($fileYm === $nowYm) return;
+
+    $dir     = dirname($baseCsv);
+    $archive = $dir . '/orders-' . $fileYm . '.csv';
+
+    if (!file_exists($archive)) {
+        @rename($baseCsv, $archive);
+    } else {
+        @file_put_contents($archive, @file_get_contents($baseCsv), FILE_APPEND | LOCK_EX);
+        @unlink($baseCsv);
+    }
+}
 
 const STORAGE_DIR = __DIR__ . '/storage';
 if (!is_dir(STORAGE_DIR)) { @mkdir(STORAGE_DIR, 0700, true); }
@@ -103,6 +122,22 @@ if (in_array($event->type, ['checkout.session.completed','checkout.session.async
   // 3) LIVEならCSVへ記録
   if ($event->livemode) {
     $csv = STORAGE_DIR . '/orders.csv';
+
+    // ★追加：月次ローテ
+    rotate_orders_csv_monthly($csv);
+
+   $row = [$event->created, date('c',(int)$event->created), $event->id, $sessionId, $email, $priceId, $plan];
+
+$fp = @fopen($csv, 'ab');         // ← 'ab' 推奨（なければ新規作成）
+if ($fp) {
+    flock($fp, LOCK_EX);          // 排他ロック
+    fputcsv($fp, $row);
+    fflush($fp);
+    flock($fp, LOCK_UN);
+    fclose($fp);
+}
+
+    
     $row = [$event->created, date('c',(int)$event->created), $event->id, $sessionId, $email, $priceId, $plan];
     $fp = @fopen($csv, 'a'); if ($fp) { fputcsv($fp, $row); fclose($fp); }
   }
