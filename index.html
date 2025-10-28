@@ -117,6 +117,25 @@ textarea{min-height:84px;resize:vertical}
 #todayList .list-item{background:#FFFDF8;box-shadow:0 1px 4px rgba(0,0,0,.06)}
 .list-item.supplier{display:grid;grid-template-columns:1fr 102px;gap:10px;min-height:120px}
 .ops-col{display:flex;flex-direction:column;gap:8px;align-items:stretch}
+/* Purchase CTA (購入ボタン) */
+:root { --tlp-buy-width: 320px; }  /* 必要があればここで全体幅を調整 */
+
+.tlp-buy-btn-group{
+  display:flex; flex-direction:column; align-items:center;
+  gap:12px; margin:12px 0;
+}
+
+.tlp-buy-btn{
+  display:block; width:var(--tlp-buy-width); max-width:var(--tlp-buy-width);
+  margin:0 auto; padding:10px 16px;
+  font-size:17px; line-height:1.1; font-weight:800;
+  color:#fff; background:#f6bf50; border:1px solid rgba(0,0,0,.12);
+  border-radius:14px; text-align:center; text-decoration:none; box-shadow:none;
+}
+.tlp-buy-btn[aria-disabled="true"]{ pointer-events:none; opacity:.6; }
+
+.tlp-cta-note{ opacity:.7; font-size:12px; }
+@media (pointer:fine){ .tlp-buy-btn:hover{ opacity:.98; } }
 
 /* テーマトグル */
 .theme-toggle{width:40px;height:28px;border-radius:20px;border:1px solid rgba(0,0,0,.15);background:rgba(255,255,255,.9);display:flex;align-items:center;padding:2px;cursor:pointer}
@@ -410,16 +429,48 @@ textarea{min-height:84px;resize:vertical}
     </div>
   </div>
 </div>
-<div id="plans-cta" style="margin:12px 0; display:flex; gap:8px; flex-wrap:wrap;">
-  <button id="btnBuyMiddle">Middle（¥700）を購入</button>
-  <button id="btnBuyPro">Pro（¥1,500）を購入</button>
-  <small style="opacity:.7;">テスト環境：実課金は発生しません</small>
+<div id="plans-cta" class="tlp-buy-btn-group" aria-live="polite">
+  <a id="btnBuyMiddle" class="tlp-buy-btn" data-plan="middle" href="" aria-disabled="true">Middle（¥700）を購入</a>
+  <a id="btnBuyPro"   class="tlp-buy-btn" data-plan="pro"    href="" aria-disabled="true">Pro（¥1,500）を購入</a>
+  <small id="purchaseNudge" class="tlp-cta-note" hidden>テスト環境：実課金は発生しません</small>
 </div>
+
 <script>
 window.tlpCheckoutMiddle = "https://buy.stripe.com/test_aFaaEY0sL4gb5iha2r1ck00";
   window.tlpCheckoutPro    = "https://buy.stripe.com/test_14A7sMb7p2839yx6Qf1ck01";
 window.tlpRedeemURL = "https://cafetabco.pussycat.jp/api/license/redeem.php";
-   function tlpDeviceId(){
+ 
+document.addEventListener('DOMContentLoaded', () => {
+  // HOMEのメニュー最初のボタン幅をそのまま購入ボタンへ同期
+  const hb = document.querySelector('#page-home .nav-vertical .btn');
+  let w = hb ? getComputedStyle(hb).width : '';
+
+  // 幅が取れないケースのフォールバック
+  if ((!w || w === 'auto') && hb) {
+    const ow = hb.offsetWidth;
+    if (ow) w = ow + 'px';
+  }
+
+  if (w) {
+    document.documentElement.style.setProperty('--tlp-buy-width', w);
+    // console.log('[buy-width] set', w);
+  }
+});
+ <script>
+document.addEventListener('DOMContentLoaded', () => {
+  // 本番では非表示、dev/testのみ表示
+  const nudge = document.getElementById('purchaseNudge');
+  if (!nudge) return;
+  const host = location.hostname;
+  const isLocal   = /localhost|127\.0\.0\.1/.test(host);
+  const isStaging = /(dev|stage|staging|test)/i.test(host);
+  const hasTestKey = typeof window.STRIPE_PK === 'string' && /^pk_test_/.test(window.STRIPE_PK);
+  const isTest = isLocal || isStaging || hasTestKey || window.__ENV === 'test';
+  if (isTest) nudge.hidden = false; else nudge.remove();
+});
+</script>
+
+  function tlpDeviceId(){
     let id = localStorage.getItem('tlpDeviceId');
     if (!id) { id = crypto.randomUUID(); localStorage.setItem('tlpDeviceId', id); }
     return id;
