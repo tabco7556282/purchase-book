@@ -7,7 +7,7 @@
 - [ ] Stripe ダッシュボード配信履歴が 200 Delivered
 - [ ] `links.php` 200 / `webhook.php`(GET) 403 / 署名なしPOST 400
 - [ ] `storage/` 配下 403、`config.php` 403（ブラウザ確認）
-
+2025-10-28 実行済
 ## セキュリティ・運用
 - [ ] Test Webhook：エンドポイント 0（または全部停止/削除）
 - [ ] Live Webhook：`checkout.session.completed` のみ選択
@@ -15,4 +15,4 @@
 - [ ] `/secure/stripe/storage/` 権限 700（必要に応じ 750→755）
 - [ ] バックアップ取得：`webhook.php`, `config.php`, `.htaccess`, `storage/*.csv, *.jsonl`
 - [ ] `orders.csv` が肥大化していたらローテーション（例：`orders-YYYYMM.csv` へ）
-2025-10-28 実行済
+
