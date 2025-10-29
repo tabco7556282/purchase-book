@@ -436,9 +436,8 @@ textarea{min-height:84px;resize:vertical}
 </div>
 
 <script>
-
-  window.tlpCheckoutMiddle = "https://cafetabco.pussycat.jp/secure/stripe/links.php?plan=middle";
-window.tlpCheckoutPro    = "https://cafetabco.pussycat.jp/secure/stripe/links.php?plan=pro";
+window.tlpCheckoutMiddle = "https://buy.stripe.com/3cI14g5DR5r88O0bn58EM02";
+  window.tlpCheckoutPro    = "https://buy.stripe.com/28EbIU5DR1aSggs3UD8EM03";
 window.tlpRedeemURL = "https://cafetabco.pussycat.jp/api/license/redeem.php";
  
 // HOMEメニューの最初のボタン幅を購入ボタンへ同期（0px対策つき）
@@ -2747,18 +2746,9 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('DOMContentLoaded', () => {
   const m = document.getElementById('btnBuyMiddle');
   const p = document.getElementById('btnBuyPro');
-  if (m && window.tlpCheckoutMiddle) {
-    m.href = window.tlpCheckoutMiddle;
-    m.removeAttribute('aria-disabled');
-    m.onclick = null;
-  }
-  if (p && window.tlpCheckoutPro) {
-    p.href = window.tlpCheckoutPro;
-    p.removeAttribute('aria-disabled');
-    p.onclick = null;
-  }
+  if (m) m.onclick = buyMiddle;
+  if (p) p.onclick = buyPro;
 });
-
 // 11C: ライセンス操作ボタン
 document.addEventListener('DOMContentLoaded', () => {
   const openBtn = document.getElementById('btnOpenLicense');
