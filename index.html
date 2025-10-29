@@ -440,22 +440,48 @@ window.tlpCheckoutMiddle = "https://buy.stripe.com/test_aFaaEY0sL4gb5iha2r1ck00"
   window.tlpCheckoutPro    = "https://buy.stripe.com/test_14A7sMb7p2839yx6Qf1ck01";
 window.tlpRedeemURL = "https://cafetabco.pussycat.jp/api/license/redeem.php";
  
-document.addEventListener('DOMContentLoaded', () => {
-  // HOMEのメニュー最初のボタン幅をそのまま購入ボタンへ同期
-  const hb = document.querySelector('#page-home .nav-vertical .btn');
-  let w = hb ? getComputedStyle(hb).width : '';
+// HOMEメニューの最初のボタン幅を購入ボタンへ同期（0px対策つき）
+(function syncBuyWidth(){
+  const set = w => document.documentElement.style.setProperty('--tlp-buy-width', Math.round(w) + 'px');
 
-  // 幅が取れないケースのフォールバック
-  if ((!w || w === 'auto') && hb) {
-    const ow = hb.offsetWidth;
-    if (ow) w = ow + 'px';
-  }
+  const find = () =>
+    document.querySelector('#page-home .nav-vertical .btn') ||
+    document.querySelector('#page-home .nav-vertical a.btn') ||
+    document.querySelector('.nav-vertical .btn');
 
-  if (w) {
-    document.documentElement.style.setProperty('--tlp-buy-width', w);
-    // console.log('[buy-width] set', w);
+  const measure = el => {
+    if (!el) return 0;
+    // まず計算済みのpx
+    let w = parseFloat(getComputedStyle(el).width) || 0;
+    // 非表示で0pxのときのフォールバック
+    if (!w) w = el.getBoundingClientRect().width || el.offsetWidth || 0;
+    return w;
+  };
+
+  const trySync = () => {
+    const el = find();
+    const w  = measure(el);
+    if (w > 0) { set(w); return true; }
+    return false;
+  };
+
+  // ① 初回：レイアウトが落ち着くまで数フレーム待って同期
+  let tries = 0;
+  const tick = () => {
+    if (trySync() || ++tries > 20) return;        // 最大 ~20フレーム
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+
+  // ② 画面サイズ変更や表示状態変化でも追随
+  window.addEventListener('resize', trySync, {passive:true});
+  const el = find();
+  if (el && 'ResizeObserver' in window) {
+    const ro = new ResizeObserver(()=>trySync());
+    ro.observe(el);
   }
-});
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
   // 本番では非表示、dev/testのみ表示
   const nudge = document.getElementById('purchaseNudge');
