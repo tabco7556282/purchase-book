@@ -456,7 +456,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // console.log('[buy-width] set', w);
   }
 });
- <script>
 document.addEventListener('DOMContentLoaded', () => {
   // 本番では非表示、dev/testのみ表示
   const nudge = document.getElementById('purchaseNudge');
@@ -468,7 +467,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const isTest = isLocal || isStaging || hasTestKey || window.__ENV === 'test';
   if (isTest) nudge.hidden = false; else nudge.remove();
 });
-</script>
 
   function tlpDeviceId(){
     let id = localStorage.getItem('tlpDeviceId');
