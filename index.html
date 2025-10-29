@@ -136,6 +136,23 @@ textarea{min-height:84px;resize:vertical}
 
 .tlp-cta-note{ opacity:.7; font-size:12px; }
 @media (pointer:fine){ .tlp-buy-btn:hover{ opacity:.98; } }
+/* 補助アクション（コード入力／再検証） */
+.tlp-buy-subacts{
+  display:flex; flex-direction:column; align-items:center;
+  gap:8px; width:100%; margin-top:6px;
+}
+.tlp-buy-subact{
+  display:block;
+  width:var(--tlp-buy-width); max-width:var(--tlp-buy-width); /* 購入ボタンと同幅 */
+  margin:0 auto; padding:6px 14px;                          /* 高さほぼ半分 */
+  font-size:15px; line-height:1.1; font-weight:400;         /* 細め */
+  color:#222; text-decoration:none; text-align:center; cursor:pointer;
+  background:#f9d88f; border:1px solid rgba(0,0,0,.12); border-radius:12px; box-shadow:none;
+}
+@media (pointer:fine){
+  .tlp-buy-subact:hover{ opacity:.92; }
+  .tlp-buy-subact:active{ opacity:.88; }
+}
 
 /* テーマトグル */
 .theme-toggle{width:40px;height:28px;border-radius:20px;border:1px solid rgba(0,0,0,.15);background:rgba(255,255,255,.9);display:flex;align-items:center;padding:2px;cursor:pointer}
@@ -434,6 +451,10 @@ textarea{min-height:84px;resize:vertical}
   <a id="btnBuyPro"   class="tlp-buy-btn" data-plan="pro"    href="" aria-disabled="true">Pro（¥1,500）を購入</a>
   <small id="purchaseNudge" class="tlp-cta-note" hidden>テスト環境：実課金は発生しません</small>
 </div>
+<div id="plans-subacts" class="tlp-buy-subacts" aria-label="補助アクション">
+  <button id="btnRedeem"   type="button" class="tlp-buy-subact">コードを入力</button>
+  <button id="btnReverify" type="button" class="tlp-buy-subact">再検証</button>
+</div>
 
 <script>
 window.tlpCheckoutMiddle = "https://buy.stripe.com/test_aFaaEY0sL4gb5iha2r1ck00";
@@ -443,6 +464,49 @@ window.tlpRedeemURL = "https://cafetabco.pussycat.jp/api/license/redeem.php";
 // HOMEメニューの最初のボタン幅を購入ボタンへ同期（0px対策つき）
 (function syncBuyWidth(){
   const set = w => document.documentElement.style.setProperty('--tlp-buy-width', Math.round(w) + 'px');
+// --- 補助アクション配線（コード入力／再検証） ---
+// 二重配線ガード
+if (!window.__wiredSubActs) {
+  window.__wiredSubActs = true;
+
+  const tryOne = (fn) => { try { const r = fn?.(); return r !== false && r !== undefined; } catch(_) { return false; } };
+
+  // コード入力（redeem）
+  const btnRedeem = document.getElementById('btnRedeem');
+  if (btnRedeem) {
+    btnRedeem.addEventListener('click', (e)=>{
+      e.preventDefault();
+      const ok =
+        tryOne(()=>window.openRedeemModal?.()) ||
+        tryOne(()=>window.Redeem?.open?.())    ||
+        tryOne(()=>window.UI?.openRedeem?.())  ||
+        tryOne(()=>document.querySelector('[data-action="open-redeem"],[data-open="redeem"],.btn-redeem')?.click());
+      if (!ok) {
+        window.dispatchEvent(new CustomEvent('tlp:open-redeem'));
+        alert('コード入力ダイアログに接続してください（openRedeemModal / Redeem.open など）。');
+      }
+    }, {passive:false});
+  }
+
+  // 再検証（verify/enforce）
+  const btnRev = document.getElementById('btnReverify');
+  if (btnRev) {
+    btnRev.addEventListener('click', (e)=>{
+      e.preventDefault();
+      const ok =
+        tryOne(()=>window.tlp?.verifyPurchase?.()) ||
+        tryOne(()=>window.verifyPurchase?.())       ||
+        tryOne(()=>window.enforcePlan?.())          ||
+        tryOne(()=>document.querySelector('[data-action="re-verify"],.btn-reverify')?.click());
+      window.dispatchEvent(new CustomEvent('tlp:reverify'));
+      if (!ok) alert('再検証のエントリ関数に接続してください（tlp.verifyPurchase / enforcePlan など）。');
+    }, {passive:false});
+  }
+
+  // Pro では「コードを入力」を隠す（getPlan がある場合のみ）
+  try { if (typeof getPlan === 'function' && getPlan() === 'pro' && btnRedeem) btnRedeem.hidden = true; } catch(_){}
+}
+// --- /補助アクション配線 ---
 
   const find = () =>
     document.querySelector('#page-home .nav-vertical .btn') ||
