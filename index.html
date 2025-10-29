@@ -2746,9 +2746,18 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('DOMContentLoaded', () => {
   const m = document.getElementById('btnBuyMiddle');
   const p = document.getElementById('btnBuyPro');
-  if (m) m.onclick = buyMiddle;
-  if (p) p.onclick = buyPro;
+  if (m && window.tlpCheckoutMiddle) {
+    m.href = window.tlpCheckoutMiddle;
+    m.removeAttribute('aria-disabled');
+    m.onclick = null;
+  }
+  if (p && window.tlpCheckoutPro) {
+    p.href = window.tlpCheckoutPro;
+    p.removeAttribute('aria-disabled');
+    p.onclick = null;
+  }
 });
+
 // 11C: ライセンス操作ボタン
 document.addEventListener('DOMContentLoaded', () => {
   const openBtn = document.getElementById('btnOpenLicense');
