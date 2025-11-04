@@ -1826,13 +1826,21 @@ document.addEventListener("click",(e)=>{
 
 /* ===== License mock & UI sync ===== */
 function setPlan(p){
-if (p==='pro') localStorage.setItem('tlpPro','1'); else localStorage.removeItem('tlpPro');
-DB.save(store);
-enforcePlan();          // 端末プランに基づくロック再計算
-applyPlanUI();          // 追加ボタンなどのUI反映
-refreshHome();
-alert("プランが更新されました（デモ）");
-syncLicenseButtons();
+  if (p === 'pro') {
+    localStorage.setItem('tlpPro','1');
+    localStorage.removeItem('tlpPlan');
+  } else if (p === 'middle') {
+    localStorage.removeItem('tlpPro');
+    localStorage.setItem('tlpPlan','middle');
+  } else {
+    localStorage.removeItem('tlpPro');
+    localStorage.removeItem('tlpPlan'); // free
+  }
+  DB.save(store);
+  enforcePlan();
+  applyPlanUI?.();
+  refreshHome?.();
+  syncLicenseButtons?.();
 }
 
 function renderRights(){
