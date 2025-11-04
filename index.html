@@ -787,12 +787,44 @@ function refreshAds(){
   slot.classList.toggle("visible", on);
 }
 function refreshHome(){
+  try{
+  const p = getPlan();
+  const label = (p==='pro' ? 'プロ' : p==='middle' ? 'ミドル' : '無料');
+  const root = document.getElementById('home') || document;
+
+  // まずは想定セレクタ群
+  let ok = false;
+  root.querySelectorAll('#pillPlan,[data-plan-pill],.plan-pill').forEach(el=>{
+    el.textContent = label; el.dataset.plan = p; ok = true;
+  });
+
+  // 見つからなければ、「プラン：」で始まる要素をフォールバックで更新
+  if(!ok){
+    root.querySelectorAll('span,small,div').forEach(el=>{
+      const t = (el.textContent||'').trim();
+      if(/^プラン：/.test(t)) { el.textContent = 'プラン：' + label; ok = true; }
+    });
+  }
+}catch(_){}
+
+
   $("#kpiWeek").textContent = yen(calcTotals(7));
   $("#kpiMonth").textContent = yen(calcTotals(30));
   const p = getPlan(); document.querySelector('#pillPlan').textContent = `プラン：${p==='pro'?'プロ':'無料'}`;
   const bk=store.settings.lastBackupAt?new Date(store.settings.lastBackupAt):null;
   $("#pillBackup").textContent = bk?("最終バックアップ："+bk.toLocaleString("ja-JP")):"最終バックアップ：未実施";
   refreshAds();
+queueMicrotask(()=>{
+  try{
+    const p = getPlan();
+    const label = (p==='pro' ? 'プロ' : p==='middle' ? 'ミドル' : '無料');
+    document.querySelectorAll('#pillPlan,[data-plan-pill],.plan-pill').forEach(el=>{
+      const t = (el.textContent||'').trim();
+      el.textContent = /^プラン：/.test(t) ? ('プラン：'+label) : label;
+      el.dataset.plan = p;
+    });
+  }catch(_){}
+});
 }
 
 /* ===== Input ===== */
@@ -1828,13 +1860,13 @@ document.addEventListener("click",(e)=>{
 function setPlan(p){
   if (p === 'pro') {
     localStorage.setItem('tlpPro','1');
-    localStorage.removeItem('tlpPlan');
+    //localStorage.removeItem('tlpPlan');
   } else if (p === 'middle') {
     localStorage.removeItem('tlpPro');
     localStorage.setItem('tlpPlan','middle');
   } else {
     localStorage.removeItem('tlpPro');
-    localStorage.removeItem('tlpPlan'); // free
+    //localStorage.removeItem('tlpPlan'); // free
   }
   DB.save(store);
   enforcePlan();
@@ -2015,15 +2047,15 @@ try{
 }
 
 function applyLicensed(info){
-  const plan = (info && typeof info.plan === 'string')
-    ? info.plan.toLowerCase()
-    : 'free';
-  // 保存とUI反映は setPlan に一本化
-  setPlan(plan);
-  try {
-    localStorage.setItem('tlpLicenseFreshAt', String(Date.now()));
-    if (info && info.exp) localStorage.setItem('tlpLicenseExp', info.exp);
-  } catch(_) {}
+  // ライセンス情報が来た時だけ反映（未指定なら何もしない）
+  if (info && typeof info.plan === 'string') {
+    const plan = info.plan.toLowerCase();
+    setPlan(plan);
+    try {
+      localStorage.setItem('tlpLicenseFreshAt', String(Date.now()));
+      if (info.exp) localStorage.setItem('tlpLicenseExp', info.exp);
+    } catch(_) {}
+  }
 }
 
 
@@ -2603,117 +2635,16 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <script id="tlp-plan-sync">
-/* PLAN=localStorage, store.settings.plan をプロキシ, 復元後に同期 */
 (function(){
-  // 実効プラン：localStorage.tlpPro を唯一のソースに
-  function PLAN(){ return localStorage.getItem('tlpPro')==='1' ? 'pro' : 'free'; }
-  window.PLAN = PLAN;
-
-  // store.settings.plan を PLAN に合わせる（getter 化）
-  function bindProxy(){
-    if (!window.store || !store.settings) return;
-    const d = Object.getOwnPropertyDescriptor(store.settings,'plan');
-    if (!d || ('value' in d)) {
-      Object.defineProperty(store.settings,'plan',{
-        configurable:true, enumerable:true,
-        get: PLAN, set(){} // 固定
-      });
-    }
-  }
-
-  // 上限再計算＋UI反映
-  function sync(){
-    (window.enforcePlan || window.PlanLocks?.enforce)?.();
+  // ここだけで十分：PLANは常にgetPlanを参照
+  window.PLAN = getPlan;
+  document.addEventListener('DOMContentLoaded', () => {
+    (window.enforcePlan || function(){})();
     window.applyPlanUI?.();
-  }
-
-  // 起動時
-  document.addEventListener('DOMContentLoaded', ()=>{ bindProxy(); sync(); });
-
-  // 復元完了（DB.load）後にも毎回同期
-  const wait = setInterval(()=>{
-    if (window.DB && typeof DB.load==='function'){
-      clearInterval(wait);
-      const orig = DB.load.bind(DB);
-      DB.load = async function(...args){
-        const r = await orig(...args);
-        bindProxy(); sync();
-        return r;
-      };
-    }
-  }, 50);
+  });
 })();
 </script>
-<script id="tlp-plan-sync-v2">
-/* PLAN=localStorage に一本化。store.settings が差し替わっても常に plan をプロキシ。復元後も自動同期 */
-(function(){
-  // 実効プランの唯一のソース
-  function EFFECTIVE_PLAN(){ return localStorage.getItem('tlpPro')==='1' ? 'pro' : 'free'; }
-  window.PLAN = EFFECTIVE_PLAN; // 参照している箇所向けに上書き
-
-  // settings.plan を getter 化（settings が差し替わっても追随）
-  let _settingsRef = null;
-  function attachPlanGetter(obj){
-    if(!obj) return;
-    const d = Object.getOwnPropertyDescriptor(obj,'plan');
-    if(!d || ('value' in d)){
-      Object.defineProperty(obj,'plan',{
-        configurable:true, enumerable:true,
-        get: EFFECTIVE_PLAN, set(){ /* no-op */ }
-      });
-    }
-  }
-  function hookSettingsSetter(){
-    if(!window.store) return;
-    // 既存参照を保持
-    _settingsRef = store.settings || _settingsRef;
-    // settings に setter を仕込み、差し替え時に毎回 getter を付与
-    const desc = Object.getOwnPropertyDescriptor(store,'settings');
-    if(!desc || ('value' in desc)){
-      let val = _settingsRef;
-      Object.defineProperty(store,'settings',{
-        configurable:true, enumerable:true,
-        get(){ return val; },
-        set(v){ val = v; attachPlanGetter(val); }
-      });
-    }
-    attachPlanGetter(store.settings);
-  }
-
-  function syncUI(){
-    (window.enforcePlan || window.PlanLocks?.enforce)?.();
-    window.applyPlanUI?.();
-  }
-
-  // 起動時
-  document.addEventListener('DOMContentLoaded', ()=>{ hookSettingsSetter(); syncUI(); });
-
-  // 復元後（DB.load / fromJSON など）にも同期
-  function wrap(obj, name){
-    const f = obj && typeof obj[name]==='function' ? obj[name].bind(obj) : null;
-    if(!f) return;
-    obj[name] = async function(...args){
-      const r = await f(...args);
-      hookSettingsSetter(); // 差し替え後の settings にも getter を再付与
-      syncUI();
-      return r;
-    };
-  }
-  const wait = setInterval(() => {
-   if (!window.DB) return;              // まだ DB が来てない → そのまま待つ
-   clearInterval(wait);
-   try {
-     ['load','fromJSON','restore','merge','apply'].forEach(n => {
-       const fn = window[n];
-       if (typeof fn === 'function') fn();   // あれば呼ぶ、無ければスキップ
-     });
-   } catch (e) {
-     console.error('init stages failed:', e); // 初期化エラーはコンソールに出して継続
-   }
- }, 30);
-})();
-
-</script>
+<script id="tlp-plan-sync-v2">(function(){ window.PLAN = getPlan; })();</script>
 <!-- C-1 Nudge: 全面置換版 -->
 <script>
 (()=> {
@@ -2786,7 +2717,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 function refreshLicenseUI() {
-  const isPro = localStorage.getItem('tlpPro') === '1';
+  const isPro = (getPlan() === 'pro');
   const L = document.getElementById('licensePlanLabel');
   if (L) {
     const plan = isPro ? 'pro' : (localStorage.getItem('tlpLicenseFreshAt') ? 'middle/未適用' : 'free');
