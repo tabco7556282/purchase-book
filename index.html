@@ -2015,16 +2015,16 @@ try{
 }
 
 function applyLicensed(info){
-  try{
-    localStorage.setItem('tlpPro','1');
+  const plan = (info && typeof info.plan === 'string')
+    ? info.plan.toLowerCase()
+    : 'free';
+  // 保存とUI反映は setPlan に一本化
+  setPlan(plan);
+  try {
     localStorage.setItem('tlpLicenseFreshAt', String(Date.now()));
-    if (info?.exp) localStorage.setItem('tlpLicenseExp', info.exp);
-  }catch(_){}
-  setPlan('pro');
-try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch {}
-try { refreshLicenseUI(); } catch(_) {}
+    if (info && info.exp) localStorage.setItem('tlpLicenseExp', info.exp);
+  } catch(_) {}
 }
-window.applyLicensed = applyLicensed;   // 一時的に公開（検証用）
 
 
 function syncOfflineGrace(){
