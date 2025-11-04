@@ -2716,18 +2716,18 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-function refreshLicenseUI() {
-  const isPro = (getPlan() === 'pro');
-  const L = document.getElementById('licensePlanLabel');
-  if (L) {
-    const plan = isPro ? 'pro' : (localStorage.getItem('tlpLicenseFreshAt') ? 'middle/未適用' : 'free');
-    L.textContent = `現在のプラン：${plan}`;
-  }
-  const cta = document.getElementById('plans-cta');
-  if (cta) cta.style.display = isPro ? 'none' : '';
-}
-document.addEventListener('DOMContentLoaded', refreshLicenseUI);
+function refreshLicenseUI(){
+  try{
+    const p = getPlan();
+    const label = (p==='pro' ? 'プロ' : p==='middle' ? 'ミドル' : '無料');
 
+    const L = document.getElementById('licensePlanLabel');
+    if (L) L.textContent = `現在のプラン：${label}`;
+
+    const cta = document.getElementById('plans-cta');
+    if (cta) cta.style.display = (p === 'pro') ? 'none' : '';
+  }catch(_){}
+}
 </script>
 
 <script>
