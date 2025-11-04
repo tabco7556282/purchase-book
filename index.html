@@ -635,7 +635,7 @@ window.clampExportKey = clampExportKey; // コンソール診断用に公開（�
 // === Plan Caps ===
 const PlanCap = {
   free   : { suppliers: 5,  products: 50,  perSupplier: 10 },
-  middle : { suppliers: 15, products: 225, perSupplier: 15 },
+  middle : { suppliers: 15, products: 200, perSupplier: 15 },
   pro    : { suppliers: Infinity, products: Infinity, perSupplier: Infinity }
 };
 const PLAN = () => getPlan();
@@ -1523,8 +1523,12 @@ function backupNow(){
 // Backup はそのまま
 // ---- Plan enforcement (端末プランに基づくロック計算) ----
 function getPlan(){
-  try { return (localStorage.getItem('tlpPro') === '1') ? 'pro' : 'free'; }
-  catch(_) { return 'free'; }
+  try {
+    const p = (localStorage.getItem('tlpPlan') || '').toLowerCase();
+    if (p === 'pro' || p === 'middle' || p === 'free') return p;
+    // 互換: 旧キー（tlpPro=1）は pro 扱い
+    return (localStorage.getItem('tlpPro') === '1') ? 'pro' : 'free';
+  } catch(_) { return 'free'; }
 }
 
 // TODO: 実運用の上限に合わせて調整
