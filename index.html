@@ -123,7 +123,8 @@ textarea{min-height:84px;resize:vertical}
 .tlp-buy-btn-group{
   display:flex; flex-direction:column; align-items:center;
   gap:12px; margin:12px 0;
-}
+ }
+#plans-cta.tlp-buy-btn-group{ display:flex; gap:0px; flex-wrap:wrap; }
 
 .tlp-buy-btn{
   display:block; width:var(--tlp-buy-width); max-width:var(--tlp-buy-width);
@@ -136,6 +137,7 @@ textarea{min-height:84px;resize:vertical}
 
 .tlp-cta-note{ opacity:.7; font-size:12px; }
 @media (pointer:fine){ .tlp-buy-btn:hover{ opacity:.98; } }
+#plans-cta [hidden]{ display:none !important; }
 
 /* テーマトグル */
 .theme-toggle{width:40px;height:28px;border-radius:20px;border:1px solid rgba(0,0,0,.15);background:rgba(255,255,255,.9);display:flex;align-items:center;padding:2px;cursor:pointer}
@@ -367,8 +369,7 @@ textarea{min-height:84px;resize:vertical}
           <li>仕入れ先 <b>15社</b>まで／商品<b>合計200品</b></li>
           <li>出力範囲：<b>年度（1月〜今月）</b></li>
         </ul>
-        <button id="mockBuyMid" class="btn" disabled title="準備中">準備中</button>
-      </div>
+        </div>
 
       <div class="card">
         <h3>プロ（¥1,500）</h3>
@@ -377,7 +378,6 @@ textarea{min-height:84px;resize:vertical}
           <li>仕入先数・商品数に上限なし</li>
           <li>出力範囲：<b>無制限</b></li>
         </ul>
-        <button class="btn primary small" id="mockBuyPro" type="button">フル機能で使う</button>
         <button id="btnEnterLicense" class="btn ghost small" type="button">コードを入力</button>
       </div>
     </div>
@@ -430,8 +430,8 @@ textarea{min-height:84px;resize:vertical}
   </div>
 </div>
 <div id="plans-cta" class="tlp-buy-btn-group" aria-live="polite">
-  <a id="btnBuyMiddle" class="tlp-buy-btn" data-plan="middle" href="" aria-disabled="true">Middle（¥700）を購入</a>
-  <a id="btnBuyPro"   class="tlp-buy-btn" data-plan="pro"    href="" aria-disabled="true">Pro（¥1,500）を購入</a>
+  <a id="btnBuyMiddle" class="tlp-buy-btn" data-plan="middle" href="https://buy.stripe.com/3cI14g5DR5r88O0bn58EM02">Middle（¥700）を購入</a>
+　<a id="btnBuyPro" class="tlp-buy-btn" data-plan="pro" href="https://buy.stripe.com/28EbIU5DR1aSggs3UD8EM03">Pro（¥1,500）を購入</a>
   <small id="purchaseNudge" class="tlp-cta-note" hidden>テスト環境：実課金は発生しません</small>
 </div>
 
@@ -810,7 +810,8 @@ function refreshHome(){
 
   $("#kpiWeek").textContent = yen(calcTotals(7));
   $("#kpiMonth").textContent = yen(calcTotals(30));
-  const p = getPlan(); document.querySelector('#pillPlan').textContent = `プラン：${p==='pro'?'プロ':'無料'}`;
+  { const pill = document.querySelector('#pillPlan');
+   if (pill) pill.textContent = `プラン：${planJp(getPlan())}`; }
   const bk=store.settings.lastBackupAt?new Date(store.settings.lastBackupAt):null;
   $("#pillBackup").textContent = bk?("最終バックアップ："+bk.toLocaleString("ja-JP")):"最終バックアップ：未実施";
   refreshAds();
@@ -1858,21 +1859,35 @@ document.addEventListener("click",(e)=>{
 
 /* ===== License mock & UI sync ===== */
 function setPlan(p){
-  if (p === 'pro') {
-    localStorage.setItem('tlpPro','1');
-    //localStorage.removeItem('tlpPlan');
-  } else if (p === 'middle') {
-    localStorage.removeItem('tlpPro');
-    localStorage.setItem('tlpPlan','middle');
-  } else {
-    localStorage.removeItem('tlpPro');
-    //localStorage.removeItem('tlpPlan'); // free
-  }
-  DB.save(store);
-  enforcePlan();
-  applyPlanUI?.();
-  refreshHome?.();
-  syncLicenseButtons?.();
+  try {
+    p = (p || '').toLowerCase();
+
+    if (p === 'pro') {
+      // 主要キーは tlpPlan、互換の旧キー tlpPro も残す
+      localStorage.setItem('tlpPlan', 'pro');
+      localStorage.setItem('tlpPro', '1');  // legacy
+    } else if (p === 'middle') {
+      localStorage.setItem('tlpPlan', 'middle');
+      localStorage.removeItem('tlpPro');
+    } else {
+      // free / 想定外は free 扱い
+      p = 'free';
+      localStorage.setItem('tlpPlan', 'free');
+      localStorage.removeItem('tlpPro');
+    }
+
+    // 既存の処理はそのまま
+    DB.save(store);
+    enforcePlan();
+    applyPlanUI?.();
+    refreshHome?.();
+
+  } finally {
+    // リロード不要で UI を即時反映
+    window.updatePlanPill?.();
+    window.syncLicenseButtons?.();
+  window.refreshLicenseUI?.();  // ← CTA の最終表示も同期
+}
 }
 
 function renderRights(){
@@ -1890,22 +1905,23 @@ function renderRights(){
 }
 function syncLicenseButtons(){
   const p = getPlan();
-  const btnFree = $('#btnUseFree'), btnMid = $('#mockBuyMid'), btnPro = $('#mockBuyPro');
-  if(btnFree){ btnFree.disabled = (p==='free'); btnFree.textContent = (p==='free')?'使用中':'このプランを使う'; }
-  if(btnMid){ btnMid.disabled = (p==='middle'); btnMid.textContent = (p==='middle')?'使用中':'アップグレードする'; }
-  if(btnPro){ btnPro.disabled = (p==='pro'); btnPro.textContent = (p==='pro')?'使用中':'フル機能で使う'; }
-// 追加：コード入力ボタンの表示制御
- const btnEnter = $('#btnEnterLicense');
- if (btnEnter) {
-   const hide = (p === 'pro');
-   btnEnter.classList.toggle('hidden', hide);
-   btnEnter.toggleAttribute('aria-hidden', hide);
-   btnEnter.disabled = hide;
-   hide ? (btnEnter.style.display = 'none') : btnEnter.style.removeProperty('display');
- }
+  const root = document.getElementById('plans-cta') || document;
+
+  // Middle… Freeの時だけ表示
+  root.querySelectorAll('a.tlp-buy-btn[data-plan="middle"]')
+    .forEach(el => {
+      el.toggleAttribute('hidden', p !== 'free');
+      el.setAttribute('aria-hidden', (p !== 'free') ? 'true' : 'false');
+    });
+
+  // Pro… Proの時だけ非表示
+  root.querySelectorAll('a.tlp-buy-btn[data-plan="pro"]')
+    .forEach(el => {
+      el.toggleAttribute('hidden', p === 'pro');
+      el.setAttribute('aria-hidden', (p === 'pro') ? 'true' : 'false');
+    });
 }
-document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyMid") alert("ミドルは準備中です"); });
-document.addEventListener("click",(e)=>{ if(e.target.id==="mockBuyPro") setPlan("pro"); });
+
 document.addEventListener("click",(e)=>{ if(e.target.id==="btnUseFree") setPlan("free"); });
 function openLicenseModal(){
   openModalBase("ライセンスコード", `
@@ -2635,12 +2651,38 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <script id="tlp-plan-sync">
+function updatePlanPill(){
+  const p = getPlan();
+  const t = planJp(p);
+  document.querySelectorAll('[data-plan-pill],#licensePlanLabel')
+    .forEach(el => { el.textContent = t; el.setAttribute('data-plan', p); });
+}
+
 (function(){
-  // ここだけで十分：PLANは常にgetPlanを参照
   window.PLAN = getPlan;
-  document.addEventListener('DOMContentLoaded', () => {
+  window.updatePlanPill = function(){
+    const p = getPlan();
+    const t = p==='pro' ? 'プロ' : p==='middle' ? 'ミドル' : '無料';
+    document.querySelectorAll('[data-plan-pill],#licensePlanLabel')
+      .forEach(el => { el.textContent = t; el.setAttribute('data-plan', p); });
+  };
+document.addEventListener('DOMContentLoaded', () => {
+    // ★決済戻りの ?plan= を保存→URLをクリーン化
+    try{
+      const q  = new URLSearchParams(location.search);
+      const qp = (q.get('plan')||'').toLowerCase();
+      if (qp === 'middle' || qp === 'pro'){
+        setPlan(qp);
+        updatePlanPill?.();
+window.syncLicenseButtons?.();
+        history.replaceState(null,'',location.pathname);
+      }
+    }catch(_){}
+updatePlanPill?.();
+window.syncLicenseButtons?.();
     (window.enforcePlan || function(){})();
     window.applyPlanUI?.();
+    window.refreshLicenseUI?.();
   });
 })();
 </script>
