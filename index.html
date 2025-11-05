@@ -437,9 +437,9 @@ textarea{min-height:84px;resize:vertical}
 
 <script>
 
-  window.tlpCheckoutMiddle = "https://cafetabco.pussycat.jp/secure/stripe/links.php?plan=middle";
-window.tlpCheckoutPro    = "https://cafetabco.pussycat.jp/secure/stripe/links.php?plan=pro";
-window.tlpRedeemURL = "https://cafetabco.pussycat.jp/api/license/redeem.php";
+  window.tlpCheckoutMiddle = "https://buy.stripe.com/3cI14g5DR5r88O0bn58EM02";
+  window.tlpCheckoutPro    = "https://buy.stripe.com/28EbIU5DR1aSggs3UD8EM03";
+  window.tlpRedeemURL      = "https://cafetabco.pussycat.jp/api/license/redeem.php"; 
  
 // HOMEメニューの最初のボタン幅を購入ボタンへ同期（0px対策つき）
 (function syncBuyWidth(){
@@ -2781,29 +2781,6 @@ function refreshLicenseUI(){
 }
 </script>
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  fetch('https://cafetabco.com/secure/stripe/links.php', { cache: 'no-store' })
-    .then(r => r.json())
-    .then(({ middle, pro }) => {
-      const bMid  = document.getElementById('btnBuyMiddle');
-      const bPro  = document.getElementById('btnBuyPro');
-      const nudge = document.getElementById('purchaseNudge');
-
-      if (bMid) {
-        if (middle) { bMid.href = middle; bMid.style.display = ''; bMid.removeAttribute('aria-disabled'); }
-        else { bMid.style.display = 'none'; }
-      }
-      if (bPro) {
-        if (pro) { bPro.href = pro; bPro.style.display = ''; bPro.removeAttribute('aria-disabled'); }
-        else { bPro.style.display = 'none'; }
-      }
-      if (nudge && !middle && !pro) nudge.style.display = 'none';
-      console.log('[paylinks]', { middle, pro });
-    })
-    .catch(e => console.warn('paylinks_fetch_failed', e));
-});
-</script>
 
 <!-- update: 2025-10-01 -->
 </body>
