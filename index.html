@@ -1905,7 +1905,16 @@ function renderRights(){
 }
 function syncLicenseButtons(){
   const p = getPlan();
-  const root = document.getElementById('plans-cta') || document;
+  // --- Freeカードのボタン（このプランを使う／使用中） ---
+const btnFree = document.getElementById('btnUseFree');
+if (btnFree) {
+  const isFree = (p === 'free');
+  btnFree.disabled = isFree;
+  btnFree.setAttribute('aria-disabled', isFree ? 'true' : 'false');
+  btnFree.textContent = isFree ? '使用中' : 'このプランを使う';
+}
+
+const root = document.getElementById('plans-cta') || document;
 
   // Middle… Freeの時だけ表示
   root.querySelectorAll('a.tlp-buy-btn[data-plan="middle"]')
