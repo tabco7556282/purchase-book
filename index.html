@@ -643,8 +643,12 @@ const CAPS = (p = PLAN()) => {
   const c = PlanCap[p] || PlanCap.free;
   return {
     suppliers: c.suppliers,
+    // aliases for backward-compat:
     productsPerSupplier: c.perSupplier,
     productsTotal: c.products,
+    // legacy keys still used in a few places:
+    products: c.products,
+    perSupplier: c.perSupplier,
   };
 };
 window.CAPS = CAPS; // 診断用に公開（任意）
@@ -1543,17 +1547,6 @@ function ModalExport(){
 }
 document.addEventListener("click", (e)=>{ const btn = e.target.closest("#btnExport, #btnExport2"); if(!btn) return; e.preventDefault(); ModalExport(); });
 
-/* ===== Backup / Restore / Fiscal Archive ===== */
-function backupNow(){
-  const payload={version:"1.1",exported_at:new Date().toISOString(),
-    tables:{suppliers:store.suppliers,products:store.products,entries:store.entries,priceHistory:store.priceHistory,settings:store.settings}};
-    try{ if (payload && payload.tables && payload.tables.settings) delete payload.tables.settings.plan; }catch(e){}
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="tabco_backup_"+fmtYMD(new Date())+".json"; a.click(); URL.revokeObjectURL(a.href);
-  store.settings.lastBackupAt=Date.now(); DB.save(store); refreshHome();
-  const bk=$("#bkLast"); if(bk) bk.textContent=new Date(store.settings.lastBackupAt).toLocaleString("ja-JP");
-}
-// Backup はそのまま
 // ---- Plan enforcement (端末プランに基づくロック計算) ----
 function getPlan(){
   try {
@@ -1564,101 +1557,15 @@ function getPlan(){
   } catch(_) { return 'free'; }
 }
 
-// TODO: 実運用の上限に合わせて調整
-
-function enforcePlan(){
-  const plan = getPlan();
-  const lim  = PLAN_LIMITS[plan] || PLAN_LIMITS.free;
-
-  const mkLocks = (arr, limit) => {
-    if (!Array.isArray(arr)) return [];
-    const locks = [];
-    for (let i = limit; i < arr.length; i++) {
-      const item = arr[i];
-      const id = item && (item.id ?? item.uuid ?? item.code);
-      locks.push(id != null ? id : i);
-    }
-    return locks;
-  };
-
-  store.planLocks = {
-    suppliers: mkLocks(store.suppliers, lim.suppliers),
-    products:  mkLocks(store.products,  lim.products),
-    entries:   mkLocks(store.entries,   lim.entries),
-  };
-
-  try { DB.save(store); } catch(_) {}
-}
-
-  // 端末プラン上限（必要に応じて調整）
-window.PLAN_LIMITS = {
-  free:   { suppliers: 5,  products: 50,  entries: 1000 },
-  middle: { suppliers: 15, products: 200, entries: 5000 },
-  pro:    { suppliers: Infinity, products: Infinity, entries: Infinity }
-};
-  const PLAN_LIMITS = window.PLAN_LIMITS;
-
-// === Save Guard for modal save (#modalOK / .btn--save) ===
-(() => {
-  const SEL_SAVE = '#modalOK, .btn--save';         // さっき当たった保存ボタン
-  const DLG_SEL  = '[role="dialog"], .modal, .dialog, .sheet';
-
-  // ダイアログ→エンティティ推定（IDやクラス名に合わせて必要なら足す）
-  // 置き換え：ダイアログ→エンティティ推定
-const resolveEntity = (dlg) => {
-  const h = (location.hash || '').toLowerCase();     // ← まずハッシュを見る
-  if (h.includes('supplier')) return 'suppliers';
-  if (h.includes('product'))  return 'products';
-  if (h.includes('entry') || h.includes('home')) return 'entries';
-
-  // フォールバック：要素の id/class から推定
-  const idc = (dlg.id || dlg.className || '').toLowerCase();
-  if (idc.includes('supplier')) return 'suppliers';
-  if (idc.includes('product'))  return 'products';
-  if (idc.includes('entry'))    return 'entries';
-
-  // 最後の保険（日本語ラベル等）
-  const txt = (dlg.textContent || '').toLowerCase();
-  if (txt.includes('仕入先') || txt.includes('supplier')) return 'suppliers';
-  if (txt.includes('商品')   || txt.includes('product'))  return 'products';
-
-  return 'entries';
-};
-
-  // 編集か新規か判定（hidden [name="index"] を推奨；無ければ新規扱い）
-  const getEditingIndex = (dlg) => {
-    const v = dlg.querySelector('[name="index"]')?.value;
-    if (v === '' || v == null) return -1;
-    const n = +v;
-    return Number.isFinite(n) ? n : -1;
-  };
-
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest(SEL_SAVE);
-    if (!btn) return;
-
-    const dlg = btn.closest(DLG_SEL) || document;
-    const entity = resolveEntity(dlg);
-
-   const plan = getPlan();
-    const lim    = (window.PLAN_LIMITS && PLAN_LIMITS[plan]) || {suppliers:Infinity,products:Infinity,entries:Infinity};
-    const count = (window.store?.[entity]||[]).filter(x=>!x.deleted).length;
-
-    const idx    = getEditingIndex(dlg);
-    const isNew  = (idx < 0); // -1 などは新規
-
-    if (isNew && count >= (lim[entity] ?? Infinity)) {
-      e.preventDefault();
-      e.stopPropagation();
-      alert('この端末のプラン上限です：' +
-            `${entity} は ${lim[entity]} 件まで（現在 ${count} 件）`);
-      return;
-    }
-    // 通過＝保存許可（既存編集 or 余裕あり）
-  }, true);
-})();
 
 // 復元直後などに呼んで“ロック対象”だけ計算して保存
+
+// Fallback plan limits used by enforcePlan (locks). Keep in sync with PlanCap.
+window.PLAN_LIMITS = window.PLAN_LIMITS || {
+  free:   { suppliers: 5,  products: 50,  entries: Infinity },
+  middle: { suppliers: 15, products: 200, entries: Infinity },
+  pro:    { suppliers: Infinity, products: Infinity, entries: Infinity }
+};
 window.enforcePlan = function(){
   const plan = getPlan();
  const lim  = window.PLAN_LIMITS[plan] || window.PLAN_LIMITS.free;
@@ -2489,12 +2396,6 @@ window.backupNow = function(){ saveBackupStrict(); };
   .fp-btn:hover{filter:brightness(0.97)}
 </style>
 
-<style>
-  .fp-btnbar{display:flex;gap:.5rem;padding:.5rem;border-top:1px solid #eee}
-  .fp-btn{padding:.4rem .8rem;border:1px solid #ddd;border-radius:.5rem;background:#f6f6f6;cursor:pointer}
-  .fp-btn:hover{filter:brightness(0.97)}
-</style>
-
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/ja.js"></script>
 <script>
@@ -2695,7 +2596,6 @@ window.syncLicenseButtons?.();
   });
 })();
 </script>
-<script id="tlp-plan-sync-v2">(function(){ window.PLAN = getPlan; })();</script>
 <!-- C-1 Nudge: 全面置換版 -->
 <script>
 (()=> {
