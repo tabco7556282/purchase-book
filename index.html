@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
 <meta http-equiv="Content-Security-Policy"
-  content="default-src 'self'; connect-src 'self' https://cafetabco.pussycat.jp https://cafetabco.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; manifest-src 'self'">
+  content="default-src 'self'; connect-src 'self' https://cafetabco.pussycat.jp https://cafetabco.com  https://www.cafetabco.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; manifest-src 'self'">
 
 
 <link rel="manifest" href="./manifest.webmanifest?v=0.8.4">
@@ -221,7 +221,7 @@ textarea{min-height:84px;resize:vertical}
       <button class="btn ghost" data-goto="backup" type="button">バックアップ設定</button>
       <button class="btn ghost" data-goto="license" type="button">Plans</button>
       <button class="btn ghost" data-goto="rights" type="button">Licenses＆Notices</button>
-　    <button class="btn danger" id="btnFactoryReset" type="button">データ初期化</button>
+     <button class="btn danger" id="btnFactoryReset" type="button">データ初期化</button>
       <div class="label">※初期化の前にバックアップを取ってください。</div>
     </div>
 
@@ -369,7 +369,8 @@ textarea{min-height:84px;resize:vertical}
           <li>仕入れ先 <b>15社</b>まで／商品<b>合計200品</b></li>
           <li>出力範囲：<b>年度（1月〜今月）</b></li>
         </ul>
-        </div>
+        <button id="btnEnterLicense" class="btn ghost small" type="button">コードを入力</button>
+　　　</div>
 
       <div class="card">
         <h3>プロ（¥1,500）</h3>
@@ -395,7 +396,7 @@ textarea{min-height:84px;resize:vertical}
       <section><h4>App & Version</h4><p>Tabco Ledger Plus<sup>™</sup> v0.8.1</p></section>
       <section><h4>Copyright</h4><p>© 2025 チカキッサ.タブコ. All rights reserved.</p></section>
       <section><h4>Trademark Notice</h4><p><strong>Tabco Ledger Plus<sup>™</sup></strong> and related logos are trademarks of Tabco.</p></section>
-　　　<section id="rights"><h4>EULA（使用許諾）</h4><p>本アプリのご利用によりEULA（使用許諾契約）に同意したものとみなされます。</p><ol>
+   <section id="rights"><h4>EULA（使用許諾）</h4><p>本アプリのご利用によりEULA（使用許諾契約）に同意したものとみなされます。</p><ol>
         <li><b>ライセンス付与：</b>非独占・譲渡不可。再配布/逆コンパイル禁止。</li>
         <li><b>データとプライバシー：</b>出力データの管理は利用者の責任。</li>
         <li><b>知的財産：</b>本ソフト/名称/ロゴ等は開発者に帰属。</li>
@@ -431,7 +432,7 @@ textarea{min-height:84px;resize:vertical}
 </div>
 <div id="plans-cta" class="tlp-buy-btn-group" aria-live="polite">
   <a id="btnBuyMiddle" class="tlp-buy-btn" data-plan="middle" href="https://buy.stripe.com/3cI14g5DR5r88O0bn58EM02">Middle（¥700）を購入</a>
-　<a id="btnBuyPro" class="tlp-buy-btn" data-plan="pro" href="https://buy.stripe.com/28EbIU5DR1aSggs3UD8EM03">Pro（¥1,500）を購入</a>
+ <a id="btnBuyPro" class="tlp-buy-btn" data-plan="pro" href="https://buy.stripe.com/28EbIU5DR1aSggs3UD8EM03">Pro（¥1,500）を購入</a>
   <small id="purchaseNudge" class="tlp-cta-note" hidden>テスト環境：実課金は発生しません</small>
 </div>
 
@@ -439,7 +440,10 @@ textarea{min-height:84px;resize:vertical}
 
   window.tlpCheckoutMiddle = "https://buy.stripe.com/3cI14g5DR5r88O0bn58EM02";
   window.tlpCheckoutPro    = "https://buy.stripe.com/28EbIU5DR1aSggs3UD8EM03";
-  window.tlpRedeemURL      = "https://cafetabco.pussycat.jp/api/license/redeem.php"; 
+  window.tlpRedeemURL      = "https://www.cafetabco.com/api/license/redeem.php";
+  window.tlpRedeemURL = 'https://www.cafetabco.com/api/license/redeem.php';
+  window.tlpVerifyURL = 'https://www.cafetabco.com/api/license/verify.php';
+
  
 // HOMEメニューの最初のボタン幅を購入ボタンへ同期（0px対策つき）
 (function syncBuyWidth(){
@@ -500,41 +504,62 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!id) { id = crypto.randomUUID(); localStorage.setItem('tlpDeviceId', id); }
     return id;
   }
-  window.tlpVerifyURL = "https://cafetabco.pussycat.jp/api/license/verify.php";
+  window.tlpVerifyURL = "https://www.cafetabco.com/api/license/verify.php";
 
   window.verifyLicense = async () => {
-    const url = window.tlpVerifyURL + "?device_id=" + encodeURIComponent(tlpDeviceId());
-    const res = await fetch(url);
-    const j = await res.json().catch(()=>({ok:false}));
-    if (j.ok) {
-      localStorage.setItem('tlpLicenseFreshAt', String(Date.now()));
-      if (j.plan === 'pro') localStorage.setItem('tlpPro','1');
-      if (window.applyLicensed) try{ applyLicensed({plan:j.plan, via:'verify'});}catch(_){}
-      alert('再検証OK：'+j.plan);
+  try {
+    const res = await fetch(window.tlpVerifyURL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ device: tlpDeviceId(), app: 'tlp' })
+    });
+    const j = await res.json().catch(() => ({ ok:false }));
+    if (j && j.ok) {
+      try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch (_){}
+      try {
+        if (window.applyLicensed) { applyLicensed({ plan: j.plan, via: 'verify' }); }
+        else { setPlan?.(j.plan); }
+      } catch(_){ setPlan?.(j.plan); }
+      alert('再検証OK：' + j.plan);
     } else {
-      alert('再検証失敗：'+(j.reason||'unknown'));
+      const reason = (j && (j.error || j.reason)) || 'unknown';
+      alert('再検証失敗：' + reason);
     }
     return j;
-  };
+  } catch(e) {
+    console.error(e);
+    alert('再検証失敗：network');
+    return { ok:false, error:'network' };
+  }
+};
 
   window.redeemCode = async (code) => {
-    const res  = await fetch(window.tlpRedeemURL, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ code: String(code).trim(), device_id: tlpDeviceId() })
+  const payload = { code: String(code || '').trim(), device: tlpDeviceId(), app: 'tlp' };
+  try {
+    const res = await fetch(window.tlpRedeemURL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     });
-    const json = await res.json().catch(()=>({ok:false}));
+    const json = await res.json().catch(() => ({ ok:false }));
     console.log('redeem:', json);
-
-    if (json.ok) {
-      localStorage.setItem('tlpLicenseFreshAt', String(Date.now()));
-      if (json.plan === 'pro') localStorage.setItem('tlpPro','1');
-      if (window.applyLicensed) try{ applyLicensed({plan: json.plan, via:'redeem'});}catch(_){}
-      alert('ライセンス適用：'+json.plan);
+    if (json && json.ok) {
+      try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch(_){ }
+      try { setPlan?.(json.plan); } catch(_){}
+      if (json.plan === 'pro') localStorage.setItem('tlpPro','1'); else localStorage.removeItem('tlpPro');
+      if (window.applyLicensed) try{ applyLicensed({ plan: json.plan, via: 'redeem' }); }catch(_){}
+      alert('ライセンス適用：' + json.plan);
     } else {
-      alert('引換失敗：'+(json.reason||'unknown'));
+      const reason = (json && (json.error || json.reason)) || 'unknown';
+      alert('引換失敗：' + reason);
     }
     return json;
-  };
+  } catch(e) {
+    console.error(e);
+    alert('引換失敗：network');
+    return { ok:false, error:'network' };
+  }
+};
 
       window.DEBUG_PAY = false;
  window.buyMiddle = () => window.open(window.tlpCheckoutMiddle, "_blank", "noopener");
@@ -580,14 +605,13 @@ const DB = {
       try{
         localStorage.setItem("tabco-store_corrupt", localStorage.getItem("tabco-store") || "");
       }catch(_){}
-      raw = {};
-    }
+      }
 
     // 深いマージ（settingsだけ個別にマージ）
     const out = {
-      suppliers: Array.isArray(raw.suppliers) ? raw.suppliers : defaults.suppliers,
-      products:  Array.isArray(raw.products)  ? raw.products  : defaults.products,
-      entries:   Array.isArray(raw.entries)   ? raw.entries   : defaults.entries,
+      suppliers:Array.isArray(raw.suppliers) ? raw.suppliers : defaults.suppliers,
+      products:Array.isArray(raw.products)  ? raw.products  : defaults.products,
+      entries:Array.isArray(raw.entries)   ? raw.entries   : defaults.entries,
       priceHistory: (raw.priceHistory && typeof raw.priceHistory === "object") ? raw.priceHistory : {},
       settings: Object.assign({}, defaults.settings, (raw.settings || {}))
     };
@@ -809,7 +833,7 @@ function refreshHome(){
       if(/^プラン：/.test(t)) { el.textContent = 'プラン：' + label; ok = true; }
     });
   }
-}catch(_){}
+}catch(_){}}
 
 
   $("#kpiWeek").textContent = yen(calcTotals(7));
@@ -830,7 +854,7 @@ queueMicrotask(()=>{
     });
   }catch(_){}
 });
-}
+
 
 /* ===== Input ===== */
 function fillSupplierSelect(sel){
@@ -892,7 +916,7 @@ document.addEventListener("change",(e)=>{
     if(p){
       $("#inPrice").value=p.default_price||"";
       $$('input[name=taxrate]').forEach(r=>r.checked=String(p.tax_rate)===r.value);
-      $$('input[name=taxmode]').forEach(r=>r.checked=(p.tax_mode||"excl")===r.value);
+      $$('input[name=taxmode]').forEach(r=>r.checked=(p.tax_mode||"excl")==="excl");
       renderPriceHistory(p.id);
     }else{
       $("#priceHistory").innerHTML="";
@@ -1033,7 +1057,7 @@ function renderSuppliers(){
     item.innerHTML = `
       <div class="tapzone" data-id="${s.id}">
         <b>${s.name}</b>
-        <div class="muted">担当:${s.contact || "-" }　TEL:${s.phone || "-" }　INV:${s.invoice_number || "-" }</div>
+        <div class="muted">担当:${s.contact || "-" } TEL:${s.phone || "-" } INV:${s.invoice_number || "-" }</div>
         <div class="muted">｜商品${prodCount}件</div>
       </div>
       <div class="ops-col">
@@ -1149,7 +1173,7 @@ function openModalBase(title,bodyHTML){
   del.classList.add("hidden");
   ok.classList.add("btn--save"); cancel.classList.add("btn--cancel"); del.classList.add("btn--delete");
   host.classList.remove("hidden"); host.setAttribute("aria-hidden","false");
-document.querySelector('#modalHost :is(input,button,select,textarea,[tabindex]:not([tabindex="-1"]))')?.focus();
+$("#modalHost :is(input,button,select,textarea,[tabindex]:not([tabindex='-1']))")?.focus();
 }
 (function(){
   const host=$("#modalHost"); if(!host||host.__bound) return;
@@ -1179,7 +1203,7 @@ function openSupplierModal(s){
     const inv    =$("#mSupInv").value.trim();
     if(s){ s.name=name; s.contact=contact; s.phone=phone; s.invoice_number=inv; }
    else {  const cap = CAPS();const supCount = store.suppliers.filter(x=>!x.deleted).length;
-  　if (supCount >= cap.suppliers){
+  	if (supCount >= cap.suppliers){
     alert(`現在のプランでは仕入先は ${capLabel(cap.suppliers,'社')} までです。\nPlans からアップグレードをご検討ください。`);
     return;
   }
@@ -1280,7 +1304,7 @@ function openProductModal(p,defaultSid){
     const note=$("#mProdNote").value||"";
     if(p){ p.supplier_id=sid; p.name=name; p.default_price=price; p.tax_rate=tax_rate; p.tax_mode=tax_mode; p.note=note; }
    else {const cap = CAPS(); const total = store.products.filter(x=>!x.deleted).length;
-　　if (total >= cap.products){
+  if (total >= cap.products){
      alert(`現在のプランでは商品合計は ${capLabel(cap.products,'品')} までです。\nPlans からアップグレードをご検討ください。`);
      return;
   }
@@ -1319,8 +1343,7 @@ function _pushPriceHistoryIfNeeded(e){
     const arr = store.priceHistory[e.product_id] || [];
     arr.push({ price: Number(e.price)||0, ts: Date.now(), taxrate: Number(e.taxrate)||0, taxmode: e.taxmode||"excl" });
     store.priceHistory[e.product_id] = arr.slice(-5);
-  }catch(_){}
-}
+  }catch(_){}}
 function openEntryEditModalLite(entry){
   if(!entry){ alert("明細が見つかりません"); return; }
   const pname = (store.products.find(p=>p.id===entry.product_id)||{}).name || (entry.product_name_fallback || "未登録");
@@ -1361,7 +1384,6 @@ function openEntryEditModalLite(entry){
     try{ refreshHome(); }catch(_){}
     closeModal();
   };
-}
 document.addEventListener("click", (e)=>{
   const row = e.target.closest("#historyList .entry, #todayList .entry");
   if(!row) return;
@@ -1371,6 +1393,7 @@ document.addEventListener("click", (e)=>{
   e.preventDefault();
   openEntryEditModalLite(entry);
 });
+}
 
 /* ===== HISTORY（描画） ===== */
 function renderHistory(){
@@ -1411,7 +1434,7 @@ function renderHistory(){
         const name = supplierName(sk) || sk;
         let net=0,gross=0; for (const e of group[sk]){ const t=calcLineTotal(e); net+=t.excl; gross+=t.incl; }
         const head = showBoth ? `税別 ${yen(net)}｜税込 ${yen(gross)}` : `税込 ${yen(gross)}`;
-        html += `<div style="margin-top:6px"><u>${name}</u>　<span class="muted">${head}</span>`;
+        html += `<div style="margin-top:6px"><u>${name}</u> <span class="muted">${head}</span>`;
         html += group[sk].map(e=>{
           const t=calcLineTotal(e);
           const show=(e.taxmode==="incl")?t.incl:t.excl;
@@ -1442,7 +1465,7 @@ function renderHistory(){
       const name=supplierName(sk)||sk;
       let net=0,gross=0; for(const e of group[sk]){ const t=calcLineTotal(e); net+=t.excl; gross+=t.incl; }
       const head = showBoth ? `税別 ${yen(net)}｜税込 ${yen(gross)}` : `税込 ${yen(gross)}`;
-      html += `<div style="margin-top:6px"><u>${name}</u>　<span class="muted">${head}</span>`;
+      html += `<div style="margin-top:6px"><u>${name}</u> <span class="muted">${head}</span>`;
       html += group[sk].map(e=>{
         const t=calcLineTotal(e);
         const show=(e.taxmode==="incl")?t.incl:t.excl;
@@ -1793,7 +1816,7 @@ function setPlan(p){
     // リロード不要で UI を即時反映
     window.updatePlanPill?.();
     window.syncLicenseButtons?.();
-  window.refreshLicenseUI?.();  // ← CTA の最終表示も同期
+    window.refreshLicenseUI?.();  // ← CTA の最終表示も同期
 }
 }
 
@@ -1843,50 +1866,89 @@ function openLicenseModal(){
   openModalBase("ライセンスコード", `
     <div class="grid">
       <div class="label">コード</div>
-      <input id="licenseKey" type="text" placeholder="XXXX-XXXX-XXXX">
+      <input id="licenseKey" type="text" placeholder="TLP-XXXX-XXXX-XXXX / TEST-MIDDLE / TEST-PRO">
     </div>
   `);
+
   const ok = document.getElementById('modalOK');
   const cancel = document.getElementById('modalCancel');
   const del = document.getElementById('modalDelete');
-  del.classList.add('hidden');
+  if (del) del.classList.add('hidden');
+
   ok.textContent = "適用";
- // 8E: OKでredeem
-ok.onclick = async () => {
-  const inp  = document.getElementById('licenseKey');
-  let code = (inp?.value || '').trim().toUpperCase();
-  if (!/^TLP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) { alert('コード形式が違います'); inp?.focus(); return; }
-const r = await redeemCode(code);
-if (r?.ok) {
-  // 状態を確定させてから 1 リロードでUI揃える
-  try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch {}
-  if (r.plan === 'pro') localStorage.setItem('tlpPro','1'); else localStorage.removeItem('tlpPro');
-  location.reload();                         // ★これで確実に同期
-}
-};
   cancel.textContent = "閉じる";
+
   const inp = document.getElementById('licenseKey');
- const norm = () => (inp?.value || '').toUpperCase().replace(/[^A-Z0-9]/g,''); // 正規化
- const setOkState = () => { ok.disabled = norm().length < 12; };
- setOkState();
- inp?.addEventListener('input', setOkState);
- inp?.addEventListener('keydown', (e) => {
-   if (e.key === 'Enter' && !ok.disabled) { e.preventDefault(); ok.click(); }
- });
-  ok.onclick = () => {
-    const k = norm();
-    if (PLAN() === 'pro') { alert('すでにプロ版です'); closeModal(); return; }
-    if (k.length < 12) { alert('コードが無効です'); return; } // 最低12桁
-    closeModal();                               // 先にフォーカス退避（a11y）
-   requestAnimationFrame(() => setPlan('pro'));// 次フレームでUI更新
-  // 成功: Pro化 + 付随アンカー記録 の直後あたりに↓を追加
-try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch {}
-};
+  const PAT_TEST = /^TEST-(MIDDLE|PRO)$/i;
+  const PAT_PROD = /^TLP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/i;
+
+  const norm = () => (inp?.value || '').toUpperCase().replace(/[^A-Z0-9-]/g,'');
+
+  const setOkState = () => {
+    const v = norm();
+    ok.disabled = !(PAT_TEST.test(v) || PAT_PROD.test(v));
+  };
+  setOkState();
+
+  inp?.addEventListener('input', setOkState);
+  inp?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !ok.disabled) { e.preventDefault(); ok.click(); }
+  });
+
+  ok.onclick = async () => {
+    const code = norm();
+    if (!(PAT_TEST.test(code) || PAT_PROD.test(code))) {
+      alert('コード形式が違います'); inp?.focus(); return;
+    }
+    closeModal();
+    const r = await window.redeemCode(code);
+    if (r && r.ok) {
+      try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch(_){ }
+      // setPlan() は redeemCode 内でも呼んでいるが、念のため再同期
+      try { if (r.plan) setPlan(r.plan); } catch(_){}
+      location.reload();
+    }
+  };
 }
+
+// === ライセンスモーダルの自動配線（MutationObserver; 二重発火防止付き） ===
+(() => {
+  const host = document.getElementById('modalHost');
+  if (!host) return;
+  const PAT_TEST = /^TEST-(MIDDLE|PRO)$/i;
+  const PAT_PROD = /^TLP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/i;
+  const norm = (v) => String(v||'').toUpperCase().replace(/[^A-Z0-9-]/g,'');
+  const mo = new MutationObserver(() => {
+    const inp = document.getElementById('licenseKey');
+    const ok  = document.getElementById('modalOK');
+    if (!inp || !ok || ok.__wiredRedeem) return;
+    ok.__wiredRedeem = true;
+    const toggle = () => { const v = norm(inp.value); ok.disabled = !(PAT_TEST.test(v) || PAT_PROD.test(v)); };
+    toggle();
+    inp.addEventListener('input', toggle, { passive:true });
+    ok.addEventListener('click', async (e) => {
+      const v = norm(inp.value);
+      if (!(PAT_TEST.test(v) || PAT_PROD.test(v))) return;
+      e.preventDefault();
+      closeModal();
+      try {
+        const r = await (window.redeemCode?.(v) || Promise.resolve({ ok:false }));
+        if (r?.ok && r?.plan) setPlan(r.plan);
+      } finally {
+        // UI 同期の最後の砦
+        updatePlanPill?.();
+        refreshHome?.();
+        refreshLicenseUI?.();
+      }
+    }, { once:false });
+  });
+  mo.observe(host, { childList:true, subtree:true });
+})();
+
 document.addEventListener('click', (e)=>{
-  if (e.target.id === 'btnEnterLicense') openLicenseModal();
+  if (e.target && e.target.id === 'btnEnterLicense') openLicenseModal();
 });
- /* === syncOfflineGrace fallback (起動時クラッシュ防止) === */
+/* === syncOfflineGrace fallback (起動時クラッシュ防止) === */
   (() => {
     if (typeof window.syncOfflineGrace !== 'function') {
       window.syncOfflineGrace = async function (_ms) { /* no-op */ };
@@ -1906,14 +1968,14 @@ function init(){
     fillFilterSupplier();
     renderProducts();
     refreshFiscalLabel();
-    showPage(location.hash.replace("#","")||"home");
-    if ((location.hash||"") === "#history") { try{ renderHistory(); }catch(e){ console.error(e); } }
+    showPage(location.hash.replace("#", "")||"home");
+　 if ((location.hash||"") === "#history") { try{ renderHistory(); }catch(e){ console.error(e); } }
     syncLicenseButtons();
     enforcePlan();
     applyPlanUI();
   }catch(err){
     console.error("init failed:", err);
-    alert("初期化中に問題が発生しました。ページを再読み込みしてください。");
+    alert("初期化中に問題が発生しました。 ページを再読み込みしてください。");
   }
 }
 init();
@@ -1937,7 +1999,7 @@ init();
     set(v){ this.status = v; }
   };
   TLP.eula = {
-    needs(){ let a=null,b=null; try { a = LS.getItem(KEYS.EULA_VER_NEW); b = LS.getItem(KEYS.EULA_VER_OLD); } catch(_){}
+    needs(){ let a=null,b=null; try { a = LS.getItem(KEYS.EULA_VER_NEW); b = LS.getItem(KEYS.EULA_VER_OLD); } catch(_){ }
       return (a !== REQUIRED_EULA_VERSION) && (b !== REQUIRED_EULA_VERSION); },
     accept(){ try{
         LS.setItem(KEYS.EULA_VER_NEW, REQUIRED_EULA_VERSION);
@@ -2092,8 +2154,7 @@ TLP.showEula = function(){
       else console.warn("EULA open handler not found");
     }
   });
-  window.addEventListener("tlp:eula-accepted", ()=>{ try{ localStorage.setItem("tlpEulaAcceptedVersion", eulaVer); }catch(_){}
-    console.log("[TLP] EULA accepted:", eulaVer); });
+  window.addEventListener("tlp:eula-accepted", ()=>{ try{ localStorage.setItem("tlpEulaAcceptedVersion", eulaVer); }catch(_){ } console.log("[TLP] EULA accepted:", eulaVer); });
   window.addEventListener("tlp:eula-declined", ()=>{ console.warn("[TLP] EULA declined"); });
   window.tlpDiag = {
     check(){ console.table({ eulaVersion: eulaVer, eulaOpenFn: typeof window.tlpOpenEula === "function" ? "OK" : "fallback" }); },
@@ -2267,11 +2328,11 @@ document.addEventListener("focusin", (e)=>{
 
   // 同意ボタン
   $agree.addEventListener('click', () => {
- 　setAccepted();                    // ハード保存 {version:EULA_VERSION, ts}
+  setAccepted();                    // ハード保存 {version:EULA_VERSION, ts}
    try { document.dispatchEvent(new Event('tlp:eula-accepted')); } catch(_){}
-   try { TLP?.eula?.accept?.(); } catch(_){}
+   try { TLP?.eula?.accept?.(); } catch(_){ }
   closeEula();
-　});
+ });
 
   // 起動後チェック（既存initの後でも先でも安全に動くようDOMContentLoadedで実行）
   window.addEventListener('DOMContentLoaded', () => {
@@ -2611,7 +2672,7 @@ window.syncLicenseButtons?.();
   bar.id = 'tlp-nudge';
   bar.setAttribute('role','region');
   bar.setAttribute('aria-label','ライセンス再検証のご案内');
-  bar.style = "position:fixed;left:0;right:0;top:0;background:#111;color:#fff;padding:10px 12px;display:flex;gap:8px;align-items:center;justify-content:center;z-index:2147483647;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,.2)";
+  bar.style = "position:fixed;left:0;right:0;top:0;background:#111;color:#fff;padding:10px 12px;display:flex;gap:8px;align-items:center;justify-content:center;z-index:2147483647;font-size:14px;box-shadow: 0 2px 6px rgba(0,0,0,.2)";
   bar.innerHTML = '<span style="margin-right:8px">ライセンスの再検証から7日経過</span><button id="nudgeNow" style="padding:6px 10px">今すぐ</button><button id="nudgeLater" style="padding:6px 10px">あとで</button>';
   document.body.appendChild(bar);
 
@@ -2677,11 +2738,155 @@ function refreshLicenseUI(){
 
     const cta = document.getElementById('plans-cta');
     if (cta) cta.style.display = (p === 'pro') ? 'none' : '';
+
+    // HOME ピル・全体UIも最終同期
+    updatePlanPill?.();
+    refreshHome?.();
   }catch(_){}
 }
 </script>
 
+<script>
+  window.tlpVerifyURL  = 'https://cafetabco.com/api/license/verify.php';
+  window.tlpRedeemURL  = 'https://cafetabco.com/api/license/redeem.php';
+</script>
 
-<!-- update: 2025-10-01 -->
+
+<script>
+// === TLP core restore (1-4 only) — 2025-11-12 ===
+(function(){
+  if (window.__tlp_core_1412) return;
+  window.__tlp_core_1412 = true;
+
+  // 0) helper
+  function safe(fn){ try{ if (typeof fn === 'function') fn(); } catch(e){} }
+
+  // 1) refreshAll: 呼べるところだけ呼ぶ（存在チェック）
+  if (typeof window.refreshAll !== 'function'){
+    window.refreshAll = function(){
+      safe(window.updatePlanPill);
+      safe(window.refreshHome);
+      safe(window.renderTodayList);
+      safe(window.renderHistory);
+      safe(window.refreshLicenseUI);
+    };
+  }
+
+  // 2) DB.save をラップ：保存のたびに即時反映（①③④）
+  try{
+    if (window.DB && typeof DB.save === 'function' && !DB.save.__wired){
+      var _save = DB.save.bind(DB);
+      DB.save = function(s){
+        var r = _save(s);
+        try{
+          // 最低限の再描画
+          window.renderTodayList && renderTodayList();
+          window.renderHistory && renderHistory();
+          window.refreshHome && refreshHome();
+          window.updatePlanPill && updatePlanPill();
+        }catch(_){}
+        return r;
+      };
+      DB.save.__wired = true;
+    }
+  }catch(_){}
+
+  // 3) localStorage 直書きも捕捉（初期化/復元で起こりがち）（③④）
+  try{
+    if (!localStorage.__tlp_hooked){
+      var _setItem = localStorage.setItem.bind(localStorage);
+      localStorage.setItem = function(k, v){
+        var r = _setItem(k, v);
+        if (k === 'tabco-store' || k === 'tlpStore'){
+          try{
+            window.renderTodayList && renderTodayList();
+            window.renderHistory && renderHistory();
+            window.refreshHome && refreshHome();
+          }catch(_){}
+        }
+        return r;
+      };
+      localStorage.__tlp_hooked = true;
+    }
+  }catch(_){}
+
+  // 4) refreshHome 強化：元の処理 + KPI/ピルの最終上書き（①）
+  try{
+    var _origRefreshHome = window.refreshHome;
+    window.refreshHome = function(){
+      // 既存処理を尊重
+      try{ if (typeof _origRefreshHome === 'function') _origRefreshHome(); }catch(_){}
+      // 最低限のKPI更新とピル反映だけ追加（壊さない範囲）
+      try{
+        var byId = function(id){ return document.getElementById(id); };
+        var yenFmt = (typeof yen === 'function')
+          ? yen
+          : function(n){ return '¥'+(Math.round(n||0)).toLocaleString('ja-JP'); };
+        var setYen = function(id, v){ var el = byId(id); if(el) el.textContent = yenFmt(v); };
+        if (typeof calcTotals === 'function'){
+          setYen('kpiWeek',  calcTotals(7));
+          setYen('kpiMonth', calcTotals(30));
+          setYen('kpi30',    calcTotals(30));
+        }
+        if (typeof getPlan === 'function'){
+          var p = getPlan();
+          var label = (p==='pro'?'プロ':p==='middle'?'ミドル':'無料');
+          var nodes = document.querySelectorAll('#pillPlan,[data-plan-pill],.plan-pill');
+          for (var i=0;i<nodes.length;i++){
+            var el = nodes[i];
+            var t = (el.textContent||'').trim();
+            el.textContent = /^プラン：/.test(t) ? ('プラン：'+label) : label;
+            el.dataset.plan = p;
+          }
+        }
+      }catch(_){}
+    };
+  }catch(_){}
+
+  // 5) 履歴/本日 → 行タップで編集モーダル（②）
+  if (!window.__wiredEditRowClick){
+    window.__wiredEditRowClick = true;
+    window.__tlp_currentEntry = null;
+
+    document.addEventListener('click', function(e){
+      var row = e.target && e.target.closest ? e.target.closest('#historyList .entry, #todayList .entry') : null;
+      if (!row) return;
+      var id = row.getAttribute('data-id');
+      var entry = null;
+      if (typeof window._findEntryById === 'function') entry = _findEntryById(id);
+      else if (window.store && Array.isArray(store.entries)) entry = store.entries.find(function(x){return x && x.id === id;});
+      if (!entry){ alert('編集対象が見つかりません'); return; }
+      e.preventDefault();
+      window.__tlp_currentEntry = entry;
+      try{ window.openEntryEditModalLite && openEntryEditModalLite(entry); }catch(err){ console.error(err); }
+    }, false);
+
+    // モーダルOK配線（簡易編集を確実に反映）（②）
+    document.addEventListener('click', function(e){
+      var ok = e.target && e.target.closest ? e.target.closest('#modalOK, #btnModalOK') : null;
+      if (!ok) return;
+      var entry = window.__tlp_currentEntry;
+      if (!entry) return;
+      var qEl = document.getElementById('mLiteQty'), pEl = document.getElementById('mLitePrice'), rEl = document.getElementById('mLiteRate');
+      var q = Number(qEl && qEl.value), p = Number(pEl && pEl.value), r = Number(rEl && rEl.value);
+      if (Number.isFinite(q) && q > 0) entry.qty = q;
+      if (Number.isFinite(p) && p >= 0) entry.price = p;
+      if ([0,8,10].indexOf(r) >= 0) entry.taxrate = r;
+      try{ window.DB && DB.save && DB.save(store); }catch(err){ console.error(err); }
+      try{ window.closeModal && closeModal(); }catch(_){}
+      window.__tlp_currentEntry = null;
+    }, false);
+  }
+})();
+</script>
+
+<script>
+document.getElementById('btnEnterLicenseMiddle')?.addEventListener('click', function(){
+  if (window.openLicenseModal) { openLicenseModal(); return; }
+  // フォールバック（既存のコード入力起動ボタンがある場合）
+  document.getElementById('btnOpenLicense')?.click();
+});
+</script>
+
 </body>
 </html>
