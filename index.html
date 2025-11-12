@@ -369,7 +369,8 @@ textarea{min-height:84px;resize:vertical}
           <li>仕入れ先 <b>15社</b>まで／商品<b>合計200品</b></li>
           <li>出力範囲：<b>年度（1月〜今月）</b></li>
         </ul>
-        </div>
+        <button id="btnEnterLicense" class="btn ghost small" type="button">コードを入力</button>
+　　　</div>
 
       <div class="card">
         <h3>プロ（¥1,500）</h3>
@@ -2748,6 +2749,143 @@ function refreshLicenseUI(){
 <script>
   window.tlpVerifyURL  = 'https://cafetabco.com/api/license/verify.php';
   window.tlpRedeemURL  = 'https://cafetabco.com/api/license/redeem.php';
+</script>
+
+
+<script>
+// === TLP core restore (1-4 only) — 2025-11-12 ===
+(function(){
+  if (window.__tlp_core_1412) return;
+  window.__tlp_core_1412 = true;
+
+  // 0) helper
+  function safe(fn){ try{ if (typeof fn === 'function') fn(); } catch(e){} }
+
+  // 1) refreshAll: 呼べるところだけ呼ぶ（存在チェック）
+  if (typeof window.refreshAll !== 'function'){
+    window.refreshAll = function(){
+      safe(window.updatePlanPill);
+      safe(window.refreshHome);
+      safe(window.renderTodayList);
+      safe(window.renderHistory);
+      safe(window.refreshLicenseUI);
+    };
+  }
+
+  // 2) DB.save をラップ：保存のたびに即時反映（①③④）
+  try{
+    if (window.DB && typeof DB.save === 'function' && !DB.save.__wired){
+      var _save = DB.save.bind(DB);
+      DB.save = function(s){
+        var r = _save(s);
+        try{
+          // 最低限の再描画
+          window.renderTodayList && renderTodayList();
+          window.renderHistory && renderHistory();
+          window.refreshHome && refreshHome();
+          window.updatePlanPill && updatePlanPill();
+        }catch(_){}
+        return r;
+      };
+      DB.save.__wired = true;
+    }
+  }catch(_){}
+
+  // 3) localStorage 直書きも捕捉（初期化/復元で起こりがち）（③④）
+  try{
+    if (!localStorage.__tlp_hooked){
+      var _setItem = localStorage.setItem.bind(localStorage);
+      localStorage.setItem = function(k, v){
+        var r = _setItem(k, v);
+        if (k === 'tabco-store' || k === 'tlpStore'){
+          try{
+            window.renderTodayList && renderTodayList();
+            window.renderHistory && renderHistory();
+            window.refreshHome && refreshHome();
+          }catch(_){}
+        }
+        return r;
+      };
+      localStorage.__tlp_hooked = true;
+    }
+  }catch(_){}
+
+  // 4) refreshHome 強化：元の処理 + KPI/ピルの最終上書き（①）
+  try{
+    var _origRefreshHome = window.refreshHome;
+    window.refreshHome = function(){
+      // 既存処理を尊重
+      try{ if (typeof _origRefreshHome === 'function') _origRefreshHome(); }catch(_){}
+      // 最低限のKPI更新とピル反映だけ追加（壊さない範囲）
+      try{
+        var byId = function(id){ return document.getElementById(id); };
+        var yenFmt = (typeof yen === 'function')
+          ? yen
+          : function(n){ return '¥'+(Math.round(n||0)).toLocaleString('ja-JP'); };
+        var setYen = function(id, v){ var el = byId(id); if(el) el.textContent = yenFmt(v); };
+        if (typeof calcTotals === 'function'){
+          setYen('kpiWeek',  calcTotals(7));
+          setYen('kpiMonth', calcTotals(30));
+          setYen('kpi30',    calcTotals(30));
+        }
+        if (typeof getPlan === 'function'){
+          var p = getPlan();
+          var label = (p==='pro'?'プロ':p==='middle'?'ミドル':'無料');
+          var nodes = document.querySelectorAll('#pillPlan,[data-plan-pill],.plan-pill');
+          for (var i=0;i<nodes.length;i++){
+            var el = nodes[i];
+            var t = (el.textContent||'').trim();
+            el.textContent = /^プラン：/.test(t) ? ('プラン：'+label) : label;
+            el.dataset.plan = p;
+          }
+        }
+      }catch(_){}
+    };
+  }catch(_){}
+
+  // 5) 履歴/本日 → 行タップで編集モーダル（②）
+  if (!window.__wiredEditRowClick){
+    window.__wiredEditRowClick = true;
+    window.__tlp_currentEntry = null;
+
+    document.addEventListener('click', function(e){
+      var row = e.target && e.target.closest ? e.target.closest('#historyList .entry, #todayList .entry') : null;
+      if (!row) return;
+      var id = row.getAttribute('data-id');
+      var entry = null;
+      if (typeof window._findEntryById === 'function') entry = _findEntryById(id);
+      else if (window.store && Array.isArray(store.entries)) entry = store.entries.find(function(x){return x && x.id === id;});
+      if (!entry){ alert('編集対象が見つかりません'); return; }
+      e.preventDefault();
+      window.__tlp_currentEntry = entry;
+      try{ window.openEntryEditModalLite && openEntryEditModalLite(entry); }catch(err){ console.error(err); }
+    }, false);
+
+    // モーダルOK配線（簡易編集を確実に反映）（②）
+    document.addEventListener('click', function(e){
+      var ok = e.target && e.target.closest ? e.target.closest('#modalOK, #btnModalOK') : null;
+      if (!ok) return;
+      var entry = window.__tlp_currentEntry;
+      if (!entry) return;
+      var qEl = document.getElementById('mLiteQty'), pEl = document.getElementById('mLitePrice'), rEl = document.getElementById('mLiteRate');
+      var q = Number(qEl && qEl.value), p = Number(pEl && pEl.value), r = Number(rEl && rEl.value);
+      if (Number.isFinite(q) && q > 0) entry.qty = q;
+      if (Number.isFinite(p) && p >= 0) entry.price = p;
+      if ([0,8,10].indexOf(r) >= 0) entry.taxrate = r;
+      try{ window.DB && DB.save && DB.save(store); }catch(err){ console.error(err); }
+      try{ window.closeModal && closeModal(); }catch(_){}
+      window.__tlp_currentEntry = null;
+    }, false);
+  }
+})();
+</script>
+
+<script>
+document.getElementById('btnEnterLicenseMiddle')?.addEventListener('click', function(){
+  if (window.openLicenseModal) { openLicenseModal(); return; }
+  // フォールバック（既存のコード入力起動ボタンがある場合）
+  document.getElementById('btnOpenLicense')?.click();
+});
 </script>
 
 </body>
