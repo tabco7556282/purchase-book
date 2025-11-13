@@ -764,6 +764,8 @@ window.HistoryUI = (function(){
 /* ===== Router ===== */
 let internalNav=false;
 function showPage(id){
+  if(id==="backup"){ try{ refreshBackupPageLabels(); }catch(e){} }
+
  $$("main > section").forEach(s=>s.classList.add("hidden")); // 子ページだけ隠す
 
   const page=$("#page-"+id)||$("#"+id); if(page){ page.classList.remove("hidden"); page.hidden=false; }
@@ -814,6 +816,15 @@ function refreshAds(){
   const on = getPlan()==='free';   // ※ 括弧は不要。機能は同じ
   slot.classList.toggle("visible", on);
 }
+
+function refreshBackupPageLabels(){
+  try{
+    const bk = store.settings.lastBackupAt ? new Date(store.settings.lastBackupAt) : null;
+    const el = document.getElementById('bkLast');
+    if (el) el.textContent = bk ? bk.toLocaleString('ja-JP') : '未実施';
+  }catch(_){}
+}
+
 function refreshHome(){
   try{
   const p = getPlan();
@@ -1367,8 +1378,21 @@ function openEntryEditModalLite(entry){
     </div>
   `);
   const ok = $("#modalOK"); const del = $("#modalDelete");
-  del.classList.add("hidden");
-  ok.textContent="更新";
+  del.classList.remove("hidden");
+  del.onclick = function(){
+    if(!confirm("この明細を削除します。よろしいですか？")) return;
+    try{
+      // まず完全に配列から除去（なければフラグ）
+      var idx = (store.entries||[]).findIndex(function(x){ return x && x.id === entry.id; });
+      if (idx >= 0) store.entries.splice(idx, 1);
+      else entry.deleted = true;
+      DB.save(store);
+      try{ renderTodayList?.(); renderHistory?.(); refreshHome?.(); }catch(_){}
+    }finally{
+      try{ closeModal?.(); }catch(_){}
+    }
+  };
+ok.textContent="更新";
   ok.onclick = ()=>{
     const q = Number($("#mLiteQty").value || 0);
     const p = Number($("#mLitePrice").value || 0);
@@ -1737,6 +1761,8 @@ DB.save(store);
 
 
       alert("復元しました");
+      try{ refreshBackupPageLabels?.(); }catch(_){}
+
       enforcePlan();
       applyPlanUI();
       applyTheme(); refreshHome(); initInputPage();
@@ -1961,6 +1987,7 @@ function init(){
     window.syncOfflineGrace?.();
     applyTheme();
     refreshHome();
+    try{ refreshBackupPageLabels(); }catch(_){}
     initInputPage();
     renderTodayList();
     enableSelectOnFocus();
@@ -2443,6 +2470,12 @@ window.saveBackupStrict = function(){
     version:  clean.version  || 'v0.8.4'
   };                                                   // ★ ここまで
   const blob  = new Blob([JSON.stringify(payload)], {type:'application/json'});
+  try { 
+    store.settings.lastBackupAt = Date.now(); 
+    DB.save(store); 
+  } catch(_){}
+  try { refreshHome?.(); refreshBackupPageLabels?.(); } catch(_){}
+
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `backup_strict_${new Date().toISOString().slice(0,10)}.json`;
