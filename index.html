@@ -6,8 +6,7 @@
 <meta http-equiv="Content-Security-Policy"
   content="default-src 'self'; connect-src 'self' https://cafetabco.pussycat.jp https://cafetabco.com  https://www.cafetabco.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; manifest-src 'self'">
 
-
-<link rel="manifest" href="./manifest.webmanifest?v=0.8.4">
+<link rel="manifest" href="/manifest.webmanifest?v=0.8.4">
 <link rel="apple-touch-icon" href="./icons/icon-180-v223i.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/themes/dark.css">
 
@@ -2005,6 +2004,59 @@ function init(){
     alert("初期化中に問題が発生しました。 ページを再読み込みしてください。");
   }
 }
+// --- API helper (verify/redeem 共有) ---
+window.tlpApiFetch ||= function(path, opt = {}) {
+  return fetch(`https://app.cafetabco.com${path}`, {
+    mode: 'cors',
+    cache: 'no-store',
+    credentials: 'omit',
+    headers: { 'Content-Type': 'application/json', 'X-License-Sig': '1' },
+    ...opt
+  });
+};
+// --- Re-verify (即時反映) ---
+window.reverifyNow ||= async function () {
+  try {
+    const url = `/api/license/verify.php?device=${encodeURIComponent(tlpDeviceId())}&app=tlp`;
+    const res = await tlpApiFetch(url);
+    const body = await res.json().catch(() => ({}));
+
+    if (res.ok && body?.ok) {
+      // 最終検証タイムスタンプを更新
+      localStorage.setItem('tlpLicenseFreshAt', String(Date.now()));
+
+      // 返ってきた plan を保存（無ければ既存を維持）
+      try {
+        const store = getStore?.();
+        const plan  = body.plan || store?.settings?.plan || 'free';
+        if (store) {
+          store.settings ||= {};
+          store.settings.plan = plan;
+          DB.save(store);
+        }
+      } catch (_) {}
+
+      // ---- 表示を即同期（リロード無し）----
+      applyPlanUI?.();
+      enforcePlan?.();
+      updatePlanPill?.();     // HOME の「現在のプラン」ピル
+      syncLicenseButtons?.(); // ライセンス系ボタン表示
+      refreshHome?.();        // HOMEカード再描画
+      renderTodayList?.();
+      renderHistory?.();
+
+      // 成功フィードバック（必要なら消してOK）
+      try { alert('再検証: OK'); } catch (_){}
+    } else {
+      try { alert('再検証: 失敗'); } catch (_){}
+    }
+  } catch (e) {
+    console.error('reverify error:', e);
+    try { alert('再検証: 通信エラー'); } catch (_){}
+  }
+};
+
+
 init();
 </script>
 
@@ -2252,13 +2304,13 @@ document.addEventListener("focusin", (e)=>{
 });
 </script>
 <script>
-  if ('serviceWorker' in navigator) {
-  try {
-    navigator.serviceWorker.register('./sw.js?v=0.8.3')
-      .catch(()=>{}); // ← 追加：オフライン時の未捕捉エラーを抑止
+if ('serviceWorker' in navigator) {
+  try {   
+navigator.serviceWorker.register('/sw.js?v=0.8.4', { scope: '/' }).catch(()=>{});
   } catch(_) {}
 }
 </script>
+
 <!-- === EULA Hard Consent (blocking) === -->
 <div id="eulaOverlay" aria-modal="true" role="dialog" aria-labelledby="eulaTitle">
   <div id="eulaDialog" tabindex="-1">
@@ -2694,7 +2746,7 @@ window.syncLicenseButtons?.();
 <script>
 (()=> {
   // 既存バーが残っていれば除去（重複防止）
-  document.getElementById('tlp-nudge')?.remove();
+ document.getElementById('tlp-nudge')?.remove();
 
   const fresh = Number(localStorage.getItem('tlpLicenseFreshAt') || 0);
   const week  = 7 * 86400000;
@@ -2711,22 +2763,18 @@ window.syncLicenseButtons?.();
 
   const removeBar = () => document.getElementById('tlp-nudge')?.remove();
 
-  // 「今すぐ」→ verify 成功: freshAt更新して閉じる / 失敗: 閉じてコード入力を開く
-  document.getElementById('nudgeNow').onclick = async () => {
+  
+// C-1 Nudge: 「今すぐ」→ 再検証してからバナーを閉じる
+const btnNudgeNow = document.getElementById('nudgeNow');
+if (btnNudgeNow) {
+  btnNudgeNow.onclick = async () => {
     try {
-      const r = await (window.verifyLicense ? window.verifyLicense() : Promise.resolve({ok:false,reason:'no_verify'}));
-      if (r && r.ok) {
-        localStorage.setItem('tlpLicenseFreshAt', String(Date.now()));
-        removeBar();
-      } else {
-        removeBar();
-        if (window.openLicenseModal) window.openLicenseModal();
-      }
-    } catch (_) {
-      removeBar();
-      if (window.openLicenseModal) window.openLicenseModal();
+      await reverifyNow();        // ← ここでHOME/PLANを即同期
+    } finally {
+      document.getElementById('tlp-nudge')?.remove();  // 成否に関わらずバーを閉じる
     }
   };
+}
 
   // 「あとで」→ 閉じるだけ
   document.getElementById('nudgeLater').onclick = removeBar;
@@ -2754,10 +2802,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const label   = document.getElementById('licensePlanLabel');
 
   if (openBtn && window.openLicenseModal) openBtn.onclick = () => openLicenseModal();
-  if (verBtn && window.verifyLicense) verBtn.onclick = async () => {
-    const r = await verifyLicense();
-    if (r?.ok && label) label.textContent = `現在のプラン：${r.plan}`;
-  };
+  if (verBtn) verBtn.onclick = async () => {
+  await reverifyNow();
+  // reverifyNow 内で refreshLicenseUI() まで走るので、ここは最後にラベルを念押し更新だけ
+  label && (label.textContent = `現在のプラン：${planJp(getPlan())}`);
+};
 });
 
 
