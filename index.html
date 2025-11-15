@@ -368,7 +368,7 @@ textarea{min-height:84px;resize:vertical}
           <li>仕入れ先 <b>15社</b>まで／商品<b>合計200品</b></li>
           <li>出力範囲：<b>年度（1月〜今月）</b></li>
         </ul>
-        <button id="btnEnterLicense" class="btn ghost small" type="button">コードを入力</button>
+        <button id="btnEnterLicenseMiddle" class="btn ghost small" type="button">コードを入力</button>
 　　　</div>
 
       <div class="card">
@@ -535,13 +535,13 @@ document.addEventListener('DOMContentLoaded', () => {
   window.redeemCode = async (code) => {
   const payload = { code: String(code || '').trim(), device: tlpDeviceId(), app: 'tlp' };
   try {
-    const res = await fetch(window.tlpRedeemURL, {
+        const res = await tlpApiFetch('/api/license/redeem.php', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
     const json = await res.json().catch(() => ({ ok:false }));
     console.log('redeem:', json);
+
     if (json && json.ok) {
       try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch(_){ }
       try { setPlan?.(json.plan); } catch(_){}
@@ -1393,6 +1393,7 @@ function openEntryEditModalLite(entry){
   };
 ok.textContent="更新";
   ok.onclick = ()=>{
+    console.log("edit-lite OK clicked");
     const q = Number($("#mLiteQty").value || 0);
     const p = Number($("#mLitePrice").value || 0);
     const r = Number($("#mLiteRate").value || entry.taxrate || 8);
