@@ -446,45 +446,10 @@ textarea{min-height:84px;resize:vertical}
  
 // HOMEメニューの最初のボタン幅を購入ボタンへ同期（0px対策つき）
 (function syncBuyWidth(){
-  const set = w => document.documentElement.style.setProperty('--tlp-buy-width', Math.round(w) + 'px');
-
-  const find = () =>
-    document.querySelector('#page-home .nav-vertical .btn') ||
-    document.querySelector('#page-home .nav-vertical a.btn') ||
-    document.querySelector('.nav-vertical .btn');
-
-  const measure = el => {
-    if (!el) return 0;
-    // まず計算済みのpx
-    let w = parseFloat(getComputedStyle(el).width) || 0;
-    // 非表示で0pxのときのフォールバック
-    if (!w) w = el.getBoundingClientRect().width || el.offsetWidth || 0;
-    return w;
-  };
-
-  const trySync = () => {
-    const el = find();
-    const w  = measure(el);
-    if (w > 0) { set(w); return true; }
-    return false;
-  };
-
-  // ① 初回：レイアウトが落ち着くまで数フレーム待って同期
-  let tries = 0;
-  const tick = () => {
-    if (trySync() || ++tries > 20) return;        // 最大 ~20フレーム
-    requestAnimationFrame(tick);
-  };
-  requestAnimationFrame(tick);
-
-  // ② 画面サイズ変更や表示状態変化でも追随
-  window.addEventListener('resize', trySync, {passive:true});
-  const el = find();
-  if (el && 'ResizeObserver' in window) {
-    const ro = new ResizeObserver(()=>trySync());
-    ro.observe(el);
-  }
+  // 購入ボタン幅の自動同期は一旦停止（幅ゆらぎ対策）
 })();
+
+ 
 
 document.addEventListener('DOMContentLoaded', () => {
   // 本番では非表示、dev/testのみ表示
@@ -1908,6 +1873,7 @@ function openLicenseModal(){
   const PAT_TEST = /^TEST-(MIDDLE|PRO)$/i;
   const PAT_PROD = /^TLP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/i;
 
+
   const norm = () => (inp?.value || '').toUpperCase().replace(/[^A-Z0-9-]/g,'');
 
   const setOkState = () => {
@@ -1942,7 +1908,8 @@ function openLicenseModal(){
   const host = document.getElementById('modalHost');
   if (!host) return;
   const PAT_TEST = /^TEST-(MIDDLE|PRO)$/i;
-  const PAT_PROD = /^TLP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/i;
+ const PAT_PROD = /^TLP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/i;
+
   const norm = (v) => String(v||'').toUpperCase().replace(/[^A-Z0-9-]/g,'');
   const mo = new MutationObserver(() => {
     const inp = document.getElementById('licenseKey');
@@ -2716,31 +2683,42 @@ function updatePlanPill(){
 }
 
 (function(){
-  window.PLAN = getPlan;
+  // getPlan が未定義でも落ちないようにフォールバック
+  const safeGetPlan = (typeof getPlan === 'function')
+    ? getPlan
+    : function(){ return 'free'; };
+
+  window.PLAN = safeGetPlan;
+
   window.updatePlanPill = function(){
-    const p = getPlan();
-    const t = p==='pro' ? 'プロ' : p==='middle' ? 'ミドル' : '無料';
+    const p = safeGetPlan();
+    const t = p === 'pro' ? 'プロ' : p === 'middle' ? 'ミドル' : '無料';
     document.querySelectorAll('[data-plan-pill],#licensePlanLabel')
-      .forEach(el => { el.textContent = t; el.setAttribute('data-plan', p); });
+      .forEach(el => {
+        el.textContent = t;
+        el.setAttribute('data-plan', p);
+      });
   };
-document.addEventListener('DOMContentLoaded', () => {
+
+  document.addEventListener('DOMContentLoaded', () => {
     // ★決済戻りの ?plan= を保存→URLをクリーン化
-    try{
+    try {
       const q  = new URLSearchParams(location.search);
-      const qp = (q.get('plan')||'').toLowerCase();
-      if (qp === 'middle' || qp === 'pro'){
-        setPlan(qp);
-        updatePlanPill?.();
-window.syncLicenseButtons?.();
-        history.replaceState(null,'',location.pathname);
+      const qp = (q.get('plan') || '').toLowerCase();
+      if (qp === 'middle' || qp === 'pro') {
+        if (typeof setPlan === 'function') {
+          setPlan(qp);
+        }
+        window.updatePlanPill?.();
+        window.syncLicenseButtons?.();
+        history.replaceState(null, '', location.pathname);
       }
-    }catch(_){}
-updatePlanPill?.();
-window.syncLicenseButtons?.();
-    (window.enforcePlan || function(){})();
-    window.applyPlanUI?.();
-    window.refreshLicenseUI?.();
+    } catch(_){}
   });
+
+  window.updatePlanPill?.();
+  window.syncLicenseButtons?.();
+  (window.enforcePlan || function(){})();
 })();
 </script>
 <!-- C-1 Nudge: 全面置換版 -->
