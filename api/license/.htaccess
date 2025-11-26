@@ -1,0 +1,17 @@
+# Only allow GET/POST and JSON
+<IfModule mod_rewrite.c>
+RewriteEngine On
+</IfModule>
+
+<IfModule mod_headers.c>
+Header always set Access-Control-Allow-Origin "https://app.cafetabco.com"
+Header always set Vary "Origin"
+Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+Header always set Access-Control-Allow-Headers "Content-Type, X-License-Sig"
+</IfModule>
+
+# Preflight
+<IfModule mod_rewrite.c>
+RewriteCond %{REQUEST_METHOD} =OPTIONS
+RewriteRule ^ - [R=204,L]
+</IfModule>

@@ -174,6 +174,7 @@ textarea{min-height:84px;resize:vertical}
 [data-theme="dark"] #adSlot .ad{ background:#2a2a1f; border-color:#8a7b1b; }
 #adSlot small{ color:var(--muted); }
 .tlp-badge, #tlpBadge { pointer-events: none; }
+
 </style>
 <style>
   /* === EULA Hard Consent === */
@@ -224,18 +225,22 @@ textarea{min-height:84px;resize:vertical}
       <div class="label">※初期化の前にバックアップを取ってください。</div>
     </div>
 
-    <!-- 広告スロット（Freeのみ表示） -->
-    <div id="adSlot" class="card" style="margin-top:8px">
-      <div class="ad">
-        <div style="font-weight:800">スポンサー</div>
-        <div class="grow">
-          <div>飲食店に役立つ備品のご案内（保存容器・調理器具ほか）</div>
-          <small>※ 広告は入力を邪魔しない位置にのみ表示されます</small>
-        </div>
-        <a class="btn small ghost" href="#" onclick="alert('広告のリンク（ダミー）');return false;">詳しく</a>
-      </div>
-    </div>
-  </section>
+    <!-- HOME 広告カード -->
+<div id="homeAdCard" class="home-card">
+  <a id="homeAdLink" class="home-ad-link" target="_blank" rel="noopener">
+    <div id="homeAdTitle" class="home-ad-main"></div>
+    <div id="homeAdBody"  class="home-ad-sub"></div>
+  </a>
+</div>
+<style>
+/* HOME広告リンクの色（チョコレート色） */
+#homeAdLink,
+#homeAdLink:visited {
+  color: #8B4513 !important;  /* chocolate */
+  text-decoration: none;
+}
+</style>  
+</section>
 
   <!-- INPUT -->
   <section id="page-input" class="hidden" data-title="仕入入力">
@@ -471,6 +476,8 @@ document.addEventListener('DOMContentLoaded', () => {
   window.tlpVerifyURL = "https://www.cafetabco.com/api/license/verify.php";
 
   window.verifyLicense = async () => {
+  const currentPlan = (typeof getPlan === 'function' ? getPlan() : 'free') || 'free';
+
   try {
     const res = await fetch(window.tlpVerifyURL, {
       method: 'POST',
@@ -478,29 +485,69 @@ document.addEventListener('DOMContentLoaded', () => {
       body: JSON.stringify({ device: tlpDeviceId(), app: 'tlp' })
     });
     const j = await res.json().catch(() => ({ ok:false }));
+
     if (j && j.ok) {
       try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch (_){}
-      try {
-        if (window.applyLicensed) { applyLicensed({ plan: j.plan, via: 'verify' }); }
-        else { setPlan?.(j.plan); }
-      } catch(_){ setPlan?.(j.plan); }
-      alert('再検証OK：' + j.plan);
+
+      const serverPlanRaw = j.plan || 'free';
+      const serverPlan = String(serverPlanRaw).toLowerCase();
+
+      if (serverPlan === 'middle' || serverPlan === 'pro') {
+        // ★ サーバー側が有料プランと言っている場合：必ずそちらを優先
+        if (serverPlan !== currentPlan) {
+          try {
+            if (window.applyLicensed) { applyLicensed({ plan: serverPlan, via: 'verify' }); }
+            else { setPlan?.(serverPlan); }
+          } catch(_){ setPlan?.(serverPlan); }
+
+          alert(
+            'サーバーの記録に基づき、この端末を ' +
+            serverPlan + ' プランとして再設定しました。'
+          );
+        } else {
+          // もともと同じプラン
+          alert('再検証完了：現在のプラン（' + serverPlan + '）は有効です。');
+        }
+      } else {
+        // ★ サーバー側は free / 不明 → 自動ダウングレードはしない
+        if (currentPlan === 'middle' || currentPlan === 'pro') {
+          alert(
+            'サーバー側にこの端末の有料プラン記録が見つかりませんでした。\n' +
+            '安全のため、自動でプランを変更せず現在の ' + currentPlan + ' プランのままにしています。\n' +
+            'ご購入済みの場合は、購入時のメールを添えてサポートまでご連絡ください。'
+          );
+        } else {
+          alert(
+            '再検証完了：この端末の有料プラン記録は見つかりませんでした。\n' +
+            '購入済みでプランが反映されない場合は、ライセンスコード入力か、\n' +
+            '購入時のメールを添えてサポートまでご連絡ください。'
+          );
+        }
+      }
     } else {
       const reason = (j && (j.error || j.reason)) || 'unknown';
-      alert('再検証失敗：' + reason);
+      alert(
+        '再検証に失敗しました。\n' +
+        'しばらくしてからもう一度お試しください。\n' +
+        '（エラー内容：' + reason + '）'
+      );
     }
     return j;
   } catch(e) {
     console.error(e);
-    alert('再検証失敗：network');
+    alert(
+      '再検証に失敗しました（通信エラー）。\n' +
+      'ネット接続を確認してから、もう一度お試しください。'
+    );
     return { ok:false, error:'network' };
   }
 };
 
+
   window.redeemCode = async (code) => {
   const payload = { code: String(code || '').trim(), device: tlpDeviceId(), app: 'tlp' };
   try {
-        const res = await tlpApiFetch('/api/license/redeem.php', {
+    const res = await tlpApiFetch('/api/license/redeem.php', {
       method: 'POST',
       body: JSON.stringify(payload)
     });
@@ -508,22 +555,66 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('redeem:', json);
 
     if (json && json.ok) {
+      // 成功時
       try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch(_){ }
       try { setPlan?.(json.plan); } catch(_){}
-      if (json.plan === 'pro') localStorage.setItem('tlpPro','1'); else localStorage.removeItem('tlpPro');
-      if (window.applyLicensed) try{ applyLicensed({ plan: json.plan, via: 'redeem' }); }catch(_){}
-      alert('ライセンス適用：' + json.plan);
+      if (json.plan === 'pro') {
+        localStorage.setItem('tlpPro','1');
+      } else {
+        localStorage.removeItem('tlpPro');
+      }
+      if (window.applyLicensed) {
+        try { applyLicensed({ plan: json.plan, via: 'redeem' }); } catch(_){}
+      }
+
+      alert(
+        'ライセンス適用：' + (json.plan || 'unknown') +
+        '\n\nこのライセンスコードは大切に保管してください。\n' +
+        '（機種変更や再インストール時に必要になることがあります）'
+      );
     } else {
+      // 失敗時
       const reason = (json && (json.error || json.reason)) || 'unknown';
-      alert('引換失敗：' + reason);
+      console.warn('redeem failed:', reason, json);
+
+      const currentPlan = (typeof getPlan === 'function' ? getPlan() : 'free') || 'free';
+      let msg;
+
+      if (reason === 'used' || reason === 'invalid' || reason === 'invalid_code') {
+        if (currentPlan === 'middle' || currentPlan === 'pro') {
+          // もうアップグレード済み端末でコードを入れたパターン
+          msg =
+            'この端末はすでに ' + currentPlan + ' プランとして有効になっています。\n' +
+            'Stripe経由で購入された場合は、コード入力は不要です。\n' +
+            'ライセンスコードは念のため保管しておいてください。';
+        } else {
+          // Free 端末でコードが認識できないパターン
+          msg =
+            'このライセンスコードを認識できませんでした。\n' +
+            '入力内容（コピペ漏れ・全角／半角など）を確認しても改善しない場合は、\n' +
+            '購入時のメールを添えてサポートまでご連絡ください。';
+        }
+      } else {
+        msg =
+          'コードの引き換えに失敗しました。\n' +
+          'しばらくしてからもう一度お試しください。\n' +
+          '（エラー内容：' + reason + '）';
+      }
+      alert(msg);
     }
     return json;
-  } catch(e) {
+  } catch (e) {
     console.error(e);
-    alert('引換失敗：network');
+    alert(
+      'コードの引き換えに失敗しました（通信エラー）。\n' +
+      'ネット接続を確認してから、もう一度お試しください。'
+    );
     return { ok:false, error:'network' };
   }
 };
+
+
+
 
       window.DEBUG_PAY = false;
  window.buyMiddle = () => window.open(window.tlpCheckoutMiddle, "_blank", "noopener");
@@ -762,6 +853,56 @@ document.addEventListener("click",(e)=>{ const b=e.target.closest("[data-goto]")
 document.addEventListener("click",(e)=>{ if(e.target.closest("#btnHome")) navigate("home"); });
 
 /* ===== Home KPIs / Ads ===== */
+// --- HOME広告ローテーション（FREEプラン向け） ---
+// ※リンク先URLは実際のページに差し替え推奨
+const HOME_ADS = [
+  {
+    id: 'gateau',
+    href: 'https://cafetabco.com/%e3%82%ac%e3%83%88%e3%83%bc%e3%82%b7%e3%83%a7%e3%82%b3%e3%83%a9/', // ← ガトーショコラ注文ページ
+    title: 'ガトーショコラ通販',
+    body: 'チカキッサ.タブコの人気ガトーショコラをご自宅で。ご予約フォームはこちら。',
+  },
+  {
+    id: 'app-middle',
+    href: 'https://cafetabco.com/app/', // ← アプリの案内/Middle・Proページ
+    title: 'Tabco Ledger Plus 有料プラン',
+    body: '仕入れ先15社・商品200品まで管理できるMiddle / Proプランのご案内。',
+  }
+];
+
+let homeAdIndex = 0;
+let homeAdTimer = null;
+
+function renderHomeAdOnce() {
+  const link   = document.getElementById('homeAdLink');
+  const titleE = document.getElementById('homeAdTitle');
+  const bodyE  = document.getElementById('homeAdBody');
+  if (!link || !titleE || !bodyE) return;
+
+  const ad = HOME_ADS[homeAdIndex];
+
+  link.href = ad.href;
+  titleE.textContent = ad.title;
+  bodyE.textContent  = ad.body;
+
+  homeAdIndex = (homeAdIndex + 1) % HOME_ADS.length;
+}
+
+function startHomeAdRotation() {
+  // Freeだけ表示（既に他で制御していればこの if は省略OK）
+  if (typeof getPlan === 'function' && getPlan() !== 'free') {
+    const card = document.getElementById('homeAdCard');
+    if (card) card.hidden = true;
+    return;
+  }
+
+  const card = document.getElementById('homeAdCard');
+  if (card) card.hidden = false;
+
+  renderHomeAdOnce();                 // まず1回即表示
+  if (homeAdTimer) clearInterval(homeAdTimer);
+  homeAdTimer = setInterval(renderHomeAdOnce, 5000); // 5秒ごとに切り替え
+}
 function calcTotals(days){
   const now=new Date(), from=new Date(now.getTime()-days*86400000);
   return store.entries.reduce((sum,e)=>{
@@ -808,7 +949,9 @@ function refreshHome(){
       if(/^プラン：/.test(t)) { el.textContent = 'プラン：' + label; ok = true; }
     });
   }
-}catch(_){}}
+}catch(_){}
+try { startHomeAdRotation(); } catch (e) { console.error('homeAd', e); }
+}
 
 
   $("#kpiWeek").textContent = yen(calcTotals(7));
@@ -1807,7 +1950,7 @@ function setPlan(p){
     // リロード不要で UI を即時反映
     window.updatePlanPill?.();
     window.syncLicenseButtons?.();
-    window.refreshLicenseUI?.();  // ← CTA の最終表示も同期
+   // window.refreshLicenseUI?.();  // ← CTA の最終表示も同期
 }
 }
 
@@ -1871,7 +2014,7 @@ function openLicenseModal(){
 
   const inp = document.getElementById('licenseKey');
   const PAT_TEST = /^TEST-(MIDDLE|PRO)$/i;
-  const PAT_PROD = /^TLP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/i;
+  const PAT_PROD = /^TLP-[A-Z0-9-]{8,}$/i;
 
 
   const norm = () => (inp?.value || '').toUpperCase().replace(/[^A-Z0-9-]/g,'');
@@ -1886,29 +2029,14 @@ function openLicenseModal(){
   inp?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !ok.disabled) { e.preventDefault(); ok.click(); }
   });
-
-  ok.onclick = async () => {
-    const code = norm();
-    if (!(PAT_TEST.test(code) || PAT_PROD.test(code))) {
-      alert('コード形式が違います'); inp?.focus(); return;
-    }
-    closeModal();
-    const r = await window.redeemCode(code);
-    if (r && r.ok) {
-      try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch(_){ }
-      // setPlan() は redeemCode 内でも呼んでいるが、念のため再同期
-      try { if (r.plan) setPlan(r.plan); } catch(_){}
-      location.reload();
-    }
-  };
-}
+ }
 
 // === ライセンスモーダルの自動配線（MutationObserver; 二重発火防止付き） ===
 (() => {
   const host = document.getElementById('modalHost');
   if (!host) return;
   const PAT_TEST = /^TEST-(MIDDLE|PRO)$/i;
- const PAT_PROD = /^TLP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/i;
+ const PAT_PROD = /^TLP-[A-Z0-9-]{8,}$/i;
 
   const norm = (v) => String(v||'').toUpperCase().replace(/[^A-Z0-9-]/g,'');
   const mo = new MutationObserver(() => {
@@ -2980,7 +3108,7 @@ document.getElementById('btnEnterLicenseMiddle')?.addEventListener('click', func
       });
     }
 
-    // 「再検証」ボタン
+        // 「再検証」ボタン
     if (btnVerify) {
       btnVerify.addEventListener('click', async () => {
         if (!window.tlpVerifyURL || typeof window.tlpDeviceId !== 'function') {
@@ -3000,17 +3128,58 @@ document.getElementById('btnEnterLicenseMiddle')?.addEventListener('click', func
           const res  = await fetch(url, { credentials: 'omit' });
           const data = await res.json().catch(() => ({}));
 
+          const currentPlan =
+            (typeof getPlan === 'function' ? getPlan() : 'free') || 'free';
+          const serverPlanRaw = data && data.plan ? String(data.plan) : 'free';
+          const serverPlan    = serverPlanRaw.toLowerCase();
+
           if (data.ok) {
-            // ライセンスの「新鮮な時刻」を控えておく
+            // サーバーから見たライセンス情報の「新鮮さ」を控える
             try {
               localStorage.setItem('tlpLicenseFreshAt', String(Date.now()));
             } catch (e) {}
 
+            if (serverPlan === 'middle' || serverPlan === 'pro') {
+              // ★ サーバー側が有料と言っている → そちらを優先して上書き
+              if (serverPlan !== currentPlan) {
+                try {
+                  if (typeof applyLicensed === 'function') {
+                    applyLicensed({ plan: serverPlan, via: 'verify' });
+                  } else if (typeof setPlan === 'function') {
+                    setPlan(serverPlan);
+                  }
+                } catch (e) {
+                  if (typeof setPlan === 'function') setPlan(serverPlan);
+                }
+
+                alert(
+                  'サーバーの記録に基づき、この端末を ' +
+                  serverPlan + ' プランとして再設定しました。'
+                );
+              } else {
+                alert('再検証完了：現在のプラン（' + serverPlan + '）は有効です。');
+              }
+            } else {
+              // ★ サーバー側の判定が free / 不明
+              if (currentPlan === 'middle' || currentPlan === 'pro') {
+                // 端末は有料表示 → 勝手にダウングレードしない
+                alert(
+                  'サーバー側にこの端末の有料プラン記録が見つかりませんでした。\n' +
+                  '安全のため、自動でプランを変更せず現在の ' + currentPlan + ' プランのままにしています。\n' +
+                  'ご購入済みの場合は、購入時のメールを添えてサポートまでご連絡ください。'
+                );
+              } else {
+                alert(
+                  '再検証完了：この端末の有料プラン記録は見つかりませんでした。\n' +
+                  '購入済みでプランが反映されない場合は、ライセンスコード入力か、\n' +
+                  '購入時のメールを添えてサポートまでご連絡ください。'
+                );
+              }
+            }
+
             // プラン表示などを更新（あれば呼ぶ）
             window.applyPlanUI?.();
-            window.refreshLicenseUI?.();
-
-            alert('ライセンス情報を再検証しました。');
+            // window.refreshLicenseUI?.(); // 未実装なら一旦コメントアウト
           } else {
             alert(
               '再検証に失敗しました。\n' +
@@ -3025,6 +3194,7 @@ document.getElementById('btnEnterLicenseMiddle')?.addEventListener('click', func
         }
       });
     }
+
   });
 </script>
 
