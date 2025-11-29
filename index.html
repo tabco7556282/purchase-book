@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Security-Policy"
   content="default-src 'self'; connect-src 'self' https://cafetabco.pussycat.jp https://cafetabco.com  https://www.cafetabco.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; manifest-src 'self'">
 
-<link rel="manifest" href="/manifest.webmanifest?v=0.8.4">
+<link rel="manifest" href="/manifest.webmanifest?v=20251126">
 <link rel="apple-touch-icon" href="./icons/icon-180-v223i.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/themes/dark.css">
 
@@ -53,7 +53,7 @@
   }
 </style>
 
-  <title>仕入れ管理｜v0 検証用</title>
+  <title>Tabco Ledger Plus 1.0仕入れ管理</title>
 <style>
 :root{
   --brand:#FFC107; --brand-ink:#1A1300;
@@ -406,7 +406,7 @@ textarea{min-height:84px;resize:vertical}
 <section id="page-rights" class="hidden" data-title="Licenses & Notices">
     <div class="card">
       <h3>Licenses & Notices</h3>
-      <section><h4>App & Version</h4><p>Tabco Ledger Plus<sup>™</sup> v0.8.1</p></section>
+      <section><h4>App & Version</h4><p>Tabco Ledger Plus<sup>™</sup> v1.0</p></section>
       <section><h4>Copyright</h4><p>© 2025 チカキッサ.タブコ. All rights reserved.</p></section>
       <section><h4>Trademark Notice</h4><p><strong>Tabco Ledger Plus<sup>™</sup></strong> and related logos are trademarks of Tabco.</p></section>
    <section id="rights"><h4>EULA（使用許諾）</h4><p>本アプリのご利用によりEULA（使用許諾契約）に同意したものとみなされます。</p><ol>
@@ -2276,7 +2276,7 @@ init();
   const TLP = (window.TLP = window.TLP || {});
   const meta = (window.__tlp_meta || {});
   const REQUIRED_EULA_VERSION = String(meta.eulaVersion || '2025-09-08');
-  TLP.APP = Object.assign({ NAME:'Tabco Ledger Plus', VERSION:'0.8.1', EULA_VERSION: REQUIRED_EULA_VERSION }, TLP.APP || {});
+  TLP.APP = Object.assign({ NAME:'Tabco Ledger Plus', VERSION:'1.0', EULA_VERSION: REQUIRED_EULA_VERSION }, TLP.APP || {});
   const LS = window.localStorage;
   const KEYS = { EULA_VER_NEW:'tlp_eula_version', EULA_VER_OLD:'tlp_eula_version_accepted', EULA_AT:'tlp_eula_accepted_at', LICENSE:'tlp_license_status' };
   TLP.keys = KEYS;
@@ -2362,7 +2362,7 @@ TLP.showEula = function(){
   window.__tlp_meta = Object.assign({
     app: "Tabco Ledger Plus",
     brand: "Tabco Ledger Plus",
-    version: (window.TLP && TLP.APP && TLP.APP.VERSION) || "0.8.1",
+    version: (window.TLP && TLP.APP && TLP.APP.VERSION) || "1.0",
     eulaVersion: (window.TLP && TLP.APP && TLP.APP.EULA_VERSION) || "2025-09-08",
     build: "v0.8.1-20250930",
     site: "cafetabco.com"
@@ -2402,7 +2402,7 @@ TLP.showEula = function(){
     const el = document.createElement('div');
     el.id = 'tlp-brand-badge-rights';
     el.setAttribute('role','note');
-    el.textContent = 'Tabco Ledger Plus\u2122 v0.8.1';
+    el.textContent = 'Tabco Ledger Plus\u2122 v1.0';
     return el;
   }
   function mountRightsBadge(){
