@@ -6,11 +6,7 @@
 <meta http-equiv="Content-Security-Policy"
   content="default-src 'self'; connect-src 'self' https://cafetabco.pussycat.jp https://cafetabco.com  https://www.cafetabco.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; manifest-src 'self'">
 
-<<<<<<< HEAD
 <link rel="manifest" href="/manifest.webmanifest?v=20251126">
-=======
-<link rel="manifest" href="/manifest.webmanifest?v=0.8.4">
->>>>>>> origin/main
 <link rel="apple-touch-icon" href="./icons/icon-180-v223i.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/themes/dark.css">
 
@@ -360,7 +356,7 @@ textarea{min-height:84px;resize:vertical}
           <div class="label">対象年度（個人事業主：1月〜12月）</div>
           <div id="fiscalLabel" style="font-weight:800">-</div>
         </div>
-        <button class="btn primary small" id="btnArchiveYear" type="button">この年度をアーカイブ</button>
+        <button class="btn primary small" id="btnArchiveYear" type="button">次年度へ切り替え</button>
       </div>
       <div class="label" style="margin-top:8px">※ 仕入先・商品マスタは消えません。対象年度の明細のみリセットします。</div>
     </div>
@@ -386,11 +382,7 @@ textarea{min-height:84px;resize:vertical}
           <li>仕入れ先 <b>15社</b>まで／商品<b>合計200品</b></li>
           <li>出力範囲：<b>年度（1月〜今月）</b></li>
         </ul>
-<<<<<<< HEAD
         <button id="btnEnterLicenseMiddle" class="btn ghost small" type="button">コードを入力</button>
-=======
-        <button id="btnEnterLicense" class="btn ghost small" type="button">コードを入力</button>
->>>>>>> origin/main
 　　　</div>
 
       <div class="card">
@@ -493,11 +485,8 @@ document.addEventListener('DOMContentLoaded', () => {
   window.tlpVerifyURL = "https://www.cafetabco.com/api/license/verify.php";
 
   window.verifyLicense = async () => {
-<<<<<<< HEAD
   const currentPlan = (typeof getPlan === 'function' ? getPlan() : 'free') || 'free';
 
-=======
->>>>>>> origin/main
   try {
     const res = await fetch(window.tlpVerifyURL, {
       method: 'POST',
@@ -505,7 +494,6 @@ document.addEventListener('DOMContentLoaded', () => {
       body: JSON.stringify({ device: tlpDeviceId(), app: 'tlp' })
     });
     const j = await res.json().catch(() => ({ ok:false }));
-<<<<<<< HEAD
 
     if (j && j.ok) {
       try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch (_){}
@@ -518,8 +506,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (serverPlan !== currentPlan) {
           try {
             if (window.applyLicensed) { applyLicensed({ plan: serverPlan, via: 'verify' }); }
-            else { setPlan?.(serverPlan); }
-          } catch(_){ setPlan?.(serverPlan); }
+            else { window.setPlan?.(serverPlan); }
+          } catch(_){ window.setPlan?.(serverPlan); }
 
           alert(
             'サーバーの記録に基づき、この端末を ' +
@@ -552,23 +540,10 @@ document.addEventListener('DOMContentLoaded', () => {
         'しばらくしてからもう一度お試しください。\n' +
         '（エラー内容：' + reason + '）'
       );
-=======
-    if (j && j.ok) {
-      try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch (_){}
-      try {
-        if (window.applyLicensed) { applyLicensed({ plan: j.plan, via: 'verify' }); }
-        else { setPlan?.(j.plan); }
-      } catch(_){ setPlan?.(j.plan); }
-      alert('再検証OK：' + j.plan);
-    } else {
-      const reason = (j && (j.error || j.reason)) || 'unknown';
-      alert('再検証失敗：' + reason);
->>>>>>> origin/main
     }
     return j;
   } catch(e) {
     console.error(e);
-<<<<<<< HEAD
     alert(
       '再検証に失敗しました（通信エラー）。\n' +
       'ネット接続を確認してから、もう一度お試しください。'
@@ -604,7 +579,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (json && json.ok) {
       // 成功時
       try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch (_){}
-      try { setPlan?.(json.plan); } catch (_){}
+      try { window.setPlan?.(json.plan); } catch (_){}
 
       if (json.plan === 'pro') {
         localStorage.setItem('tlpPro', '1');
@@ -648,36 +623,9 @@ document.addEventListener('DOMContentLoaded', () => {
           '（エラー内容：' + reason + '）';
       }
       alert(msg);
-=======
-    alert('再検証失敗：network');
-    return { ok:false, error:'network' };
-  }
-};
-
-  window.redeemCode = async (code) => {
-  const payload = { code: String(code || '').trim(), device: tlpDeviceId(), app: 'tlp' };
-  try {
-    const res = await fetch(window.tlpRedeemURL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const json = await res.json().catch(() => ({ ok:false }));
-    console.log('redeem:', json);
-    if (json && json.ok) {
-      try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch(_){ }
-      try { setPlan?.(json.plan); } catch(_){}
-      if (json.plan === 'pro') localStorage.setItem('tlpPro','1'); else localStorage.removeItem('tlpPro');
-      if (window.applyLicensed) try{ applyLicensed({ plan: json.plan, via: 'redeem' }); }catch(_){}
-      alert('ライセンス適用：' + json.plan);
-    } else {
-      const reason = (json && (json.error || json.reason)) || 'unknown';
-      alert('引換失敗：' + reason);
->>>>>>> origin/main
     }
 
     return json;
-<<<<<<< HEAD
   } catch (e) {
     console.error(e);
     alert(
@@ -691,14 +639,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-=======
-  } catch(e) {
-    console.error(e);
-    alert('引換失敗：network');
-    return { ok:false, error:'network' };
-  }
-};
->>>>>>> origin/main
 
       window.DEBUG_PAY = false;
  window.buyMiddle = () => window.open(window.tlpCheckoutMiddle, "_blank", "noopener");
@@ -730,7 +670,8 @@ const DB = {
         autoClear: true, historyShowBoth: true, showTaxFlags: false,
         recentProducts: [],
         hisRange: "30",      // 新キー
-        hisRangeDays: 30     // 互換用（読みはしない）
+        hisRangeDays: 30,     // 互換用（読みはしない）
+        activeYear: new Date().getFullYear() // 追加：対象年度（手動切替用）
       }
     };
 
@@ -762,6 +703,70 @@ const DB = {
   }
 };
 let store = DB.load();
+// ===== ActiveYear guard (年度切替の基準) =====
+(function(){
+  try{
+    var nowY = new Date().getFullYear();
+    if(!store || typeof store !== 'object') return;
+    store.settings = store.settings || {};
+    var ay = Number(store.settings.activeYear);
+    if(!isFinite(ay) || ay < 2000 || ay > 2100){
+      store.settings.activeYear = nowY;
+      DB.save(store);
+    }
+  }catch(e){
+    console.warn('[fiscal] activeYear init', e);
+  }
+})();
+// ===== Plan/Storage guard (cold start: free戻り＆操作不能対策) =====
+(function(){
+  try{
+    if(!window.DB || typeof DB.save!=='function' || DB.save.__planGuard) return;
+    var _save = DB.save.bind(DB);
+    DB.save = function(s){
+      try{
+        if(s && typeof s === 'object'){
+          s.settings = s.settings || {};
+          var lp = (localStorage.getItem('tlpPlan') || '').toLowerCase();
+          var dp = (lp==='free'||lp==='middle'||lp==='pro') ? lp : ((localStorage.getItem('tlpPro')==='1') ? 'pro' : 'free');
+          var rank = { free:0, middle:1, pro:2 };
+          var sp0 = (s.settings.plan || '').toLowerCase();
+          var sp = (sp0==='free'||sp0==='middle'||sp0==='pro') ? sp0 : 'free';
+          if ((rank[dp]||0) > (rank[sp]||0)) s.settings.plan = dp; // 端末プランより下には保存しない
+        }
+      }catch(_){}
+      return _save(s);
+    };
+    DB.save.__planGuard = true;
+  }catch(_){}
+})();
+
+(function(){
+  try{
+    if(!store || typeof store !== 'object') return;
+    store.settings = store.settings || {};
+    var lp = (localStorage.getItem('tlpPlan') || '').toLowerCase();
+    var devPlan = (lp==='free'||lp==='middle'||lp==='pro') ? lp : ((localStorage.getItem('tlpPro')==='1') ? 'pro' : 'free');
+    var sp0 = (store.settings.plan || '').toLowerCase();
+    var storePlan = (sp0==='free'||sp0==='middle'||sp0==='pro') ? sp0 : 'free';
+    var rank = { free:0, middle:1, pro:2 };
+    var chosen = ((rank[devPlan]||0) >= (rank[storePlan]||0)) ? devPlan : storePlan;
+
+    if(store.settings.plan !== chosen) store.settings.plan = chosen;
+
+    // 端末側も上位に寄せる（freeへダウングレードはしない）
+    if (chosen !== devPlan && (rank[chosen]||0) > (rank[devPlan]||0)) {
+      localStorage.setItem('tlpPlan', chosen);
+      if (chosen === 'pro') localStorage.setItem('tlpPro','1');
+      else localStorage.removeItem('tlpPro');
+    }
+
+    DB.save(store);
+  }catch(e){
+    console.warn('[plan] sync boot', e);
+  }
+})();
+
 
 /* ===== Utils ===== */
 const $  = (s,el)=>(el||document).querySelector(s);
@@ -770,6 +775,14 @@ const yen=n=>"¥"+(Math.round(n||0)).toLocaleString();
 const uid=()=>Math.random().toString(36).slice(2,10);
 const fmtYMD=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const todayStr=()=>fmtYMD(new Date());
+function getActiveYear(){
+  try{
+    var y = Number(store && store.settings && store.settings.activeYear);
+    return (isFinite(y) && y >= 2000 && y <= 2100) ? y : new Date().getFullYear();
+  }catch(_){
+    return new Date().getFullYear();
+  }
+}
 function enableSelectOnFocus(){
   $$('input[type="number"], input[type="text"]').forEach(inp=>{
     const sel=()=>inp.select&&inp.select();
@@ -829,9 +842,11 @@ function _endOfDay(d){ const x=new Date(d); x.setHours(23,59,59,999); return x; 
 function getExportRange(key){
   const now=new Date();
   if(key==="fiscal"){
-    const from=new Date(now.getFullYear(),0,1);
-    const to=_endOfDay(new Date());
-    return {from,to,label:`${_ym(from)}〜${_ym(now)}`,key:"fiscal"};
+    const fy = getActiveYear();
+    const from=new Date(fy,0,1);
+    const to = _endOfDay((fy===now.getFullYear()) ? new Date() : new Date(fy,11,31));
+    const toLabelDate = (fy===now.getFullYear()) ? now : new Date(fy,11,31);
+    return {from,to,label:`${_ym(from)}〜${_ym(toLabelDate)}`,key:"fiscal"};
   }
   if(key==="all"){ return {from:null,to:null,label:"全期間",key:"all"}; }
   // default: 当月
@@ -912,18 +927,25 @@ let internalNav=false;
 function showPage(id){
   if(id==="backup"){ try{ refreshBackupPageLabels(); }catch(e){} }
 
+  try { id = normalizeRoute(id); } catch (_) { id = (id || "home"); }
  $$("main > section").forEach(s=>s.classList.add("hidden")); // 子ページだけ隠す
 
-  const page=$("#page-"+id)||$("#"+id); if(page){ page.classList.remove("hidden"); page.hidden=false; }
+  let page = $("#page-"+id) || $("#"+id);
+  if (!page && id !== "home") {
+    console.warn("unknown page:", id, "-> home");
+    id = "home";
+    page = $("#page-home") || $("#home");
+  }
+  if (page) { page.classList.remove("hidden"); page.hidden=false; }
   if(id==="home"){
     $("#btnHome")?.classList.add("hidden");
-    $("#pageTitle").textContent="仕入れ管理";
+    const t=$("#pageTitle"); if(t) t.textContent="仕入れ管理";
   }else{
     $("#btnHome")?.classList.remove("hidden");
     setHeaderTitleByPage(id);
   }
   if(id==="history"){ HistoryUI.sync(); HistoryUI.bindOnce(); try{ renderHistory(); }catch(err){ console.error("renderHistory failed:", err); } }
-  if(id==="rights" || id==="license"){ try{ syncLicenseButtons?.(); }catch(e){} try{ renderRights?.(); }catch(e){} }
+  if(id==="rights" || id==="license"){ try{ window.syncLicenseButtons?.(); }catch(e){} try{ window.renderRights?.(); }catch(e){} }
 if (id === 'rights') {
   const html = `<h4>プライバシーポリシー</h4>
   <p>本アプリは入力データを<b>端末ローカル</b>に保存します。バックアップ機能利用時のみ、利用者自身のクラウドに保存されます。</p>
@@ -938,10 +960,44 @@ if (id === 'rights') {
 
   window.scrollTo(0,0);
 }
-function navigate(id){ internalNav=true; location.hash=id; showPage(id); internalNav=false; }
-window.addEventListener("hashchange",()=>{ if(internalNav) return; showPage(location.hash.replace("#","")||"home"); });
-document.addEventListener("click",(e)=>{ const b=e.target.closest("[data-goto]"); if(!b) return; e.preventDefault(); navigate(b.getAttribute("data-goto")); });
-document.addEventListener("click",(e)=>{ if(e.target.closest("#btnHome")) navigate("home"); });
+function normalizeRoute(raw){
+  let s = (raw==null? "": String(raw)).trim();
+  // location.hash の場合は先頭#を除去
+  if (s.startsWith("#")) s = s.slice(1);
+  // "#/home" のような形式を許容
+  if (s.startsWith("/")) s = s.replace(/^\/+/, "");
+  // クエリは捨てる
+  const q = s.indexOf("?");
+  if (q >= 0) s = s.slice(0, q);
+  if (!s) s = "home";
+  return s;
+}
+function navigate(id){
+  internalNav = true;
+  try {
+    const r = normalizeRoute(id);
+    location.hash = r;
+    showPage(r);
+  } catch (err) {
+    console.error("navigate failed:", err);
+    try { location.hash = "home"; showPage("home"); } catch (_) {}
+  } finally {
+    internalNav = false;
+  }
+}
+window.addEventListener("hashchange", ()=>{
+  if (internalNav) return;
+  try { showPage(normalizeRoute(location.hash)); }
+  catch (err) { console.error("hashchange failed:", err); try { showPage("home"); } catch (_) {} }
+});
+document.addEventListener("click", (e)=>{
+  const b = e.target.closest("[data-goto]");
+  if (!b) return;
+  e.preventDefault();
+  e.stopPropagation();
+  navigate(b.getAttribute("data-goto"));
+}, true);
+document.addEventListener("click", (e)=>{ if (e.target.closest("#btnHome")) navigate("home"); }, true);
 
 /* ===== Home KPIs / Ads ===== */
 // --- HOME広告ローテーション（FREEプラン向け） ---
@@ -1040,13 +1096,9 @@ function refreshHome(){
       if(/^プラン：/.test(t)) { el.textContent = 'プラン：' + label; ok = true; }
     });
   }
-<<<<<<< HEAD
 }catch(_){}
 try { startHomeAdRotation(); } catch (e) { console.error('homeAd', e); }
 }
-=======
-}catch(_){}}
->>>>>>> origin/main
 
 
   $("#kpiWeek").textContent = yen(calcTotals(7));
@@ -1608,9 +1660,9 @@ function openEntryEditModalLite(entry){
       if (idx >= 0) store.entries.splice(idx, 1);
       else entry.deleted = true;
       DB.save(store);
-      try{ renderTodayList?.(); renderHistory?.(); refreshHome?.(); }catch(_){}
+      try{ window.renderTodayList?.(); window.renderHistory?.(); window.refreshHome?.(); }catch(_){}
     }finally{
-      try{ closeModal?.(); }catch(_){}
+      try{ window.closeModal?.(); }catch(_){}
     }
   };
 ok.textContent="更新";
@@ -1654,7 +1706,13 @@ function renderHistory(){
   let end = now;
 
   if (rangeKey === "fiscal") {
-    from = new Date(now.getFullYear(), 0, 1);
+    const fy = getActiveYear();
+    from = new Date(fy, 0, 1);
+    from.setHours(0,0,0,0);
+    if (fy !== now.getFullYear()) {
+      end = new Date(fy, 11, 31);
+      end.setHours(23,59,59,999);
+    }
   } else if (rangeKey === "7") {
     // 今週（月曜〜日曜）
     const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -1955,7 +2013,7 @@ document.addEventListener('click', (e) => {
 
     const {entity, getIndex} = cfg;
     // 編集対象インデックス（フォームの隠しinputなどから取得）
-    let idx = Number(getIndex?.() ?? -1);
+    let idx = Number(window.getIndex?.() ?? -1);
     if (Number.isNaN(idx)) idx = -1;
 
     // 新規作成は canCreate() を、既存編集は isLocked() をチェック
@@ -2026,9 +2084,15 @@ store.settings = Object.assign({
 }, data.tables.settings || {});
 DB.save(store);
 
+      // v9.1: 復元直後に年度ラベルを即時反映（リロード不要）
+      try{
+        if (typeof refreshFiscalLabel === 'function') refreshFiscalLabel();
+        requestAnimationFrame(()=>{ if (typeof refreshFiscalLabel === 'function') refreshFiscalLabel(); });
+      }catch(_){}
+
 
       alert("復元しました");
-      try{ refreshBackupPageLabels?.(); }catch(_){}
+      try{ window.refreshBackupPageLabels?.(); }catch(_){}
 
       enforcePlan();
       applyPlanUI();
@@ -2047,22 +2111,55 @@ DB.save(store);
 });
 
 function refreshFiscalLabel(){
-  const y=new Date().getFullYear();
+  const y=getActiveYear();
   const el=$("#fiscalLabel"); if(el) el.textContent=`対象：${y}年（1月〜12月）`;
 }
 document.addEventListener("click",(e)=>{
   if(e.target.id!=="btnArchiveYear") return;
-  const year=new Date().getFullYear();
-  if(!confirm(`${year}年の仕入明細をアーカイブしてリセットします。\n先にバックアップ（JSON）を保存します。よろしいですか？`)) return;
-  backupNow();
-  const target=store.entries.filter(e=>e.date && e.date.startsWith(String(year)+"-"));
-  const archivePayload={version:"1.0",fiscal_year:year,exported_at:new Date().toISOString(),tables:{entries:target}};
-  const blob2=new Blob([JSON.stringify(archivePayload,null,2)],{type:"application/json"});
-  const a2=document.createElement("a"); a2.href=URL.createObjectURL(blob2); a2.download=`tabco_archive_${year}年度.json`; a2.click(); URL.revokeObjectURL(a2.href);
-  store.entries = store.entries.filter(e=>!(e.date && e.date.startsWith(String(year)+"-")));
+
+  const year = getActiveYear();
+  const next = year + 1;
+
+  if(!confirm(`【年度切替】
+対象年度：${year}年
+
+① まずバックアップ（JSON）を保存します
+② 保存できたことを確認後、${year}年の明細を削除して
+③ 対象年度を ${next}年 に切り替えます
+
+続行しますか？`)) return;
+
+  // 1) バックアップ（ユーザー操作に紐づけて実行）
+  try{
+    if (typeof window.saveBackupStrict === "function") window.saveBackupStrict();
+    else if (typeof window.backupNow === "function") window.backupNow();
+    else if (typeof backupNow === "function") backupNow();
+    else console.warn("[fiscal] backup function not found");
+  }catch(err){
+    console.warn("[fiscal] backup error:", err);
+  }
+
+  // 2) ダウンロードがブロックされる可能性があるため、確認してから削除
+  if(!confirm(`バックアップファイルは保存できましたか？
+
+OK：${year}年の明細を削除して ${next}年へ切り替え
+キャンセル：何もしない`)) return;
+
+  // 3) 対象年度の明細だけ削除（マスタは残す）
+  const prefix = String(year) + "-";
+  store.entries = (store.entries||[]).filter(e=>!(e && e.date && String(e.date).startsWith(prefix)));
+
+  // 4) 次年度へ切り替え
+  store.settings = store.settings || {};
+  store.settings.activeYear = next;
+
   DB.save(store);
-  alert(`${year}年の明細をリセットしました（仕入先・商品は残しています）`);
+
+  refreshFiscalLabel();
   renderTodayList(); renderHistory(); refreshHome();
+
+  alert(`対象年度を ${next}年 に切り替えました。
+${year}年の明細はリセットしました（仕入先・商品マスタは残っています）`);
 });
 
 /* ===== Factory Reset ===== */
@@ -2082,39 +2179,40 @@ document.addEventListener("click",(e)=>{
 
 /* ===== License mock & UI sync ===== */
 function setPlan(p){
+  p = (p || '').toLowerCase();
   try {
-    p = (p || '').toLowerCase();
-
     if (p === 'pro') {
-      // 主要キーは tlpPlan、互換の旧キー tlpPro も残す
       localStorage.setItem('tlpPlan', 'pro');
       localStorage.setItem('tlpPro', '1');  // legacy
     } else if (p === 'middle') {
       localStorage.setItem('tlpPlan', 'middle');
       localStorage.removeItem('tlpPro');
     } else {
-      // free / 想定外は free 扱い
       p = 'free';
       localStorage.setItem('tlpPlan', 'free');
       localStorage.removeItem('tlpPro');
     }
 
-    // 既存の処理はそのまま
+    // ★重要：store側のplanも必ず同期（コールド起動でFREE化しない）
+    try{
+      if(store && typeof store === 'object'){
+        store.settings = store.settings || {};
+        store.settings.plan = p;
+      }
+    }catch(_){}
+
     DB.save(store);
-    enforcePlan();
-    applyPlanUI?.();
-    refreshHome?.();
+
+    // 以降は存在するものだけ呼ぶ（未定義でも落とさない）
+    window.enforcePlan?.();
+    window.applyPlanUI?.();
+    window.refreshHome?.();
 
   } finally {
-    // リロード不要で UI を即時反映
     window.updatePlanPill?.();
     window.syncLicenseButtons?.();
-<<<<<<< HEAD
-   // window.refreshLicenseUI?.();  // ← CTA の最終表示も同期
-=======
-    window.refreshLicenseUI?.();  // ← CTA の最終表示も同期
->>>>>>> origin/main
-}
+    window.refreshLicenseUI?.();
+  }
 }
 
 function renderRights(){
@@ -2177,12 +2275,8 @@ function openLicenseModal(){
 
   const inp = document.getElementById('licenseKey');
   const PAT_TEST = /^TEST-(MIDDLE|PRO)$/i;
-<<<<<<< HEAD
   const PAT_PROD = /^TLP-[A-Z0-9-]{8,}$/i;
 
-=======
-  const PAT_PROD = /^TLP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/i;
->>>>>>> origin/main
 
   const norm = () => (inp?.value || '').toUpperCase().replace(/[^A-Z0-9-]/g,'');
 
@@ -2196,38 +2290,15 @@ function openLicenseModal(){
   inp?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !ok.disabled) { e.preventDefault(); ok.click(); }
   });
-<<<<<<< HEAD
  }
-=======
-
-  ok.onclick = async () => {
-    const code = norm();
-    if (!(PAT_TEST.test(code) || PAT_PROD.test(code))) {
-      alert('コード形式が違います'); inp?.focus(); return;
-    }
-    closeModal();
-    const r = await window.redeemCode(code);
-    if (r && r.ok) {
-      try { localStorage.setItem('tlpLicenseFreshAt', String(Date.now())); } catch(_){ }
-      // setPlan() は redeemCode 内でも呼んでいるが、念のため再同期
-      try { if (r.plan) setPlan(r.plan); } catch(_){}
-      location.reload();
-    }
-  };
-}
->>>>>>> origin/main
 
 // === ライセンスモーダルの自動配線（MutationObserver; 二重発火防止付き） ===
 (() => {
   const host = document.getElementById('modalHost');
   if (!host) return;
   const PAT_TEST = /^TEST-(MIDDLE|PRO)$/i;
-<<<<<<< HEAD
  const PAT_PROD = /^TLP-[A-Z0-9-]{8,}$/i;
 
-=======
-  const PAT_PROD = /^TLP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/i;
->>>>>>> origin/main
   const norm = (v) => String(v||'').toUpperCase().replace(/[^A-Z0-9-]/g,'');
   const mo = new MutationObserver(() => {
     const inp = document.getElementById('licenseKey');
@@ -2247,9 +2318,9 @@ function openLicenseModal(){
         if (r?.ok && r?.plan) setPlan(r.plan);
       } finally {
         // UI 同期の最後の砦
-        updatePlanPill?.();
-        refreshHome?.();
-        refreshLicenseUI?.();
+        window.updatePlanPill?.();
+        window.refreshHome?.();
+        window.refreshLicenseUI?.();
       }
     }, { once:false });
   });
@@ -2300,7 +2371,6 @@ window.tlpApiFetch ||= function(path, opt = {}) {
     ...opt
   });
 };
-<<<<<<< HEAD
 // --- Re-verify（即時反映） ---
 window.reverifyNow ||= async function () {
   try {
@@ -2309,20 +2379,12 @@ window.reverifyNow ||= async function () {
 
     // ★ここは tlpApiFetch を使わず、生の fetch を使う
     const res  = await fetch(url);
-=======
-// --- Re-verify (即時反映) ---
-window.reverifyNow ||= async function () {
-  try {
-    const url = `/api/license/verify.php?device=${encodeURIComponent(tlpDeviceId())}&app=tlp`;
-    const res = await tlpApiFetch(url);
->>>>>>> origin/main
     const body = await res.json().catch(() => ({}));
 
     if (res.ok && body?.ok) {
       // 最終検証タイムスタンプを更新
       localStorage.setItem('tlpLicenseFreshAt', String(Date.now()));
 
-<<<<<<< HEAD
           // 返ってきた plan を保存
     // - サーバーが middle / pro を返したらそれを優先
     // - それ以外（free / 空など）は、端末側がまだ free のときだけ採用
@@ -2348,27 +2410,15 @@ window.reverifyNow ||= async function () {
       }
     } catch (_) {}
 
-=======
-      // 返ってきた plan を保存（無ければ既存を維持）
-      try {
-        const store = getStore?.();
-        const plan  = body.plan || store?.settings?.plan || 'free';
-        if (store) {
-          store.settings ||= {};
-          store.settings.plan = plan;
-          DB.save(store);
-        }
-      } catch (_) {}
->>>>>>> origin/main
 
       // ---- 表示を即同期（リロード無し）----
-      applyPlanUI?.();
-      enforcePlan?.();
-      updatePlanPill?.();     // HOME の「現在のプラン」ピル
-      syncLicenseButtons?.(); // ライセンス系ボタン表示
-      refreshHome?.();        // HOMEカード再描画
-      renderTodayList?.();
-      renderHistory?.();
+      window.applyPlanUI?.();
+      window.enforcePlan?.();
+      window.updatePlanPill?.();     // HOME の「現在のプラン」ピル
+      window.syncLicenseButtons?.(); // ライセンス系ボタン表示
+      window.refreshHome?.();        // HOMEカード再描画
+      window.renderTodayList?.();
+      window.renderHistory?.();
 
       // 成功フィードバック（必要なら消してOK）
       try { alert('再検証: OK'); } catch (_){}
@@ -2550,6 +2600,8 @@ TLP.showEula = function(){
   const meta = window.__tlp_meta || {};
   const eulaVer = meta.eulaVersion || "2025-09-08";
   console.log("[TLP] diag boot v0.8.1 (minimal)");
+  window.__TLP_BUILD = "planfix-v9-2025-12-17";
+  console.log("[TLP] build:", window.__TLP_BUILD);
   window.addEventListener("keydown", (e)=>{
     if(e.altKey && e.key.toLowerCase()==="e"){
       e.preventDefault();
@@ -2851,7 +2903,7 @@ window.saveBackupStrict = function(){
     store.settings.lastBackupAt = Date.now(); 
     DB.save(store); 
   } catch(_){}
-  try { refreshHome?.(); refreshBackupPageLabels?.(); } catch(_){}
+  try { window.refreshHome?.(); window.refreshBackupPageLabels?.(); } catch(_){}
 
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -3089,7 +3141,7 @@ function updatePlanPill(){
   'use strict';
 
   // 既存バーが残っていれば除去（重複防止）
- document.getElementById('tlp-nudge')?.remove();
+  document.getElementById('tlp-nudge')?.remove();
 
   const KEY  = 'tlpLicenseFreshAt';
   const week = 7 * 24 * 60 * 60 * 1000;
@@ -3102,7 +3154,6 @@ function updatePlanPill(){
   // バー生成（上部固定）
   const bar = document.createElement('div');
   bar.id = 'tlp-nudge';
-<<<<<<< HEAD
   bar.setAttribute('role', 'region');
   bar.setAttribute('aria-label', 'ライセンス再検証のご案内');
 
@@ -3130,12 +3181,6 @@ function updatePlanPill(){
     '</span>'
   ].join('');
 
-=======
-  bar.setAttribute('role','region');
-  bar.setAttribute('aria-label','ライセンス再検証のご案内');
-  bar.style = "position:fixed;left:0;right:0;top:0;background:#111;color:#fff;padding:10px 12px;display:flex;gap:8px;align-items:center;justify-content:center;z-index:2147483647;font-size:14px;box-shadow: 0 2px 6px rgba(0,0,0,.2)";
-  bar.innerHTML = '<span style="margin-right:8px">ライセンスの再検証から7日経過</span><button id="nudgeNow" style="padding:6px 10px">今すぐ</button><button id="nudgeLater" style="padding:6px 10px">あとで</button>';
->>>>>>> origin/main
   document.body.appendChild(bar);
 
   const removeBar = () => {
@@ -3143,7 +3188,6 @@ function updatePlanPill(){
     if (el) el.remove();
   };
 
-<<<<<<< HEAD
   const btnNow   = document.getElementById('nudgeNow');
   const btnLater = document.getElementById('nudgeLater');
 
@@ -3162,80 +3206,11 @@ function updatePlanPill(){
       removeBar();
     };
   }
-=======
-  
-// C-1 Nudge: 「今すぐ」→ 再検証してからバナーを閉じる
-const btnNudgeNow = document.getElementById('nudgeNow');
-if (btnNudgeNow) {
-  btnNudgeNow.onclick = async () => {
-    try {
-      await reverifyNow();        // ← ここでHOME/PLANを即同期
-    } finally {
-      document.getElementById('tlp-nudge')?.remove();  // 成否に関わらずバーを閉じる
-    }
-  };
-}
->>>>>>> origin/main
 
   if (btnLater) {
     btnLater.onclick = () => removeBar();
   }
 })();
-<<<<<<< HEAD
-=======
-// 11B: Plansの購入ボタン
-document.addEventListener('DOMContentLoaded', () => {
-  const m = document.getElementById('btnBuyMiddle');
-  const p = document.getElementById('btnBuyPro');
-  if (m && window.tlpCheckoutMiddle) {
-    m.href = window.tlpCheckoutMiddle;
-    m.removeAttribute('aria-disabled');
-    m.onclick = null;
-  }
-  if (p && window.tlpCheckoutPro) {
-    p.href = window.tlpCheckoutPro;
-    p.removeAttribute('aria-disabled');
-    p.onclick = null;
-  }
-});
-
-// 11C: ライセンス操作ボタン
-document.addEventListener('DOMContentLoaded', () => {
-  const openBtn = document.getElementById('btnOpenLicense');
-  const verBtn  = document.getElementById('btnVerifyNow');
-  const label   = document.getElementById('licensePlanLabel');
-
-  if (openBtn && window.openLicenseModal) openBtn.onclick = () => openLicenseModal();
-  if (verBtn) verBtn.onclick = async () => {
-  await reverifyNow();
-  // reverifyNow 内で refreshLicenseUI() まで走るので、ここは最後にラベルを念押し更新だけ
-  label && (label.textContent = `現在のプラン：${planJp(getPlan())}`);
-};
-});
-
-
-function refreshLicenseUI(){
-  try{
-    const p = getPlan();
-    const label = (p==='pro' ? 'プロ' : p==='middle' ? 'ミドル' : '無料');
-
-    const L = document.getElementById('licensePlanLabel');
-    if (L) L.textContent = `現在のプラン：${label}`;
-
-    const cta = document.getElementById('plans-cta');
-    if (cta) cta.style.display = (p === 'pro') ? 'none' : '';
-
-    // HOME ピル・全体UIも最終同期
-    updatePlanPill?.();
-    refreshHome?.();
-  }catch(_){}
-}
->>>>>>> origin/main
-</script>
-
-<script>
-  window.tlpVerifyURL  = 'https://cafetabco.com/api/license/verify.php';
-  window.tlpRedeemURL  = 'https://cafetabco.com/api/license/redeem.php';
 </script>
 
 
@@ -3267,9 +3242,9 @@ function refreshLicenseUI(){
         var r = _save(s);
         try{
           // 最低限の再描画
-          window.renderTodayList && renderTodayList();
-          window.renderHistory && renderHistory();
-          window.refreshHome && refreshHome();
+          window.renderTodayList && window.renderTodayList();
+          window.renderHistory && window.renderHistory();
+          window.refreshHome && window.refreshHome();
           window.updatePlanPill && updatePlanPill();
         }catch(_){}
         return r;
@@ -3286,146 +3261,9 @@ function refreshLicenseUI(){
         var r = _setItem(k, v);
         if (k === 'tabco-store' || k === 'tlpStore'){
           try{
-            window.renderTodayList && renderTodayList();
-            window.renderHistory && renderHistory();
-            window.refreshHome && refreshHome();
-          }catch(_){}
-        }
-        return r;
-      };
-      localStorage.__tlp_hooked = true;
-    }
-  }catch(_){}
-
-  // 4) refreshHome 強化：元の処理 + KPI/ピルの最終上書き（①）
-  try{
-    var _origRefreshHome = window.refreshHome;
-    window.refreshHome = function(){
-      // 既存処理を尊重
-      try{ if (typeof _origRefreshHome === 'function') _origRefreshHome(); }catch(_){}
-      // 最低限のKPI更新とピル反映だけ追加（壊さない範囲）
-      try{
-        var byId = function(id){ return document.getElementById(id); };
-        var yenFmt = (typeof yen === 'function')
-          ? yen
-          : function(n){ return '¥'+(Math.round(n||0)).toLocaleString('ja-JP'); };
-        var setYen = function(id, v){ var el = byId(id); if(el) el.textContent = yenFmt(v); };
-        if (typeof calcTotals === 'function'){
-          setYen('kpiWeek',  calcTotals(7));
-          setYen('kpiMonth', calcTotals(30));
-          setYen('kpi30',    calcTotals(30));
-        }
-        if (typeof getPlan === 'function'){
-          var p = getPlan();
-          var label = (p==='pro'?'プロ':p==='middle'?'ミドル':'無料');
-          var nodes = document.querySelectorAll('#pillPlan,[data-plan-pill],.plan-pill');
-          for (var i=0;i<nodes.length;i++){
-            var el = nodes[i];
-            var t = (el.textContent||'').trim();
-            el.textContent = /^プラン：/.test(t) ? ('プラン：'+label) : label;
-            el.dataset.plan = p;
-          }
-        }
-      }catch(_){}
-    };
-  }catch(_){}
-
-  // 5) 履歴/本日 → 行タップで編集モーダル（②）
-  if (!window.__wiredEditRowClick){
-    window.__wiredEditRowClick = true;
-    window.__tlp_currentEntry = null;
-
-    document.addEventListener('click', function(e){
-      var row = e.target && e.target.closest ? e.target.closest('#historyList .entry, #todayList .entry') : null;
-      if (!row) return;
-      var id = row.getAttribute('data-id');
-      var entry = null;
-      if (typeof window._findEntryById === 'function') entry = _findEntryById(id);
-      else if (window.store && Array.isArray(store.entries)) entry = store.entries.find(function(x){return x && x.id === id;});
-      if (!entry){ alert('編集対象が見つかりません'); return; }
-      e.preventDefault();
-      window.__tlp_currentEntry = entry;
-      try{ window.openEntryEditModalLite && openEntryEditModalLite(entry); }catch(err){ console.error(err); }
-    }, false);
-
-    // モーダルOK配線（簡易編集を確実に反映）（②）
-    document.addEventListener('click', function(e){
-      var ok = e.target && e.target.closest ? e.target.closest('#modalOK, #btnModalOK') : null;
-      if (!ok) return;
-      var entry = window.__tlp_currentEntry;
-      if (!entry) return;
-      var qEl = document.getElementById('mLiteQty'), pEl = document.getElementById('mLitePrice'), rEl = document.getElementById('mLiteRate');
-      var q = Number(qEl && qEl.value), p = Number(pEl && pEl.value), r = Number(rEl && rEl.value);
-      if (Number.isFinite(q) && q > 0) entry.qty = q;
-      if (Number.isFinite(p) && p >= 0) entry.price = p;
-      if ([0,8,10].indexOf(r) >= 0) entry.taxrate = r;
-      try{ window.DB && DB.save && DB.save(store); }catch(err){ console.error(err); }
-      try{ window.closeModal && closeModal(); }catch(_){}
-      window.__tlp_currentEntry = null;
-    }, false);
-  }
-})();
-</script>
-
-<script>
-document.getElementById('btnEnterLicenseMiddle')?.addEventListener('click', function(){
-  if (window.openLicenseModal) { openLicenseModal(); return; }
-  // フォールバック（既存のコード入力起動ボタンがある場合）
-  document.getElementById('btnOpenLicense')?.click();
-});
-</script>
-
-<<<<<<< HEAD
-<script>
-// === TLP core restore (1-4 only) — 2025-11-12 ===
-(function(){
-  if (window.__tlp_core_1412) return;
-  window.__tlp_core_1412 = true;
-
-  // 0) helper
-  function safe(fn){ try{ if (typeof fn === 'function') fn(); } catch(e){} }
-
-  // 1) refreshAll: 呼べるところだけ呼ぶ（存在チェック）
-  if (typeof window.refreshAll !== 'function'){
-    window.refreshAll = function(){
-      safe(window.updatePlanPill);
-      safe(window.refreshHome);
-      safe(window.renderTodayList);
-      safe(window.renderHistory);
-      safe(window.refreshLicenseUI);
-    };
-  }
-
-  // 2) DB.save をラップ：保存のたびに即時反映（①③④）
-  try{
-    if (window.DB && typeof DB.save === 'function' && !DB.save.__wired){
-      var _save = DB.save.bind(DB);
-      DB.save = function(s){
-        var r = _save(s);
-        try{
-          // 最低限の再描画
-          window.renderTodayList && renderTodayList();
-          window.renderHistory && renderHistory();
-          window.refreshHome && refreshHome();
-          window.updatePlanPill && updatePlanPill();
-        }catch(_){}
-        return r;
-      };
-      DB.save.__wired = true;
-    }
-  }catch(_){}
-
-  // 3) localStorage 直書きも捕捉（初期化/復元で起こりがち）（③④）
-  try{
-    if (!localStorage.__tlp_hooked){
-      var _setItem = localStorage.setItem.bind(localStorage);
-      localStorage.setItem = function(k, v){
-        var r = _setItem(k, v);
-        if (k === 'tabco-store' || k === 'tlpStore'){
-          try{
-            window.renderTodayList && renderTodayList();
-            window.renderHistory && renderHistory();
-            window.refreshHome && refreshHome();
+            window.renderTodayList && window.renderTodayList();
+            window.renderHistory && window.renderHistory();
+            window.refreshHome && window.refreshHome();
           }catch(_){}
         }
         return r;
@@ -3623,7 +3461,5 @@ document.getElementById('btnEnterLicenseMiddle')?.addEventListener('click', func
   });
 </script>
 
-=======
->>>>>>> origin/main
 </body>
 </html>
