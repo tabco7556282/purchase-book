@@ -23,7 +23,9 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   const url = new URL(req.url);
-
+// クロスオリジンはSWで触らない（GA等を壊さない）
+  if (url.origin !== self.location.origin) return;
+  
   // manifest / icon は常にネットワーク（＝キャッシュしない）
   if (/\bmanifest\.(webmanifest|json)$/.test(url.pathname) || url.pathname.includes('/icon/')) {
     e.respondWith(fetch(req));
