@@ -4,8 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
 <meta http-equiv="Content-Security-Policy"
-  content="default-src 'self'; connect-src 'self' https://cafetabco.pussycat.jp https://cafetabco.com  https://www.cafetabco.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; manifest-src 'self'">
-
+  content="default-src 'self'; connect-src 'self' https://cafetabco.pussycat.jp https://cafetabco.com https://www.cafetabco.com https://www.google-analytics.com https://region1.google-analytics.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; manifest-src 'self'">
 <link rel="manifest" href="/manifest.webmanifest?v=20251126">
 <link rel="apple-touch-icon" href="./icons/icon-180-v223i.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/themes/dark.css">
@@ -144,6 +143,11 @@ textarea{min-height:84px;resize:vertical}
 [data-theme="dark"] .theme-toggle{background:#2C2C2E;border-color:#444}
 [data-theme="dark"] .theme-toggle .knob{background:#B0B3FF;transform:translateX(12px)}
 
+/* 年度モード表示（前年度のときは注意色） */
+.hdr-pill{background:#ffffff80;border:1px solid #ffffffa6;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:800;white-space:nowrap}
+body.mode-prev-year .hdr-pill{background:#fff;border-color:var(--danger);color:var(--danger)}
+
+
 /* モーダル */
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:flex-end}
 .modal{width:100%;background:var(--card);border-radius:16px 16px 0 0;border:1px solid var(--divider);box-shadow:var(--shadow);padding:14px}
@@ -191,6 +195,45 @@ textarea{min-height:84px;resize:vertical}
   #eulaLinks a{color:#9ad5ff;text-decoration:underline}
   body.eula-locked{overflow:hidden}
 </style>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-STPSS3412P"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-STPSS3412P');
+</script>
+<script>
+(() => {
+  const send = (name, params = {}) => {
+    if (typeof gtag !== 'function') return;
+    gtag('event', name, { event_category: 'pwa', ...params });
+  };
+
+  // 「インストールできます」状態になった回数（Chrome/Edge中心）
+  window.addEventListener('beforeinstallprompt', (e) => {
+    try {
+      send('pwa_install_prompt_shown', { page_location: location.href });
+    } catch (_) {}
+
+    // 既存のインストール導線があるなら、必要に応じて参照できるように保持（邪魔しない）
+    window.tlpInstallPromptEvent = e;
+
+    // outcomeが取れる環境だけ取る（取れなくてもOK）
+    if (e && e.userChoice && typeof e.userChoice.then === 'function') {
+      e.userChoice.then((choice) => {
+        send('pwa_install_prompt_choice', { outcome: choice.outcome });
+      }).catch(() => {});
+    }
+  });
+
+  // 実際にインストール完了した回数（取れる環境のみ）
+  window.addEventListener('appinstalled', () => {
+    try { send('pwa_install_installed'); } catch (_) {}
+  });
+})();
+</script>
+
 </head>
 <body>
 <header class="app-header">
@@ -198,6 +241,7 @@ textarea{min-height:84px;resize:vertical}
   <h1 id="pageTitle">仕入れ管理</h1>
   <div class="hdr-right">
     <button id="themeBtn" class="theme-toggle" aria-label="テーマ切替"><div class="knob"><span id="themeIcon">☀</span></div></button>
+    <span id="pillYearMode" class="hdr-pill" aria-label="対象年度">-</span>
   </div>
 </header>
 
@@ -246,7 +290,7 @@ textarea{min-height:84px;resize:vertical}
   <section id="page-input" class="hidden" data-title="仕入入力">
     <div class="card grid">
       <div class="grid cols-2">
-        <div><div class="label">日付</div><input type="date" id="inDate"></div>
+        <div><div class="label" id="lblInDate">日付</div><input type="date" id="inDate"></div>
         <div><div class="label">仕入れ先</div><select id="inSupplier"></select></div>
       </div>
       <div>
@@ -356,9 +400,13 @@ textarea{min-height:84px;resize:vertical}
           <div class="label">対象年度（個人事業主：1月〜12月）</div>
           <div id="fiscalLabel" style="font-weight:800">-</div>
         </div>
-        <button class="btn primary small" id="btnArchiveYear" type="button">次年度へ切り替え</button>
+        <select id="selActiveYear" aria-label="対象年度" style="width:160px"></select>
       </div>
-      <div class="label" style="margin-top:8px">※ 仕入先・商品マスタは消えません。対象年度の明細のみリセットします。</div>
+      <div class="row" style="margin-top:10px;justify-content:flex-end;gap:8px;flex-wrap:wrap">
+        <button id="btnFinalizePrevYear" class="btn danger small" type="button">前年度を確定（出力→削除）</button>
+      </div>
+      <div class="muted" style="margin-top:6px">※ 前年度（1月〜12月）の明細をExcel XMLで出力した後、前年度の明細だけを削除します（仕入れ先・商品マスタは残ります）。</div>
+      <div class="label" style="margin-top:8px">※ 仕入先・商品マスタは年度に関係なく共通です。明細・集計・出力は選択年度のみ対象です。</div>
     </div>
   </section>
 
@@ -774,15 +822,31 @@ const $$ = (s,el)=>Array.from((el||document).querySelectorAll(s));
 const yen=n=>"¥"+(Math.round(n||0)).toLocaleString();
 const uid=()=>Math.random().toString(36).slice(2,10);
 const fmtYMD=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-const todayStr=()=>fmtYMD(new Date());
+/* 対象年度（今年/前年度） */
 function getActiveYear(){
   try{
+    var cur = new Date().getFullYear();
     var y = Number(store && store.settings && store.settings.activeYear);
-    return (isFinite(y) && y >= 2000 && y <= 2100) ? y : new Date().getFullYear();
+    if (!(isFinite(y) && y >= 2000 && y <= 2100)) y = cur;
+    // 今年度/前年度のみ許可（それ以外は今年度へ）
+    if (y !== cur && y !== (cur - 1)) y = cur;
+    return y;
   }catch(_){
     return new Date().getFullYear();
   }
 }
+/* 選択年度の「今日」（月日を合わせる。存在しない日付は月末に丸める） */
+function activeNow(){
+  const cur = new Date();
+  const y = getActiveYear();
+  const m = cur.getMonth();
+  const last = new Date(y, m+1, 0).getDate();
+  const d = Math.min(cur.getDate(), last);
+  const dt = new Date(y, m, d);
+  dt.setHours(cur.getHours(), cur.getMinutes(), cur.getSeconds(), cur.getMilliseconds());
+  return dt;
+}
+const todayStr=()=>fmtYMD(activeNow());
 function enableSelectOnFocus(){
   $$('input[type="number"], input[type="text"]').forEach(inp=>{
     const sel=()=>inp.select&&inp.select();
@@ -840,19 +904,21 @@ function _ym(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0
 function _startOfMonth(d){ return new Date(d.getFullYear(), d.getMonth(), 1); }
 function _endOfDay(d){ const x=new Date(d); x.setHours(23,59,59,999); return x; }
 function getExportRange(key){
-  const now=new Date();
+  const realNow = new Date();
+  const now = activeNow();
   if(key==="fiscal"){
     const fy = getActiveYear();
-    const from=new Date(fy,0,1);
-    const to = _endOfDay((fy===now.getFullYear()) ? new Date() : new Date(fy,11,31));
-    const toLabelDate = (fy===now.getFullYear()) ? now : new Date(fy,11,31);
+    const from = new Date(fy,0,1);
+    const to = _endOfDay((fy===realNow.getFullYear()) ? now : new Date(fy,11,31));
+    const toLabelDate = (fy===realNow.getFullYear()) ? now : new Date(fy,11,31);
     return {from,to,label:`${_ym(from)}〜${_ym(toLabelDate)}`,key:"fiscal"};
   }
   if(key==="all"){ return {from:null,to:null,label:"全期間",key:"all"}; }
-  // default: 当月
-  const from=_startOfMonth(now), to=_endOfDay(new Date());
+  // default: 当月（選択年度）
+  const from=_startOfMonth(now), to=_endOfDay(now);
   return {from,to,label:_ym(now),key:"month"};
 }
+
 function _inRange(ymd, range){
   if(!ymd) return false;
   const d=new Date(ymd+"T12:00:00");
@@ -1051,13 +1117,24 @@ function startHomeAdRotation() {
   homeAdTimer = setInterval(renderHomeAdOnce, 5000); // 5秒ごとに切り替え
 }
 function calcTotals(days){
-  const now=new Date(), from=new Date(now.getTime()-days*86400000);
+  const y = getActiveYear();
+  const now = activeNow();
+  now.setHours(23,59,59,999);
+  const yearStart = new Date(y,0,1); yearStart.setHours(0,0,0,0);
+  const yearEnd   = new Date(y,11,31); yearEnd.setHours(23,59,59,999);
+
+  let from = new Date(now.getTime() - days*86400000);
+  if (from < yearStart) from = yearStart;
+  let to = now;
+  if (to > yearEnd) to = yearEnd;
+
   return store.entries.reduce((sum,e)=>{
-    if(e.deleted) return sum;
-    const t=new Date(e.date+"T00:00:00");
-    if(t>=from&&t<=now){
+    if(!e || e.deleted || !e.date) return sum;
+    if(!String(e.date).startsWith(String(y)+"-")) return sum; // 選択年度のみ
+    const t = new Date(e.date+"T00:00:00");
+    if(t>=from && t<=to){
       const base = e.taxmode==="incl" ? e.price : e.price*(1+e.taxrate/100);
-      sum+=base*e.qty;
+      sum += base*e.qty;
     }
     return sum;
   },0);
@@ -1173,6 +1250,39 @@ function initInputPage(){
   toggleFreeInput();
 }
 document.addEventListener("change",(e)=>{ if(e.target.id==="chkFree") toggleFreeInput(); });
+
+document.addEventListener("click",(e)=>{
+  const t = e.target;
+  if(!t || t.id !== "btnFinalizePrevYear") return;
+
+  const cur = new Date().getFullYear();
+  const py = Number(t.dataset.year || (cur-1));
+  if(!Number.isFinite(py)) return;
+
+  // まずは出力（キャンセル可能）
+  const msg1 = `前年度（${py}年）の明細を「年度出力（Excel XML）」してから削除します。\n\n※必要なら先に「バックアップ（JSON）」も取ってください。\n\n出力を開始しますか？`;
+  if(!confirm(msg1)) return;
+
+  const ok = exportYearXML(py);
+  if(!ok) return;
+
+  const msg2 = `前年度（${py}年）の明細を削除します。\n\nこの操作は元に戻せません。\n削除してよいですか？`;
+  if(!confirm(msg2)) return;
+
+  const removed = deleteEntriesOfYear(py);
+  alert(`前年度（${py}年）の明細を削除しました（${removed}件）。`);
+
+  // 画面更新
+  try{ refreshFiscalLabel(); }catch(_){}
+  try{ initInputPage(); }catch(_){}
+  try{ renderTodayList(); }catch(_){}
+  try{ if ((location.hash||"") === "#history") renderHistory(); }catch(_){}
+  try{
+    const w = document.getElementById("kpiWeek"); if(w) w.textContent = yen(calcTotals(7));
+    const m = document.getElementById("kpiMonth"); if(m) m.textContent = yen(calcTotals(30));
+  }catch(_){}
+});
+
 document.addEventListener("change",(e)=>{ if(e.target.id==="inSupplier") renderProductSelect($("#inProduct"),e.target.value,$("#prodSearch").value||""); });
 document.addEventListener("input",(e)=>{ if(e.target.id==="prodSearch") renderProductSelect($("#inProduct"),$("#inSupplier").value,e.target.value); });
 document.addEventListener("change",(e)=>{
@@ -1700,8 +1810,12 @@ function renderHistory(){
   const showBoth = !!store.settings.historyShowBoth;
   const showDetail = !!store.settings.showTaxFlags;
   const supFilter = String(store.settings.historySupplierFilter || "");
-  const now = new Date();
+  const realNow = new Date();
+  const now = activeNow();
   now.setHours(23,59,59,999);
+  const ay = getActiveYear();
+  const yearStart = new Date(ay,0,1); yearStart.setHours(0,0,0,0);
+  const yearEnd   = new Date(ay,11,31); yearEnd.setHours(23,59,59,999);
   let from;
   let end = now;
 
@@ -1709,7 +1823,7 @@ function renderHistory(){
     const fy = getActiveYear();
     from = new Date(fy, 0, 1);
     from.setHours(0,0,0,0);
-    if (fy !== now.getFullYear()) {
+    if (fy !== realNow.getFullYear()) {
       end = new Date(fy, 11, 31);
       end.setHours(23,59,59,999);
     }
@@ -1738,9 +1852,15 @@ function renderHistory(){
     from.setHours(0,0,0,0);
   }
 
+
+  // 選択年度の範囲にクランプ（年を跨いで表示しない）
+  if (from && from < yearStart) from = yearStart;
+  if (end && end > yearEnd) end = yearEnd;
+
   list.innerHTML = "";
   const entries = (store.entries||[]).filter(e=>{
     if(!e || e.deleted || !e.date) return false;
+    if(!String(e.date).startsWith(String(ay)+"-")) return false;
     const d = new Date(e.date+"T12:00:00");
     if (!(d >= from && d <= end)) return false;
     if (supFilter && e.supplier_id !== supFilter) return false;
@@ -1871,13 +1991,64 @@ function saveExcelXML(name, rows2d){
   setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
 }
 
+
+function exportYearXML(year){
+  const plan = PLAN();
+  // 年度出力が許可されているか（Freeは不可）
+  if (clampExportKey("fiscal", plan) !== "fiscal"){
+    alert("年度出力は有料プランで利用できます。");
+    return false;
+  }
+  const y = Number(year);
+  if(!Number.isFinite(y)) return false;
+
+  const rows = [["日付","仕入れ先","商品","数量","単価","税率","区分","税込額","メモ"]];
+  const entries = (store.entries||[]).filter(e=>{
+    if(!e || e.deleted || !e.date) return false;
+    return String(e.date).startsWith(String(y)+"-");
+  }).sort((a,b)=> String(a.date).localeCompare(String(b.date)));
+
+  if(!entries.length){
+    alert("前年度の明細がありません。");
+    return false;
+  }
+
+  entries.forEach(e=>{
+    const s = supplierName(e.supplier_id) || e.supplier_name_fallback || "";
+    const p = prodName(e.product_id, e.product_name_fallback);
+    const g = (e.taxmode==="incl" ? e.price : e.price*(1+e.taxrate/100)) * e.qty;
+    rows.push([ e.date, s, p, e.qty, e.price, e.taxrate,
+      (e.taxmode==="incl"?"税込":"税別"), Math.round(g), e.memo||"" ]);
+  });
+
+  const from = new Date(y,0,1);
+  const to = new Date(y,11,31);
+  const label = `${_ym(from)}〜${_ym(to)}`;
+  saveExcelXML(`仕入れ記録_年度_${label}.xml`, rows);
+  return true;
+}
+
+function deleteEntriesOfYear(year){
+  const y = Number(year);
+  if(!Number.isFinite(y)) return 0;
+  const before = (store.entries||[]).length;
+  store.entries = (store.entries||[]).filter(e=>{
+    if(!e || !e.date) return true;
+    return !String(e.date).startsWith(String(y)+"-");
+  });
+  const removed = before - store.entries.length;
+  DB.save(store);
+  return removed;
+}
+
 function exportData(rangeKey){
   const plan = PLAN(); // もしくは getPlan()
   const key  = clampExportKey(rangeKey, plan);
   const range = getExportRange(key);
 
   const rows = [["日付","仕入れ先","商品","数量","単価","税率","区分","税込額","メモ"]];
-  const entries = (store.entries||[]).filter(e => e && !e.deleted && (!range.from || _inRange(e.date, range)));
+  const ay = getActiveYear();
+  const entries = (store.entries||[]).filter(e => e && !e.deleted && e.date && String(e.date).startsWith(String(ay)+"-") && (!range.from || _inRange(e.date, range)));
   if (!entries.length){ alert("選択した期間にデータがありません。"); return; }
 
   entries.forEach(e=>{
@@ -2111,55 +2282,77 @@ DB.save(store);
 });
 
 function refreshFiscalLabel(){
-  const y=getActiveYear();
-  const el=$("#fiscalLabel"); if(el) el.textContent=`対象：${y}年（1月〜12月）`;
-}
-document.addEventListener("click",(e)=>{
-  if(e.target.id!=="btnArchiveYear") return;
-
-  const year = getActiveYear();
-  const next = year + 1;
-
-  if(!confirm(`【年度切替】
-対象年度：${year}年
-
-① まずバックアップ（JSON）を保存します
-② 保存できたことを確認後、${year}年の明細を削除して
-③ 対象年度を ${next}年 に切り替えます
-
-続行しますか？`)) return;
-
-  // 1) バックアップ（ユーザー操作に紐づけて実行）
   try{
-    if (typeof window.saveBackupStrict === "function") window.saveBackupStrict();
-    else if (typeof window.backupNow === "function") window.backupNow();
-    else if (typeof backupNow === "function") backupNow();
-    else console.warn("[fiscal] backup function not found");
-  }catch(err){
-    console.warn("[fiscal] backup error:", err);
-  }
+    const cur = new Date().getFullYear();
+    const y = getActiveYear(); // 今年度/前年度にクランプ済み
 
-  // 2) ダウンロードがブロックされる可能性があるため、確認してから削除
-  if(!confirm(`バックアップファイルは保存できましたか？
+    // 保存値も正規化（過去に「次年度へ切り替え」で先の年に行っていても戻せる）
+    if(!store.settings) store.settings = {};
+    if (Number(store.settings.activeYear) !== y) {
+      store.settings.activeYear = y;
+      DB.save(store);
+    }
 
-OK：${year}年の明細を削除して ${next}年へ切り替え
-キャンセル：何もしない`)) return;
+    const el=$("#fiscalLabel"); if(el) el.textContent=`対象：${y}年（1月〜12月）`;
 
-  // 3) 対象年度の明細だけ削除（マスタは残す）
-  const prefix = String(year) + "-";
-  store.entries = (store.entries||[]).filter(e=>!(e && e.date && String(e.date).startsWith(prefix)));
+    const sel = $("#selActiveYear");
+    if(sel){
+      // 毎回同期（軽量）
+      sel.innerHTML = "";
+      [cur, cur-1].forEach(yy=>{
+        const o=document.createElement("option");
+        o.value = String(yy);
+        o.textContent = `${yy}年`;
+        sel.appendChild(o);
+      });
+      sel.value = String(y);
+    }
 
-  // 4) 次年度へ切り替え
-  store.settings = store.settings || {};
-  store.settings.activeYear = next;
+    // === 視認性（前年度モードの見分け） ===
+    const isPrev = (y === (cur - 1));
+    try{ document.body.classList.toggle("mode-prev-year", isPrev); }catch(_){}
+    const pill = $("#pillYearMode");
+    if(pill){
+      pill.textContent = isPrev ? `前年度：${y}年` : `今年度：${y}年`;
+      pill.title = isPrev ? "前年度モード" : "今年度モード";
+    }
+    const lbl = $("#lblInDate");
+    if(lbl){
+      lbl.textContent = isPrev ? `日付（前年度：${y}年）` : `日付（${y}年）`;
+    }
 
+    // === 前年度の確定（出力→削除）ボタン状態 ===
+    const btnFin = $("#btnFinalizePrevYear");
+    if(btnFin){
+      const py = cur - 1;
+      const canFiscal = (clampExportKey("fiscal", PLAN()) === "fiscal");
+      const hasPrev = (store.entries||[]).some(e => e && e.date && String(e.date).startsWith(String(py)+"-"));
+      btnFin.dataset.year = String(py);
+      btnFin.textContent = `前年度（${py}年）を確定（出力→削除）`;
+      btnFin.disabled = (!canFiscal || !hasPrev);
+      btnFin.title = !canFiscal ? "年度出力は有料プランで利用できます" : (!hasPrev ? "前年度の明細がありません" : "前年度の明細を出力して削除します");
+    }
+  }catch(_){}
+}
+document.addEventListener("change",(e)=>{
+  if(e.target.id!=="selActiveYear") return;
+  const y = Number(e.target.value);
+  if(!isFinite(y)) return;
+
+  if(!store.settings) store.settings = {};
+  store.settings.activeYear = y;
   DB.save(store);
 
-  refreshFiscalLabel();
-  renderTodayList(); renderHistory(); refreshHome();
-
-  alert(`対象年度を ${next}年 に切り替えました。
-${year}年の明細はリセットしました（仕入先・商品マスタは残っています）`);
+  // 選択年度で全画面を再描画
+  try{ refreshFiscalLabel(); }catch(_){}
+  try{ initInputPage(); }catch(_){}
+  try{ renderTodayList(); }catch(_){}
+  try{ if ((location.hash||"") === "#history") renderHistory(); }catch(_){}
+  try{
+    const w = document.getElementById("kpiWeek"); if(w) w.textContent = yen(calcTotals(7));
+    const m = document.getElementById("kpiMonth"); if(m) m.textContent = yen(calcTotals(30));
+    const k30 = document.getElementById("kpi30"); if(k30) k30.textContent = yen(calcTotals(30));
+  }catch(_){}
 });
 
 /* ===== Factory Reset ===== */
