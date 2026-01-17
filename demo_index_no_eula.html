@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
 <meta http-equiv="Content-Security-Policy"
   content="default-src 'self'; connect-src 'self' https://cafetabco.pussycat.jp https://cafetabco.com https://www.cafetabco.com https://www.google-analytics.com https://region1.google-analytics.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; manifest-src 'self'">
-<link rel="manifest" href="/manifest.webmanifest?v=20251126">
-<link rel="apple-touch-icon" href="./icons/icon-180-v223i.png">
+<link rel="manifest" href="/demo/manifest.webmanifest?v=20260110">
+<link rel="apple-touch-icon" href="/icons/icon-180-v223i.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/themes/dark.css">
 
 <style>
@@ -630,9 +630,9 @@ document.addEventListener('DOMContentLoaded', () => {
       try { window.setPlan?.(json.plan); } catch (_){}
 
       if (json.plan === 'pro') {
-        localStorage.setItem('tlpPro', '1');
+        localStorage.setItem(PRO_KEY, '1');
       } else {
-        localStorage.removeItem('tlpPro');
+        localStorage.removeItem(PRO_KEY);
       }
 
       if (window.applyLicensed) {
@@ -708,7 +708,154 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', inject);
     else inject();
   })();
-   /* ===== Storage ===== */
+   
+/* ===== DEMO (Simulator) ===== */
+const URLP = new URLSearchParams(location.search);
+const IS_DEMO = URLP.get("demo") === "1";
+const DEMO_DATA_URL = URLP.get("demoData") || "/demo/demo_restaurant.json";
+// demoは本番データと絶対に混ざらないようにキーを分離
+const STORE_KEY = IS_DEMO ? "tabco-store-demo" : "tabco-store";
+const PLAN_KEY  = IS_DEMO ? "tlpPlan_demo"  : "tlpPlan";
+const PRO_KEY   = IS_DEMO ? "tlpPro_demo"   : "tlpPro";
+const DEMO_READY_KEY = "tlpDemoLoaded_v1";
+
+/* demo用：サンプルJSON（バックアップ形式）を初回だけ自動復元 */
+async function demoAutoLoadIfNeeded(){
+  if(!IS_DEMO) return;
+  try{
+    // すでにデモ用ストレージにデータがあれば何もしない（体験中の編集を保持）
+    const existing = localStorage.getItem(STORE_KEY);
+    if(existing && existing.trim()) return;
+
+    // セッション内の二重ロード防止
+    if (sessionStorage.getItem(DEMO_READY_KEY) === "1") return;
+
+    // demoは操作体験のため pro 扱い（本番の tlpPlan とは別キー）
+    try{
+      if(!localStorage.getItem(PLAN_KEY)) localStorage.setItem(PLAN_KEY, "pro");
+      if(localStorage.getItem(PLAN_KEY) === "pro") localStorage.setItem(PRO_KEY, "1");
+    }catch(_){}
+
+    const res = await fetch(DEMO_DATA_URL, { cache: "no-store" });
+    if(!res.ok) throw new Error("fetch failed: " + res.status);
+    const j = await res.json();
+
+    // 形式を吸収（backup形式 or store形式）
+    let tables = null, settings = null;
+    if(j && typeof j === "object" && j.tables){
+      tables = j.tables;
+      settings = j.settings || null;
+    }else{
+      tables = {
+        suppliers: j.suppliers || [],
+        products: j.products || [],
+        entries: j.entries || [],
+        priceHistory: j.priceHistory || {}
+      };
+      settings = j.settings || null;
+    }
+
+    // 年ズレを軽く補正（デモで履歴が空に見えないように）
+    const curY = new Date().getFullYear();
+    const years = new Set();
+    (tables.entries||[]).forEach(e=>{
+      if(e && typeof e.date === "string" && /^\d{4}-\d{2}-\d{2}/.test(e.date)) years.add(Number(e.date.slice(0,4)));
+    });
+    if(years.size){
+      const maxY = Math.max(...Array.from(years));
+      const minY = Math.min(...Array.from(years));
+      // 今年/前年の範囲から外れていたら、最大年が今年になるようにスライド
+      if(maxY < curY-1 || minY > curY){
+        const diff = curY - maxY;
+        (tables.entries||[]).forEach(e=>{
+          if(!e || typeof e.date !== "string") return;
+          const m = e.date.match(/^(\d{4})-(\d{2})-(\d{2})(.*)$/);
+          if(!m) return;
+          const y = Number(m[1]) + diff;
+          e.date = String(y).padStart(4,"0")+"-"+m[2]+"-"+m[3]+(m[4]||"");
+        });
+      }
+    }
+
+    // storeへ反映して保存
+    const demoStore = DB.load(); // defaults + merge
+    demoStore.suppliers = Array.isArray(tables.suppliers) ? tables.suppliers : [];
+    demoStore.products  = Array.isArray(tables.products) ? tables.products : [];
+    demoStore.entries   = Array.isArray(tables.entries) ? tables.entries : [];
+    demoStore.priceHistory = (tables.priceHistory && typeof tables.priceHistory === "object") ? tables.priceHistory : {};
+    if(settings && typeof settings === "object"){
+      // デモは基本触りやすい設定に寄せる（ただし見た目は維持）
+      demoStore.settings = Object.assign({}, demoStore.settings || {}, settings);
+    }
+    // デモは対象年度を今年に
+    demoStore.settings = demoStore.settings || {};
+    demoStore.settings.activeYear = curY;
+
+    DB.save(demoStore);
+    sessionStorage.setItem(DEMO_READY_KEY, "1");
+    location.reload();
+  }catch(e){
+    console.warn("[demo] auto load failed", e);
+  }
+}
+
+/* demo用UI（バッジ/リセット） */
+function mountDemoUI(){
+  if(!IS_DEMO) return;
+  try{
+    const badge = document.createElement("div");
+    badge.id = "tlpDemoBadge";
+    badge.innerHTML = '<b>DEMO</b> <span style="opacity:.85">体験モード</span> <button id="tlpDemoResetBtn" type="button">リセット</button>';
+    document.body.appendChild(badge);
+
+    const st = document.createElement("style");
+    st.textContent = `
+#tlpDemoBadge{
+  position: fixed; z-index: 9999;
+  left: 12px; top: 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(20,20,20,.92);
+  color: #fff;
+  font-size: 12px;
+  display:flex; gap:10px; align-items:center;
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+}
+#tlpDemoBadge button{
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 0;
+  cursor: pointer;
+}
+    `.trim();
+    document.head.appendChild(st);
+
+    document.getElementById("tlpDemoResetBtn")?.addEventListener("click", ()=>{
+      try{
+        localStorage.removeItem(STORE_KEY);
+        sessionStorage.removeItem(DEMO_READY_KEY);
+      }catch(_){}
+      location.reload();
+    });
+
+    // 事故防止：危険ボタンはデモでは無効化
+    const btnFin = document.getElementById("btnFinalizePrevYear");
+    if(btnFin){
+      btnFin.disabled = true;
+      btnFin.title = "デモでは実行できません";
+    }
+    const btnFR = document.getElementById("btnFactoryReset");
+    if(btnFR){
+      btnFR.disabled = true;
+      btnFR.title = "デモでは実行できません";
+    }
+  }catch(e){
+    console.warn("[demo] ui mount failed", e);
+  }
+}
+
+
+/* ===== Storage ===== */
 const DB = {
   load(){
     const defaults = {
@@ -726,12 +873,12 @@ const DB = {
     // 破損対策付きパース
     let raw = {};
     try{
-      const s = localStorage.getItem("tabco-store");
+      const s = localStorage.getItem(STORE_KEY);
       raw = s ? JSON.parse(s) : {};
     }catch(e){
       console.warn("[DB] parse error, fallback to defaults", e);
       try{
-        localStorage.setItem("tabco-store_corrupt", localStorage.getItem("tabco-store") || "");
+        localStorage.setItem("tabco-store_corrupt", localStorage.getItem(STORE_KEY) || "");
       }catch(_){}
       }
 
@@ -746,11 +893,14 @@ const DB = {
     return out;
   },
   save(d){
-    try{ localStorage.setItem("tabco-store", JSON.stringify(d)); }
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(d)); }
     catch(e){ console.error("[DB] save error", e); }
   }
 };
 let store = DB.load();
+// demo: 初回だけサンプル自動復元
+try{ demoAutoLoadIfNeeded(); }catch(_){ }
+
 // ===== ActiveYear guard (年度切替の基準) =====
 (function(){
   try{
@@ -775,8 +925,8 @@ let store = DB.load();
       try{
         if(s && typeof s === 'object'){
           s.settings = s.settings || {};
-          var lp = (localStorage.getItem('tlpPlan') || '').toLowerCase();
-          var dp = (lp==='free'||lp==='middle'||lp==='pro') ? lp : ((localStorage.getItem('tlpPro')==='1') ? 'pro' : 'free');
+          var lp = (localStorage.getItem(PLAN_KEY) || '').toLowerCase();
+          var dp = (lp==='free'||lp==='middle'||lp==='pro') ? lp : ((localStorage.getItem(PRO_KEY)==='1') ? 'pro' : 'free');
           var rank = { free:0, middle:1, pro:2 };
           var sp0 = (s.settings.plan || '').toLowerCase();
           var sp = (sp0==='free'||sp0==='middle'||sp0==='pro') ? sp0 : 'free';
@@ -793,8 +943,8 @@ let store = DB.load();
   try{
     if(!store || typeof store !== 'object') return;
     store.settings = store.settings || {};
-    var lp = (localStorage.getItem('tlpPlan') || '').toLowerCase();
-    var devPlan = (lp==='free'||lp==='middle'||lp==='pro') ? lp : ((localStorage.getItem('tlpPro')==='1') ? 'pro' : 'free');
+    var lp = (localStorage.getItem(PLAN_KEY) || '').toLowerCase();
+    var devPlan = (lp==='free'||lp==='middle'||lp==='pro') ? lp : ((localStorage.getItem(PRO_KEY)==='1') ? 'pro' : 'free');
     var sp0 = (store.settings.plan || '').toLowerCase();
     var storePlan = (sp0==='free'||sp0==='middle'||sp0==='pro') ? sp0 : 'free';
     var rank = { free:0, middle:1, pro:2 };
@@ -804,9 +954,9 @@ let store = DB.load();
 
     // 端末側も上位に寄せる（freeへダウングレードはしない）
     if (chosen !== devPlan && (rank[chosen]||0) > (rank[devPlan]||0)) {
-      localStorage.setItem('tlpPlan', chosen);
-      if (chosen === 'pro') localStorage.setItem('tlpPro','1');
-      else localStorage.removeItem('tlpPro');
+      localStorage.setItem(PLAN_KEY, chosen);
+      if (chosen === 'pro') localStorage.setItem(PRO_KEY,'1');
+      else localStorage.removeItem(PRO_KEY);
     }
 
     DB.save(store);
@@ -819,12 +969,7 @@ let store = DB.load();
 /* ===== Utils ===== */
 const $  = (s,el)=>(el||document).querySelector(s);
 const $$ = (s,el)=>Array.from((el||document).querySelectorAll(s));
-const yenFloor = (n)=>{
-  n = Number(n)||0;
-  // FP誤差で 108.99999999997 のように僅かに下振れするのを救済
-  return Math.floor(n + 1e-7);
-};
-const yen=n=>"¥"+(yenFloor(n)).toLocaleString();
+const yen=n=>"¥"+(Math.round(n||0)).toLocaleString();
 const uid=()=>Math.random().toString(36).slice(2,10);
 const fmtYMD=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 /* 対象年度（今年/前年度） */
@@ -852,46 +997,6 @@ function activeNow(){
   return dt;
 }
 const todayStr=()=>fmtYMD(activeNow());
-
-// ===== Tax rounding & invoice-like aggregation =====
-function _entryExAmount(e){
-  const p = Number(e?.price)||0;
-  const q = Number(e?.qty)||0;
-  const r = Number(e?.taxrate)||0;
-  const base = p * q;
-  const mode = (e?.taxmode || 'excl');
-  if (mode === 'incl' && r){
-    // 税込入力 → 税抜へ（行ごとに丸めない：小数のまま合算）
-    return base / (1 + r/100);
-  }
-  return base;
-}
-
-// entries を税率ごとに税抜合計→税額計算→端数処理（1回）で集計
-function calcTotalsByRate(entries){
-  const exByRate = Object.create(null);
-  for (const e of (entries || [])){
-    if(!e || e.deleted) continue;
-    const r = Number(e.taxrate)||0;
-    const ex = _entryExAmount(e);
-    exByRate[r] = (exByRate[r] || 0) + ex;
-  }
-  let netRaw = 0;
-  let taxTotal = 0;
-  const taxByRate = Object.create(null);
-  for (const k in exByRate){
-    const r = Number(k)||0;
-    const ex = exByRate[k];
-    netRaw += ex;
-    const tax = r ? yenFloor(ex * (r/100)) : 0;
-    taxByRate[k] = tax;
-    taxTotal += tax;
-  }
-  const net = yenFloor(netRaw);
-  const gross = yenFloor(netRaw + taxTotal);
-  return { net, gross, taxTotal, netRaw, exByRate, taxByRate };
-}
-
 function enableSelectOnFocus(){
   $$('input[type="number"], input[type="text"]').forEach(inp=>{
     const sel=()=>inp.select&&inp.select();
@@ -1161,60 +1266,28 @@ function startHomeAdRotation() {
   if (homeAdTimer) clearInterval(homeAdTimer);
   homeAdTimer = setInterval(renderHomeAdOnce, 5000); // 5秒ごとに切り替え
 }
-function calcTotals(rangeKey){
+function calcTotals(days){
   const y = getActiveYear();
   const now = activeNow();
   now.setHours(23,59,59,999);
-
-  const yearStart = new Date(y,0,1);  yearStart.setHours(0,0,0,0);
+  const yearStart = new Date(y,0,1); yearStart.setHours(0,0,0,0);
   const yearEnd   = new Date(y,11,31); yearEnd.setHours(23,59,59,999);
 
-  let from = null;
-  let to   = null;
+  let from = new Date(now.getTime() - days*86400000);
+  if (from < yearStart) from = yearStart;
+  let to = now;
+  if (to > yearEnd) to = yearEnd;
 
-  const key = String(rangeKey);
-
-  if (key === "7") {
-    // 今週（月曜〜日曜） ※ 履歴・集計と定義を一致させる（案B）
-    const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const day = base.getDay() || 7; // 月=1, ..., 日=7
-    from = new Date(base);
-    from.setDate(base.getDate() - (day - 1)); // その週の月曜
-    from.setHours(0,0,0,0);
-
-    to = new Date(from);
-    to.setDate(from.getDate() + 6); // 日曜
-    to.setHours(23,59,59,999);
-
-  } else if (key === "30") {
-    // 今月（1日〜月末） ※ 履歴・集計と定義を一致させる（案B）
-    from = new Date(now.getFullYear(), now.getMonth(), 1);
-    from.setHours(0,0,0,0);
-
-    to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    to.setHours(23,59,59,999);
-
-  } else {
-    // フォールバック（直近n日）
-    let days = Number(rangeKey);
-    if(!Number.isFinite(days) || days <= 0) days = 7;
-    from = new Date(now.getTime() - (days - 1) * 86400000);
-    from.setHours(0,0,0,0);
-    to = now;
-  }
-
-  // 選択年度の範囲にクランプ（年を跨いで表示しない）
-  if (from && from < yearStart) from = yearStart;
-  if (to && to > yearEnd) to = yearEnd;
-
-  const picked = (store.entries||[]).filter(e=>{
-    if(!e || e.deleted || !e.date) return false;
-    if(!String(e.date).startsWith(String(y)+"-")) return false; // 選択年度のみ
+  return store.entries.reduce((sum,e)=>{
+    if(!e || e.deleted || !e.date) return sum;
+    if(!String(e.date).startsWith(String(y)+"-")) return sum; // 選択年度のみ
     const t = new Date(e.date+"T00:00:00");
-    return (t>=from && t<=to);
-  });
-
-  return calcTotalsByRate(picked).gross;
+    if(t>=from && t<=to){
+      const base = e.taxmode==="incl" ? e.price : e.price*(1+e.taxrate/100);
+      sum += base*e.qty;
+    }
+    return sum;
+  },0);
 }
 function refreshAds(){
   const slot = $("#adSlot");
@@ -1368,8 +1441,7 @@ document.addEventListener("change",(e)=>{
     if(p){
       $("#inPrice").value=p.default_price||"";
       $$('input[name=taxrate]').forEach(r=>r.checked=String(p.tax_rate)===r.value);
-      const m = (p.tax_mode || "excl");
-      $$('input[name=taxmode]').forEach(r=>r.checked=(r.value===m));
+      $$('input[name=taxmode]').forEach(r=>r.checked=(p.tax_mode||"excl")==="excl");
       renderPriceHistory(p.id);
     }else{
       $("#priceHistory").innerHTML="";
@@ -1381,8 +1453,8 @@ document.addEventListener("click",(e)=>{ if(e.target.id==="btnAddProduct"){ cons
 function calcLineTotal(e){
   const p=Number(e.price)||0, q=Number(e.qty)||0, r=Number(e.taxrate)||0;
   const base = p*q;
-  if(e.taxmode==="incl"){ const excl = yenFloor(base/(1+r/100)); return {excl, incl: base}; }
-  else if(e.taxmode==="excl"){ const incl = yenFloor(base*(1+r/100)); return {excl: base, incl}; }
+  if(e.taxmode==="incl"){ const excl = Math.round(base/(1+r/100)); return {excl, incl: base}; }
+  else if(e.taxmode==="excl"){ const incl = Math.round(base*(1+r/100)); return {excl: base, incl}; }
   else { return {excl: base, incl: base}; }
 }
 function bumpRecentProduct(pid){
@@ -1475,7 +1547,7 @@ function renderTodayList(){
   Object.keys(group).forEach(k=>{
     const sup=supplierName(k)||k;
     const div=document.createElement("div"); div.className="list-item";
-    const tt = calcTotalsByRate(group[k]); let net=tt.net, gross=tt.gross;
+    let net=0,gross=0; group[k].forEach(e=>{const t=calcLineTotal(e); net+=t.excl; gross+=t.incl;});
     let html=`<b>${sup}</b><div class="muted">税別 ${yen(net)}｜税込 ${yen(gross)}</div>`;
     html+=group[k].map(e=>{
       const t=calcLineTotal(e);
@@ -1820,7 +1892,7 @@ function openEntryEditModalLite(entry){
   if(!entry){ alert("明細が見つかりません"); return; }
   const pname = (store.products.find(p=>p.id===entry.product_id)||{}).name || (entry.product_name_fallback || "未登録");
   const sName = (store.suppliers.find(s=>s.id===entry.supplier_id)||{}).name || (entry.supplier_name_fallback || "未指定");
-  const mode = (entry.taxmode || "excl");
+  const modeLabel = entry.taxmode==="incl" ? "税込" : "税別";
   openModalBase("明細を編集", `
     <div class="grid cols-2">
       <div style="grid-column:1/-1"><div class="label">仕入れ先</div><input type="text" value="${sName}" disabled></div>
@@ -1834,13 +1906,8 @@ function openEntryEditModalLite(entry){
           <option value="0"  ${entry.taxrate===0 ?"selected":""}>非課税</option>
         </select>
       </div>
-      <div><div class="label">区分</div>
-        <select id="mLiteMode">
-          <option value="excl" ${mode==="excl"?"selected":""}>税別</option>
-          <option value="incl" ${mode==="incl"?"selected":""}>税込</option>
-        </select>
-      </div>
-      <div style="grid-column:1/-1" class="mini-meta">※ この画面では <b>数量・単価・税率・区分</b>を変更できます。メモは編集対象外です。</div>
+      <div><div class="label">区分（参照）</div><input type="text" value="${modeLabel}" disabled></div>
+      <div style="grid-column:1/-1" class="mini-meta">※ この画面では <b>数量・単価・税率</b>のみ変更できます。区分とメモは編集対象外です。</div>
     </div>
   `);
   const ok = $("#modalOK"); const del = $("#modalDelete");
@@ -1864,13 +1931,10 @@ ok.textContent="更新";
     const q = Number($("#mLiteQty").value || 0);
     const p = Number($("#mLitePrice").value || 0);
     const r = Number($("#mLiteRate").value || entry.taxrate || 8);
-    const m = String($("#mLiteMode").value || entry.taxmode || "excl");
     if(!Number.isFinite(q) || q<=0){ alert("数量を正しく入力してください"); return; }
     if(!Number.isFinite(p) || p< 0){ alert("単価を正しく入力してください"); return; }
     if(![0,8,10].includes(r)){ alert("税率を選択してください"); return; }
     entry.qty=q; entry.price=p; entry.taxrate=r;
-    if(!["excl","incl"].includes(m)){ alert("区分を選択してください"); return; }
-    entry.taxmode=m;
     _pushPriceHistoryIfNeeded(entry);
     DB.save(store);
     try{ renderTodayList(); }catch(_){}
@@ -1955,8 +2019,12 @@ function renderHistory(){
   if(!entries.length){ list.innerHTML = `<div class="muted">対象期間の履歴はありません。</div>`; return; }
 
   // 期間と仕入れ先フィルタを反映した合計カード（先頭に表示）
-  const totalT = calcTotalsByRate(entries);
-  let totalNet = totalT.net, totalGross = totalT.gross;
+  let totalNet = 0, totalGross = 0;
+  for (const e of entries){
+    const t = calcLineTotal(e);
+    totalNet += t.excl;
+    totalGross += t.incl;
+  }
   const sumCard = document.createElement("div");
   sumCard.className = "card";
   const titleParts = ["期間合計"];
@@ -1983,7 +2051,7 @@ function renderHistory(){
       for (const e of byMonth[ym]){ const sk = e.supplier_id || e.supplier_name_fallback || "未指定"; (group[sk] = group[sk] || []).push(e); }
       for (const sk of Object.keys(group)){
         const name = supplierName(sk) || sk;
-        const tt = calcTotalsByRate(group[sk]); let net=tt.net, gross=tt.gross;
+        let net=0,gross=0; for (const e of group[sk]){ const t=calcLineTotal(e); net+=t.excl; gross+=t.incl; }
         const head = showBoth ? `税別 ${yen(net)}｜税込 ${yen(gross)}` : `税込 ${yen(gross)}`;
         html += `<div style="margin-top:6px"><u>${name}</u> <span class="muted">${head}</span>`;
         html += group[sk].map(e=>{
@@ -2014,7 +2082,7 @@ function renderHistory(){
     for (const e of byDate[dkey]){ const sk=e.supplier_id||e.supplier_name_fallback||"未指定"; (group[sk]=group[sk]||[]).push(e); }
     for (const sk of Object.keys(group)){
       const name=supplierName(sk)||sk;
-      const tt = calcTotalsByRate(group[sk]); let net=tt.net, gross=tt.gross;
+      let net=0,gross=0; for(const e of group[sk]){ const t=calcLineTotal(e); net+=t.excl; gross+=t.incl; }
       const head = showBoth ? `税別 ${yen(net)}｜税込 ${yen(gross)}` : `税込 ${yen(gross)}`;
       html += `<div style="margin-top:6px"><u>${name}</u> <span class="muted">${head}</span>`;
       html += group[sk].map(e=>{
@@ -2100,7 +2168,7 @@ function exportYearXML(year){
     const p = prodName(e.product_id, e.product_name_fallback);
     const g = (e.taxmode==="incl" ? e.price : e.price*(1+e.taxrate/100)) * e.qty;
     rows.push([ e.date, s, p, e.qty, e.price, e.taxrate,
-      (e.taxmode==="incl"?"税込":"税別"), yenFloor(g), e.memo||"" ]);
+      (e.taxmode==="incl"?"税込":"税別"), Math.round(g), e.memo||"" ]);
   });
 
   const from = new Date(y,0,1);
@@ -2138,7 +2206,7 @@ function exportData(rangeKey){
     const p = prodName(e.product_id, e.product_name_fallback);
     const g = (e.taxmode==="incl" ? e.price : e.price*(1+e.taxrate/100)) * e.qty;
     rows.push([ e.date, s, p, e.qty, e.price, e.taxrate,
-      (e.taxmode==="incl"?"税込":"税別"), yenFloor(g), e.memo||"" ]);
+      (e.taxmode==="incl"?"税込":"税別"), Math.round(g), e.memo||"" ]);
   });
 
   const base = key==='month' ? range.label : (key==='fiscal' ? `年度_${range.label}` : "全期間");
@@ -2175,10 +2243,10 @@ document.addEventListener("click", (e)=>{ const btn = e.target.closest("#btnExpo
 // ---- Plan enforcement (端末プランに基づくロック計算) ----
 function getPlan(){
   try {
-    const p = (localStorage.getItem('tlpPlan') || '').toLowerCase();
+    const p = (localStorage.getItem(PLAN_KEY) || '').toLowerCase();
     if (p === 'pro' || p === 'middle' || p === 'free') return p;
     // 互換: 旧キー（tlpPro=1）は pro 扱い
-    return (localStorage.getItem('tlpPro') === '1') ? 'pro' : 'free';
+    return (localStorage.getItem(PRO_KEY) === '1') ? 'pro' : 'free';
   } catch(_) { return 'free'; }
 }
 
@@ -2457,15 +2525,15 @@ function setPlan(p){
   p = (p || '').toLowerCase();
   try {
     if (p === 'pro') {
-      localStorage.setItem('tlpPlan', 'pro');
-      localStorage.setItem('tlpPro', '1');  // legacy
+      localStorage.setItem(PLAN_KEY, 'pro');
+      localStorage.setItem(PRO_KEY, '1');  // legacy
     } else if (p === 'middle') {
-      localStorage.setItem('tlpPlan', 'middle');
-      localStorage.removeItem('tlpPro');
+      localStorage.setItem(PLAN_KEY, 'middle');
+      localStorage.removeItem(PRO_KEY);
     } else {
       p = 'free';
-      localStorage.setItem('tlpPlan', 'free');
-      localStorage.removeItem('tlpPro');
+      localStorage.setItem(PLAN_KEY, 'free');
+      localStorage.removeItem(PRO_KEY);
     }
 
     // ★重要：store側のplanも必ず同期（コールド起動でFREE化しない）
@@ -2785,7 +2853,7 @@ function applyLicensed(info){
 function syncOfflineGrace(){
   const freshAt = Number(localStorage.getItem('tlpLicenseFreshAt')||0);
   const fresh = Date.now() - freshAt < LICENSE.GRACE_MS;
-  if (fresh) localStorage.setItem('tlpPro','1'); else localStorage.removeItem('tlpPro');
+  if (fresh) localStorage.setItem(PRO_KEY,'1'); else localStorage.removeItem(PRO_KEY);
 }
 TLP.showEula = function(){
    if (typeof window.tlpOpenEula === 'function'){ window.tlpOpenEula(); return; }
@@ -2958,7 +3026,7 @@ document.addEventListener("focusin", (e)=>{
 <script>
 if ('serviceWorker' in navigator) {
   try {   
-navigator.serviceWorker.register('/sw.js?v=0.8.4', { scope: '/' }).catch(()=>{});
+navigator.serviceWorker.register('/demo/sw.js?v=demo1', { scope: '/demo/' }).catch(()=>{});
   } catch(_) {}
 }
 </script>
@@ -3066,8 +3134,11 @@ navigator.serviceWorker.register('/sw.js?v=0.8.4', { scope: '/' }).catch(()=>{})
  });
 
   // 起動後チェック（既存initの後でも先でも安全に動くようDOMContentLoadedで実行）
+  // デモ（?demo=1）のときは同意画面を表示しない
+  const isDemo = new URLSearchParams(location.search).get('demo') === '1';
+
   window.addEventListener('DOMContentLoaded', () => {
-    if (needsConsent()) openEula();
+    if (!isDemo && needsConsent()) openEula();
   });
 })();
 window.tlpOpenEula = function(){
@@ -3558,7 +3629,7 @@ function updatePlanPill(){
         var byId = function(id){ return document.getElementById(id); };
         var yenFmt = (typeof yen === 'function')
           ? yen
-          : function(n){ return '¥'+(yenFloor?yenFloor(n||0):Math.floor((n||0)+1e-7)).toLocaleString('ja-JP'); };
+          : function(n){ return '¥'+(Math.round(n||0)).toLocaleString('ja-JP'); };
         var setYen = function(id, v){ var el = byId(id); if(el) el.textContent = yenFmt(v); };
         if (typeof calcTotals === 'function'){
           setYen('kpiWeek',  calcTotals(7));
@@ -3734,6 +3805,22 @@ document.getElementById('btnEnterLicenseMiddle')?.addEventListener('click', func
     }
 
   });
+</script>
+
+
+<script>
+  // demo badge after initial render
+  (function(){
+    try{
+      if (typeof IS_DEMO !== "undefined" && IS_DEMO){
+        if (document.readyState === "loading"){
+          document.addEventListener("DOMContentLoaded", ()=>{ try{ mountDemoUI(); }catch(_){} }, { once:true });
+        } else {
+          try{ mountDemoUI(); }catch(_){}
+        }
+      }
+    }catch(_){}
+  })();
 </script>
 
 </body>
