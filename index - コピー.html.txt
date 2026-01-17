@@ -819,12 +819,7 @@ let store = DB.load();
 /* ===== Utils ===== */
 const $  = (s,el)=>(el||document).querySelector(s);
 const $$ = (s,el)=>Array.from((el||document).querySelectorAll(s));
-const yenFloor = (n)=>{
-  n = Number(n)||0;
-  // FP誤差で 108.99999999997 のように僅かに下振れするのを救済
-  return Math.floor(n + 1e-7);
-};
-const yen=n=>"¥"+(yenFloor(n)).toLocaleString();
+const yen=n=>"¥"+(Math.round(n||0)).toLocaleString();
 const uid=()=>Math.random().toString(36).slice(2,10);
 const fmtYMD=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 /* 対象年度（今年/前年度） */
@@ -852,46 +847,6 @@ function activeNow(){
   return dt;
 }
 const todayStr=()=>fmtYMD(activeNow());
-
-// ===== Tax rounding & invoice-like aggregation =====
-function _entryExAmount(e){
-  const p = Number(e?.price)||0;
-  const q = Number(e?.qty)||0;
-  const r = Number(e?.taxrate)||0;
-  const base = p * q;
-  const mode = (e?.taxmode || 'excl');
-  if (mode === 'incl' && r){
-    // 税込入力 → 税抜へ（行ごとに丸めない：小数のまま合算）
-    return base / (1 + r/100);
-  }
-  return base;
-}
-
-// entries を税率ごとに税抜合計→税額計算→端数処理（1回）で集計
-function calcTotalsByRate(entries){
-  const exByRate = Object.create(null);
-  for (const e of (entries || [])){
-    if(!e || e.deleted) continue;
-    const r = Number(e.taxrate)||0;
-    const ex = _entryExAmount(e);
-    exByRate[r] = (exByRate[r] || 0) + ex;
-  }
-  let netRaw = 0;
-  let taxTotal = 0;
-  const taxByRate = Object.create(null);
-  for (const k in exByRate){
-    const r = Number(k)||0;
-    const ex = exByRate[k];
-    netRaw += ex;
-    const tax = r ? yenFloor(ex * (r/100)) : 0;
-    taxByRate[k] = tax;
-    taxTotal += tax;
-  }
-  const net = yenFloor(netRaw);
-  const gross = yenFloor(netRaw + taxTotal);
-  return { net, gross, taxTotal, netRaw, exByRate, taxByRate };
-}
-
 function enableSelectOnFocus(){
   $$('input[type="number"], input[type="text"]').forEach(inp=>{
     const sel=()=>inp.select&&inp.select();
@@ -1161,60 +1116,28 @@ function startHomeAdRotation() {
   if (homeAdTimer) clearInterval(homeAdTimer);
   homeAdTimer = setInterval(renderHomeAdOnce, 5000); // 5秒ごとに切り替え
 }
-function calcTotals(rangeKey){
+function calcTotals(days){
   const y = getActiveYear();
   const now = activeNow();
   now.setHours(23,59,59,999);
-
-  const yearStart = new Date(y,0,1);  yearStart.setHours(0,0,0,0);
+  const yearStart = new Date(y,0,1); yearStart.setHours(0,0,0,0);
   const yearEnd   = new Date(y,11,31); yearEnd.setHours(23,59,59,999);
 
-  let from = null;
-  let to   = null;
+  let from = new Date(now.getTime() - days*86400000);
+  if (from < yearStart) from = yearStart;
+  let to = now;
+  if (to > yearEnd) to = yearEnd;
 
-  const key = String(rangeKey);
-
-  if (key === "7") {
-    // 今週（月曜〜日曜） ※ 履歴・集計と定義を一致させる（案B）
-    const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const day = base.getDay() || 7; // 月=1, ..., 日=7
-    from = new Date(base);
-    from.setDate(base.getDate() - (day - 1)); // その週の月曜
-    from.setHours(0,0,0,0);
-
-    to = new Date(from);
-    to.setDate(from.getDate() + 6); // 日曜
-    to.setHours(23,59,59,999);
-
-  } else if (key === "30") {
-    // 今月（1日〜月末） ※ 履歴・集計と定義を一致させる（案B）
-    from = new Date(now.getFullYear(), now.getMonth(), 1);
-    from.setHours(0,0,0,0);
-
-    to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    to.setHours(23,59,59,999);
-
-  } else {
-    // フォールバック（直近n日）
-    let days = Number(rangeKey);
-    if(!Number.isFinite(days) || days <= 0) days = 7;
-    from = new Date(now.getTime() - (days - 1) * 86400000);
-    from.setHours(0,0,0,0);
-    to = now;
-  }
-
-  // 選択年度の範囲にクランプ（年を跨いで表示しない）
-  if (from && from < yearStart) from = yearStart;
-  if (to && to > yearEnd) to = yearEnd;
-
-  const picked = (store.entries||[]).filter(e=>{
-    if(!e || e.deleted || !e.date) return false;
-    if(!String(e.date).startsWith(String(y)+"-")) return false; // 選択年度のみ
+  return store.entries.reduce((sum,e)=>{
+    if(!e || e.deleted || !e.date) return sum;
+    if(!String(e.date).startsWith(String(y)+"-")) return sum; // 選択年度のみ
     const t = new Date(e.date+"T00:00:00");
-    return (t>=from && t<=to);
-  });
-
-  return calcTotalsByRate(picked).gross;
+    if(t>=from && t<=to){
+      const base = e.taxmode==="incl" ? e.price : e.price*(1+e.taxrate/100);
+      sum += base*e.qty;
+    }
+    return sum;
+  },0);
 }
 function refreshAds(){
   const slot = $("#adSlot");
@@ -1368,8 +1291,7 @@ document.addEventListener("change",(e)=>{
     if(p){
       $("#inPrice").value=p.default_price||"";
       $$('input[name=taxrate]').forEach(r=>r.checked=String(p.tax_rate)===r.value);
-      const m = (p.tax_mode || "excl");
-      $$('input[name=taxmode]').forEach(r=>r.checked=(r.value===m));
+      $$('input[name=taxmode]').forEach(r=>r.checked=(p.tax_mode||"excl")==="excl");
       renderPriceHistory(p.id);
     }else{
       $("#priceHistory").innerHTML="";
@@ -1381,8 +1303,8 @@ document.addEventListener("click",(e)=>{ if(e.target.id==="btnAddProduct"){ cons
 function calcLineTotal(e){
   const p=Number(e.price)||0, q=Number(e.qty)||0, r=Number(e.taxrate)||0;
   const base = p*q;
-  if(e.taxmode==="incl"){ const excl = yenFloor(base/(1+r/100)); return {excl, incl: base}; }
-  else if(e.taxmode==="excl"){ const incl = yenFloor(base*(1+r/100)); return {excl: base, incl}; }
+  if(e.taxmode==="incl"){ const excl = Math.round(base/(1+r/100)); return {excl, incl: base}; }
+  else if(e.taxmode==="excl"){ const incl = Math.round(base*(1+r/100)); return {excl: base, incl}; }
   else { return {excl: base, incl: base}; }
 }
 function bumpRecentProduct(pid){
@@ -1475,7 +1397,7 @@ function renderTodayList(){
   Object.keys(group).forEach(k=>{
     const sup=supplierName(k)||k;
     const div=document.createElement("div"); div.className="list-item";
-    const tt = calcTotalsByRate(group[k]); let net=tt.net, gross=tt.gross;
+    let net=0,gross=0; group[k].forEach(e=>{const t=calcLineTotal(e); net+=t.excl; gross+=t.incl;});
     let html=`<b>${sup}</b><div class="muted">税別 ${yen(net)}｜税込 ${yen(gross)}</div>`;
     html+=group[k].map(e=>{
       const t=calcLineTotal(e);
@@ -1820,7 +1742,7 @@ function openEntryEditModalLite(entry){
   if(!entry){ alert("明細が見つかりません"); return; }
   const pname = (store.products.find(p=>p.id===entry.product_id)||{}).name || (entry.product_name_fallback || "未登録");
   const sName = (store.suppliers.find(s=>s.id===entry.supplier_id)||{}).name || (entry.supplier_name_fallback || "未指定");
-  const mode = (entry.taxmode || "excl");
+  const modeLabel = entry.taxmode==="incl" ? "税込" : "税別";
   openModalBase("明細を編集", `
     <div class="grid cols-2">
       <div style="grid-column:1/-1"><div class="label">仕入れ先</div><input type="text" value="${sName}" disabled></div>
@@ -1834,13 +1756,8 @@ function openEntryEditModalLite(entry){
           <option value="0"  ${entry.taxrate===0 ?"selected":""}>非課税</option>
         </select>
       </div>
-      <div><div class="label">区分</div>
-        <select id="mLiteMode">
-          <option value="excl" ${mode==="excl"?"selected":""}>税別</option>
-          <option value="incl" ${mode==="incl"?"selected":""}>税込</option>
-        </select>
-      </div>
-      <div style="grid-column:1/-1" class="mini-meta">※ この画面では <b>数量・単価・税率・区分</b>を変更できます。メモは編集対象外です。</div>
+      <div><div class="label">区分（参照）</div><input type="text" value="${modeLabel}" disabled></div>
+      <div style="grid-column:1/-1" class="mini-meta">※ この画面では <b>数量・単価・税率</b>のみ変更できます。区分とメモは編集対象外です。</div>
     </div>
   `);
   const ok = $("#modalOK"); const del = $("#modalDelete");
@@ -1864,13 +1781,10 @@ ok.textContent="更新";
     const q = Number($("#mLiteQty").value || 0);
     const p = Number($("#mLitePrice").value || 0);
     const r = Number($("#mLiteRate").value || entry.taxrate || 8);
-    const m = String($("#mLiteMode").value || entry.taxmode || "excl");
     if(!Number.isFinite(q) || q<=0){ alert("数量を正しく入力してください"); return; }
     if(!Number.isFinite(p) || p< 0){ alert("単価を正しく入力してください"); return; }
     if(![0,8,10].includes(r)){ alert("税率を選択してください"); return; }
     entry.qty=q; entry.price=p; entry.taxrate=r;
-    if(!["excl","incl"].includes(m)){ alert("区分を選択してください"); return; }
-    entry.taxmode=m;
     _pushPriceHistoryIfNeeded(entry);
     DB.save(store);
     try{ renderTodayList(); }catch(_){}
@@ -1955,8 +1869,12 @@ function renderHistory(){
   if(!entries.length){ list.innerHTML = `<div class="muted">対象期間の履歴はありません。</div>`; return; }
 
   // 期間と仕入れ先フィルタを反映した合計カード（先頭に表示）
-  const totalT = calcTotalsByRate(entries);
-  let totalNet = totalT.net, totalGross = totalT.gross;
+  let totalNet = 0, totalGross = 0;
+  for (const e of entries){
+    const t = calcLineTotal(e);
+    totalNet += t.excl;
+    totalGross += t.incl;
+  }
   const sumCard = document.createElement("div");
   sumCard.className = "card";
   const titleParts = ["期間合計"];
@@ -1983,7 +1901,7 @@ function renderHistory(){
       for (const e of byMonth[ym]){ const sk = e.supplier_id || e.supplier_name_fallback || "未指定"; (group[sk] = group[sk] || []).push(e); }
       for (const sk of Object.keys(group)){
         const name = supplierName(sk) || sk;
-        const tt = calcTotalsByRate(group[sk]); let net=tt.net, gross=tt.gross;
+        let net=0,gross=0; for (const e of group[sk]){ const t=calcLineTotal(e); net+=t.excl; gross+=t.incl; }
         const head = showBoth ? `税別 ${yen(net)}｜税込 ${yen(gross)}` : `税込 ${yen(gross)}`;
         html += `<div style="margin-top:6px"><u>${name}</u> <span class="muted">${head}</span>`;
         html += group[sk].map(e=>{
@@ -2014,7 +1932,7 @@ function renderHistory(){
     for (const e of byDate[dkey]){ const sk=e.supplier_id||e.supplier_name_fallback||"未指定"; (group[sk]=group[sk]||[]).push(e); }
     for (const sk of Object.keys(group)){
       const name=supplierName(sk)||sk;
-      const tt = calcTotalsByRate(group[sk]); let net=tt.net, gross=tt.gross;
+      let net=0,gross=0; for(const e of group[sk]){ const t=calcLineTotal(e); net+=t.excl; gross+=t.incl; }
       const head = showBoth ? `税別 ${yen(net)}｜税込 ${yen(gross)}` : `税込 ${yen(gross)}`;
       html += `<div style="margin-top:6px"><u>${name}</u> <span class="muted">${head}</span>`;
       html += group[sk].map(e=>{
@@ -2100,7 +2018,7 @@ function exportYearXML(year){
     const p = prodName(e.product_id, e.product_name_fallback);
     const g = (e.taxmode==="incl" ? e.price : e.price*(1+e.taxrate/100)) * e.qty;
     rows.push([ e.date, s, p, e.qty, e.price, e.taxrate,
-      (e.taxmode==="incl"?"税込":"税別"), yenFloor(g), e.memo||"" ]);
+      (e.taxmode==="incl"?"税込":"税別"), Math.round(g), e.memo||"" ]);
   });
 
   const from = new Date(y,0,1);
@@ -2138,7 +2056,7 @@ function exportData(rangeKey){
     const p = prodName(e.product_id, e.product_name_fallback);
     const g = (e.taxmode==="incl" ? e.price : e.price*(1+e.taxrate/100)) * e.qty;
     rows.push([ e.date, s, p, e.qty, e.price, e.taxrate,
-      (e.taxmode==="incl"?"税込":"税別"), yenFloor(g), e.memo||"" ]);
+      (e.taxmode==="incl"?"税込":"税別"), Math.round(g), e.memo||"" ]);
   });
 
   const base = key==='month' ? range.label : (key==='fiscal' ? `年度_${range.label}` : "全期間");
@@ -3558,7 +3476,7 @@ function updatePlanPill(){
         var byId = function(id){ return document.getElementById(id); };
         var yenFmt = (typeof yen === 'function')
           ? yen
-          : function(n){ return '¥'+(yenFloor?yenFloor(n||0):Math.floor((n||0)+1e-7)).toLocaleString('ja-JP'); };
+          : function(n){ return '¥'+(Math.round(n||0)).toLocaleString('ja-JP'); };
         var setYen = function(id, v){ var el = byId(id); if(el) el.textContent = yenFmt(v); };
         if (typeof calcTotals === 'function'){
           setYen('kpiWeek',  calcTotals(7));

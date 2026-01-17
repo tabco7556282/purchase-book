@@ -1,0 +1,95 @@
+// sw.js (revised 2025-11-14)
+// 安定動作・即時制御・API直行・最低限のオフライン対応
+
+const CACHE = 'tlp-cache-20251114';
+const PRECACHE = [
+  '/',            // ルート
+  '/index.html',  // Fallback用（両方入れておく）
+];
+
+// --- install: 事前キャッシュ & 即時適用 ---
+self.addEventListener('install', (e) => {
+  e.waitUntil(
+    caches.open(CACHE).then((c) => c.addAll(PRECACHE))
+  );
+  self.skipWaiting();
+});
+
+// --- activate: 旧キャッシュ掃除 & 制御権取得 ---
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
+});
+
+// --- fetch: /api はネット直行。HTMLは network-first、他は cache-first ---
+self.addEventListener('fetch', (e) => {
+  const req = e.request;
+
+  // GET 以外は触らない
+  if (req.method !== 'GET') return;
+
+  const url = new URL(req.url);
+  const sameOrigin = url.origin === self.location.origin;
+
+  // 1) API は絶対にキャッシュさせない（サーバ値を優先）
+  if (sameOrigin && url.pathname.startsWith('/api/')) {
+    e.respondWith(fetch(req));
+    return;
+  }
+
+  // 2) manifest / sw / icon / favicon はネット直行（キャッシュ汚染回避）
+  if (
+    (sameOrigin && (url.pathname === '/sw.js' || url.pathname.startsWith('/icons/'))) ||
+    /\bmanifest\.(webmanifest|json)$/.test(url.pathname) ||
+    url.pathname === '/favicon.ico'
+  ) {
+    e.respondWith(fetch(req));
+    return;
+  }
+
+  // 3) クロスオリジンはネット直行（広告等は触らない）
+  if (!sameOrigin) {
+    e.respondWith(fetch(req));
+    return;
+  }
+
+  // 4) HTML（navigate）は network-first、失敗時は index.html を返す
+  const isHTMLRequest =
+    req.mode === 'navigate' ||
+    (req.headers.get('accept') || '').includes('text/html');
+
+  if (isHTMLRequest) {
+    e.respondWith(
+      fetch(req)
+        .then((res) => {
+          // 成功時は最新を保存
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+          return res;
+        })
+        .catch(() =>
+          // オフライン時のフォールバック
+          caches.match('/index.html', { ignoreSearch: true })
+        )
+    );
+    return;
+  }
+
+  // 5) それ以外（CSS/JS/画像など）は cache-first（クエリ違いも許容）
+  e.respondWith(
+    caches.match(req, { ignoreSearch: true }).then((hit) => {
+      if (hit) return hit;
+      return fetch(req).then((res) => {
+        // OK かつ same-origin の基本レスポンスのみ保存
+        if (res && res.ok && res.type === 'basic') {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+        }
+        return res;
+      });
+    })
+  );
+});

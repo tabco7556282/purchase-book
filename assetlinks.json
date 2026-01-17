@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.cafetabco.tabcoledgerplus",
+      "sha256_cert_fingerprints": [
+        "70:D1:D9:61:0C:D2:B6:9B:20:A6:F1:6A:FB:08:AA:38:12:C7:1F:B5:2A:F3:6B:AE:4A:4A:43:62:77:9E:F5:A7"
+      ]
+    }
+  }
+]
