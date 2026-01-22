@@ -1,0 +1,993 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>TLP Converter</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --card:rgba(255,255,255,.06);
+      --card2:rgba(255,255,255,.04);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.66);
+      --line:rgba(255,255,255,.10);
+      --ok:#3ddc97;
+      --warn:#f7b955;
+      --bad:#ff5c77;
+      --accent:#77a7ff;
+      --radius:18px;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(900px 500px at 10% -10%, rgba(119,167,255,.18), transparent), radial-gradient(700px 500px at 90% 0%, rgba(61,220,151,.14), transparent), var(--bg); color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;}
+    a{color:inherit}
+    .wrap{max-width:980px;margin:0 auto;padding:22px 14px 56px;}
+    header{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+    h1{font-size:20px;margin:0;letter-spacing:.2px}
+    .sub{margin:6px 0 0;color:var(--muted);font-size:13px;line-height:1.55}
+    .badge{display:inline-flex;align-items:center;gap:8px;padding:7px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid var(--line);font-size:12px;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+    @media (min-width:860px){.grid{grid-template-columns:1.1fr .9fr}}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px}
+    .card h2{margin:0 0 10px;font-size:14px;color:rgba(255,255,255,.86)}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    label{font-size:12px;color:var(--muted)}
+    input[type="text"], select{background:rgba(0,0,0,.18);border:1px solid var(--line);color:var(--text);border-radius:12px;padding:10px 10px;font-size:13px;outline:none;min-width:160px}
+    input[type="file"]{background:rgba(0,0,0,.18);border:1px dashed rgba(255,255,255,.22);color:var(--text);border-radius:12px;padding:10px;font-size:13px}
+    .btn{cursor:pointer;user-select:none;background:rgba(119,167,255,.22);border:1px solid rgba(119,167,255,.45);color:var(--text);border-radius:12px;padding:10px 12px;font-size:13px}
+    .btn:disabled{opacity:.45;cursor:not-allowed}
+    .btn.secondary{background:rgba(255,255,255,.06);border:1px solid var(--line)}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:7px 10px;border-radius:999px;border:1px solid var(--line);font-size:12px;color:var(--muted);background:rgba(0,0,0,.14)}
+    .dot{width:10px;height:10px;border-radius:999px;background:var(--muted)}
+    .ok .dot{background:var(--ok)}
+    .warn .dot{background:var(--warn)}
+    .bad .dot{background:var(--bad)}
+    details{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}
+    summary{cursor:pointer;color:rgba(255,255,255,.82);font-size:12px}
+    .kv{display:grid;grid-template-columns:160px 1fr;gap:6px 10px;margin-top:10px}
+    .k{color:var(--muted);font-size:12px}
+    .v{font-size:12px}
+    .mini{font-size:12px;color:var(--muted);line-height:1.6}
+    .hr{height:1px;background:var(--line);margin:12px 0}
+    .checks{display:flex;gap:10px;flex-wrap:wrap}
+    .check{display:flex;gap:8px;align-items:center;padding:8px 10px;border-radius:12px;background:rgba(0,0,0,.14);border:1px solid var(--line)}
+    .check input{accent-color:var(--accent)}
+    table{width:100%;border-collapse:collapse;font-size:12px}
+    th,td{border-bottom:1px solid rgba(255,255,255,.08);padding:8px 6px;text-align:left;vertical-align:top}
+    th{color:rgba(255,255,255,.72);font-weight:600}
+    td{color:rgba(255,255,255,.9)}
+    .mono{font-family:var(--mono)}
+    .right{text-align:right}
+    .note{padding:10px 12px;border-radius:14px;background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.10);color:rgba(255,255,255,.78);font-size:12px;line-height:1.65}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1 data-i18n="h1">TLP Converter</h1>
+        <p class="sub" data-i18n="sub">Local-only converter.</p>
+      </div>
+      <div class="badge"><span class="mono">vB1</span><span data-i18n="badge">XML + paymethod filter</span></div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2 data-i18n="in_title">Input</h2>
+        <div class="row">
+          <input id="file" type="file" accept=".xml,.xls,.json,application/xml,application/json" />
+          <span id="status" class="pill"><span class="dot"></span><span id="statusText" data-i18n="status_idle">No file</span></span>
+        </div>
+        <div class="hr"></div>
+        <div class="kv">
+          <div class="k" data-i18n="k_rows">読み込み明細数</div><div class="v" id="kRows">-</div>
+          <div class="k" data-i18n="k_xmlsum">XMLの税込合計</div><div class="v" id="kXmlSum">-</div>
+          <div class="k" data-i18n="k_incsum">出力対象合計（フィルタ後）</div><div class="v" id="kIncSum">-</div>
+          <div class="k" data-i18n="k_exclsum">除外合計（フィルタ外）</div><div class="v" id="kExclSum">-</div>
+          <div class="k" data-i18n="k_outsum">出力合計（変換後）</div><div class="v" id="kOutSum">-</div>
+          <div class="k" data-i18n="k_delta">差分（端数/計算方式）</div><div class="v" id="kDelta">-</div>
+          <div class="k" data-i18n="k_paycol">支払方法列</div><div class="v" id="kPayCol">-</div>
+        </div>
+        <div class="mini" id="sumHint" style="display:none;margin-top:10px;"></div>
+        <details id="whyBox" style="display:none;margin-top:10px;">
+          <summary data-i18n="det_why">なぜ差が出る？</summary>
+          <div class="mini" id="whyBody" style="margin-top:8px;"></div>
+        </details>
+
+        <details>
+          <summary data-i18n="det_cols">Detected columns</summary>
+          <div class="mini mono" id="colsBox" style="margin-top:10px">-</div>
+        </details>
+
+        <div class="hr"></div>
+        <div class="note" data-i18n="note_local">
+          Files are processed locally in your browser. Nothing is uploaded.
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 data-i18n="opt_title">Options</h2>
+
+        <div class="row" style="margin-bottom:10px">
+          <label data-i18n="lbl_group">Grouping</label>
+          <select id="grouping">
+            <option value="slip" data-i18n="grp_slip">Slip (date x supplier x paymethod)</option>
+            <option value="line" data-i18n="grp_line">Line-by-line</option>
+          </select>
+          <label data-i18n="lbl_calc">Calc</label>
+          <select id="calcMode">
+            <option value="tlp" selected data-i18n="calc_tlp">TLP method (sum by rate -> floor tax once)</option>
+            <option value="xml" data-i18n="calc_xml">Use XML gross as-is</option>
+          </select>
+        </div>
+
+        <div class="mini" data-i18n="lbl_pay_filter">Include payment methods</div>
+        <div class="checks" style="margin:8px 0 10px">
+          <label class="check"><input type="checkbox" id="pm_cash" checked><span data-i18n="pm_cash">Cash</span></label>
+          <label class="check"><input type="checkbox" id="pm_bank" checked><span data-i18n="pm_bank">Bank</span></label>
+          <label class="check"><input type="checkbox" id="pm_card"><span data-i18n="pm_card">Card</span></label>
+          <label class="check"><input type="checkbox" id="pm_unknown" checked><span data-i18n="pm_unknown">Unknown</span></label>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="mini" data-i18n="lbl_accounts">Account mappings</div>
+        <div class="row" style="margin-top:8px">
+          <label data-i18n="lbl_debit">Debit (expense)</label>
+          <input id="acc_debit" type="text" value="仕入高" />
+        </div>
+        <div class="row" style="margin-top:8px">
+          <label data-i18n="lbl_credit_cash">Credit (cash)</label>
+          <input id="acc_cash" type="text" value="現金" />
+          <label data-i18n="lbl_credit_bank">Credit (bank)</label>
+          <input id="acc_bank" type="text" value="普通預金" />
+          <label data-i18n="lbl_credit_card">Credit (card)</label>
+          <input id="acc_card" type="text" value="未払金" />
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="mini" data-i18n="lbl_tax">Tax labels (edit to match your accounting settings)</div>
+        <div class="row" style="margin-top:8px">
+          <label data-i18n="lbl_tax8">8%</label>
+          <input id="tax8" type="text" value="課税仕入8%" />
+          <label data-i18n="lbl_tax10">10%</label>
+          <input id="tax10" type="text" value="課税仕入10%" />
+          <label data-i18n="lbl_tax0">0%</label>
+          <input id="tax0" type="text" value="対象外" />
+        </div>
+
+      </section>
+
+      <section class="card" style="grid-column:1 / -1">
+        <h2 data-i18n="out_title">Export</h2>
+        <div class="row">
+          <button class="btn" id="btnMF" disabled>MoneyForward CSV</button>
+          <button class="btn secondary" id="btnFreee" disabled>freee CSV</button>
+          <button class="btn secondary" id="btnYayoi" disabled>Yayoi CSV</button>
+          <span class="pill" id="outInfo"><span class="dot"></span><span id="outInfoText" data-i18n="out_idle">Load a file first</span></span>
+        </div>
+        <div class="hr"></div>
+        <div class="mini" data-i18n="out_help">
+          Tip: If you sync credit card statements in your accounting software, keep "Card" unchecked to avoid double-counting.
+        </div>
+      </section>
+
+      <section class="card" style="grid-column:1 / -1">
+        <h2 data-i18n="prev_title">Preview</h2>
+        <div class="mini" id="previewInfo">-</div>
+        <div style="overflow:auto;margin-top:10px">
+          <table>
+            <thead>
+              <tr>
+                <th data-i18n="th_date">Date</th>
+                <th data-i18n="th_supplier">Supplier</th>
+                <th data-i18n="th_pay">Pay</th>
+                <th class="right" data-i18n="th_amount">Amount</th>
+                <th data-i18n="th_memo">Memo</th>
+              </tr>
+            </thead>
+            <tbody id="previewBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+
+<script>
+(() => {
+  'use strict';
+
+  const I18N = {
+    h1: "会計CSV変換ツール（TLP）",
+    sub: "【XML対応】TLPの年度出力（Excel XML）やバックアップから、会計ソフト取込用CSVを作ります。ファイルはブラウザ内で処理（サーバー送信なし）。",
+    badge: "XML対応＆支払方法自動除外",
+
+    in_title: "読み込み",
+    status_idle: "ファイル未選択",
+    k_rows: "読み込み明細数",
+    k_xmlsum: "XMLの税込合計",
+    k_incsum: "出力対象合計（フィルタ後）",
+    k_exclsum: "除外合計（フィルタ外）",
+    k_delta: "差分（端数/計算方式）",
+    det_why: "なぜ差が出る？",
+    why_body: "TLP方式では、税率ごとに合算して税額を1回だけ切り捨てます。そのため、XMLの税込合計やTLP画面の合計と数円〜数十円ズレることがあります（端数処理の仕様差）。CSVの金額が間違っているわけではありません。気になる場合は「計算方式」を「XMLそのまま」にすると、フィルタ後の合計と一致します（支払方法をすべてONにした場合）。",
+    k_outsum: "出力合計（変換後）",
+    k_paycol: "支払方法列",
+    det_cols: "検出した列名",
+    note_local: "※ ファイルはこのブラウザの中で変換します。外部にアップロードしません。",
+
+    opt_title: "設定",
+    lbl_group: "まとめ方",
+    grp_slip: "伝票まとめ（同日×仕入先×支払方法）",
+    grp_line: "明細ごと（1行ずつ）",
+    lbl_calc: "計算方式",
+    calc_tlp: "TLP方式（税率別に合算→税額を1回だけ切り捨て）",
+    calc_xml: "XMLの「税込額」をそのまま使う",
+
+    lbl_pay_filter: "出力対象の支払方法",
+    pm_cash: "現金",
+    pm_bank: "振込",
+    pm_card: "カード",
+    pm_unknown: "未設定／不明",
+
+    lbl_accounts: "勘定科目マッピング",
+    lbl_debit: "借方（費用）",
+    lbl_credit_cash: "貸方（現金）",
+    lbl_credit_bank: "貸方（振込）",
+    lbl_credit_card: "貸方（カード）",
+
+    lbl_tax: "税区分名（会計ソフト側の設定と合わせて編集可）",
+    lbl_tax8: "8%",
+    lbl_tax10: "10%",
+    lbl_tax0: "0%",
+
+    out_title: "出力",
+    out_idle: "先にファイルを読み込んでください",
+    out_help: "カード明細を会計ソフトで同期している場合は「カード」を外すのが安全です（二重計上防止）。",
+
+    prev_title: "プレビュー（1部）",
+    th_date: "日付",
+    th_supplier: "仕入先",
+    th_pay: "支払",
+    th_amount: "金額",
+    th_memo: "摘要",
+  };
+
+  // Apply I18N
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    if (I18N[k]) el.textContent = I18N[k];
+  });
+  document.title = I18N.h1;
+
+  const $ = (id)=>document.getElementById(id);
+  const fileEl = $('file');
+  const statusEl = $('status');
+  const statusText = $('statusText');
+  const colsBox = $('colsBox');
+  const kRows = $('kRows');
+  const kXmlSum = $('kXmlSum');
+  const kOutSum = $('kOutSum');
+  const kPayCol = $('kPayCol');
+  const kIncSum = $('kIncSum');
+  const kExclSum = $('kExclSum');
+  const kDelta = $('kDelta');
+  const sumHint = $('sumHint');
+  const whyBox = $('whyBox');
+  const whyBody = $('whyBody');
+  const groupingEl = $('grouping');
+  const calcModeEl = $('calcMode');
+  const pmCash = $('pm_cash');
+  const pmBank = $('pm_bank');
+  const pmCard = $('pm_card');
+  const pmUnknown = $('pm_unknown');
+
+  const btnMF = $('btnMF');
+  const btnFreee = $('btnFreee');
+  const btnYayoi = $('btnYayoi');
+  const outInfo = $('outInfo');
+  const outInfoText = $('outInfoText');
+
+  const previewInfo = $('previewInfo');
+  const previewBody = $('previewBody');
+
+  let state = {
+    srcType: null,
+    lines: [], // parsed lines
+    hasPayCol: false,
+    cols: [],
+    exportRows: [],
+  };
+
+  function setPill(el, kind, text){
+    el.classList.remove('ok','warn','bad');
+    if (kind) el.classList.add(kind);
+    el.querySelector('.dot').style.background =
+      kind==='ok' ? 'var(--ok)' : kind==='warn' ? 'var(--warn)' : kind==='bad' ? 'var(--bad)' : 'var(--muted)';
+    const span = el.querySelector('span:last-child');
+    if (span) span.textContent = text;
+  }
+
+  function yenFloor(n){
+    // 1 yen and below floor; add tiny eps to avoid 0.9999999 issues
+    return Math.floor((Number(n)||0) + 1e-9);
+  }
+
+  function parseNumber(v){
+    if (v==null) return NaN;
+    const s = String(v).trim().replace(/,/g,'');
+    if (!s) return NaN;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : NaN;
+  }
+
+  function normPay(s){
+    const t = String(s||'').trim();
+    if (!t) return 'unknown';
+    if (t.includes('現金')) return 'cash';
+    if (t.includes('カード') || t.toLowerCase().includes('card')) return 'card';
+    if (t.includes('振込') || t.includes('銀行')) return 'bank';
+    return 'unknown';
+  }
+
+  function payLabel(pm){
+    if (pm==='cash') return '現金';
+    if (pm==='bank') return '振込';
+    if (pm==='card') return 'カード';
+    return '未設定';
+  }
+
+  function ymdSlash(ymd){
+    const s = String(ymd||'').trim();
+    if (!s) return '';
+    if (s.includes('/')) return s;
+    return s.replace(/-/g,'/');
+  }
+
+  // SpreadsheetML parser (Excel XML)
+  function parseSpreadsheetML(xmlText){
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xmlText, 'application/xml');
+    if (doc.getElementsByTagName('parsererror').length){
+      throw new Error('XML parse error');
+    }
+    const worksheet = doc.getElementsByTagName('Worksheet')[0];
+    if (!worksheet) throw new Error('Worksheet not found');
+    const table = worksheet.getElementsByTagName('Table')[0];
+    if (!table) throw new Error('Table not found');
+    const rows = Array.from(table.getElementsByTagName('Row'));
+    if (!rows.length) throw new Error('No rows');
+
+    function rowToArray(row){
+      const cells = Array.from(row.getElementsByTagName('Cell'));
+      const out = [];
+      let col = 1;
+      for (const cell of cells){
+        const idxAttr = cell.getAttribute('ss:Index');
+        if (idxAttr){
+          const idx = parseInt(idxAttr,10);
+          if (Number.isFinite(idx) && idx>col){
+            while(col<idx){ out.push(''); col++; }
+          }
+        }
+        const data = cell.getElementsByTagName('Data')[0];
+        out.push(data ? (data.textContent ?? '') : '');
+        col++;
+      }
+      // trim trailing empties
+      while(out.length && String(out[out.length-1]).trim()==='') out.pop();
+      return out;
+    }
+
+    const header = rowToArray(rows[0]).map(s=>String(s||'').trim());
+
+    function findCol(cands){
+      for (const c of cands){
+        const i = header.indexOf(c);
+        if (i>=0) return i;
+      }
+      return -1;
+    }
+
+    const idx = {
+      date: findCol(['日付','取引日','発生日']),
+      supplier: findCol(['仕入れ先','仕入先','取引先']),
+      product: findCol(['商品','品目']),
+      qty: findCol(['数量']),
+      unit: findCol(['単価']),
+      rate: findCol(['税率']),
+      mode: findCol(['区分','税区分']),
+      gross: findCol(['税込額','金額']),
+      memo: findCol(['メモ','摘要','備考']),
+      pay: findCol(['支払方法','支払','支払区分']),
+    };
+
+    const hasPayCol = idx.pay >= 0;
+
+    const lines = [];
+    let xmlGrossSum = 0;
+
+    for (let r=1; r<rows.length; r++){
+      const arr = rowToArray(rows[r]);
+      if (!arr.length) continue;
+      const date = idx.date>=0 ? String(arr[idx.date]||'').trim() : '';
+      const supplier = idx.supplier>=0 ? String(arr[idx.supplier]||'').trim() : '';
+      if (!date || !supplier) continue;
+
+      const product = idx.product>=0 ? String(arr[idx.product]||'').trim() : '';
+      const qty = idx.qty>=0 ? parseNumber(arr[idx.qty]) : NaN;
+      const unit = idx.unit>=0 ? parseNumber(arr[idx.unit]) : NaN;
+      const rateRaw = idx.rate>=0 ? parseNumber(arr[idx.rate]) : NaN;
+      const rate = Number.isFinite(rateRaw) ? rateRaw : 0;
+      const modeText = idx.mode>=0 ? String(arr[idx.mode]||'').trim() : '';
+      const isIncl = (modeText.includes('税込') || modeText.includes('内税'));
+      const grossRaw = idx.gross>=0 ? parseNumber(arr[idx.gross]) : NaN;
+      const gross = Number.isFinite(grossRaw) ? yenFloor(grossRaw) : NaN;
+      const memo = idx.memo>=0 ? String(arr[idx.memo]||'').trim() : '';
+      const pay = idx.pay>=0 ? normPay(arr[idx.pay]) : 'unknown';
+
+      let exYen = 0;
+      let grossYen = 0;
+
+      if (Number.isFinite(gross)){
+        grossYen = gross;
+      }
+
+      if (rate > 0){
+        if (isIncl){
+          // derive ex from gross (floor)
+          exYen = yenFloor((grossYen || 0) / (1 + rate/100));
+        } else {
+          // tax-exclusive: ex from qty*unit
+          const ex = (Number.isFinite(qty)?qty:0) * (Number.isFinite(unit)?unit:0);
+          exYen = yenFloor(ex);
+          if (!Number.isFinite(grossYen) || grossYen===0){
+            // compute line gross if not provided
+            const tax = yenFloor(exYen * (rate/100));
+            grossYen = exYen + tax;
+          }
+        }
+      } else {
+        // rate 0 or unknown: treat gross as ex
+        if (!Number.isFinite(grossYen) || grossYen===0){
+          const ex = (Number.isFinite(qty)?qty:0) * (Number.isFinite(unit)?unit:0);
+          grossYen = yenFloor(ex);
+        }
+        exYen = grossYen;
+      }
+
+      if (!Number.isFinite(grossYen)) continue;
+      xmlGrossSum += grossYen;
+
+      lines.push({
+        date: ymdSlash(date),
+        supplier,
+        product,
+        qty: Number.isFinite(qty)?qty:null,
+        unit: Number.isFinite(unit)?unit:null,
+        rate,
+        isIncl,
+        exYen,
+        grossYen,
+        memo,
+        pay,
+      });
+    }
+
+    return { header, idx, hasPayCol, lines, xmlGrossSum: yenFloor(xmlGrossSum) };
+  }
+
+  function parseJSONBackup(jsonText){
+    let obj;
+    try{ obj = JSON.parse(jsonText); }catch(e){ throw new Error('JSON parse error'); }
+    // Support two shapes: {entries:[...], suppliers:[...], products:[...]} or strict backup wrapper
+    const entries = Array.isArray(obj.entries) ? obj.entries : Array.isArray(obj?.data?.entries) ? obj.data.entries : [];
+    const suppliers = Array.isArray(obj.suppliers) ? obj.suppliers : Array.isArray(obj?.data?.suppliers) ? obj.data.suppliers : [];
+    const products = Array.isArray(obj.products) ? obj.products : Array.isArray(obj?.data?.products) ? obj.data.products : [];
+
+    const supById = new Map(suppliers.map(s => [String(s.id ?? s.key ?? s.name ?? ''), s]));
+    const prodById = new Map(products.map(p => [String(p.id ?? p.key ?? p.name ?? ''), p]));
+
+    const lines = [];
+    let xmlGrossSum = 0;
+
+    for (const e of entries){
+      const date = ymdSlash(e.date || e.ymd || '');
+      if (!date) continue;
+
+      const supplierName = e.supplierName || e.supplier || (supById.get(String(e.supplierId||''))?.name) || '';
+      if (!supplierName) continue;
+
+      const productName = e.productName || e.product || (prodById.get(String(e.productId||''))?.name) || '';
+      const qty = parseNumber(e.qty ?? e.quantity);
+      const unit = parseNumber(e.price ?? e.unit ?? e.unitPrice);
+      const rate = parseNumber(e.taxRate ?? e.rate ?? 0) || 0;
+      const taxMode = String(e.taxMode || e.mode || '').toLowerCase();
+      const isIncl = (taxMode.includes('incl') || taxMode.includes('税込') || taxMode.includes('in'));
+      const memo = String(e.memo || e.note || '').trim();
+      const pay = normPay(e.payMethod || e.paymentMethod || '');
+
+      let exYen = 0;
+      let grossYen = 0;
+
+      // If stored gross exists, use for xml sum display
+      const storedGross = parseNumber(e.gross ?? e.total ?? e.amount);
+      if (Number.isFinite(storedGross)) grossYen = yenFloor(storedGross);
+
+      if (rate > 0){
+        if (isIncl){
+          if (!grossYen) {
+            const g = (Number.isFinite(qty)?qty:0) * (Number.isFinite(unit)?unit:0);
+            grossYen = yenFloor(g);
+          }
+          exYen = yenFloor(grossYen / (1 + rate/100));
+        } else {
+          const ex = (Number.isFinite(qty)?qty:0) * (Number.isFinite(unit)?unit:0);
+          exYen = yenFloor(ex);
+          if (!grossYen) grossYen = exYen + yenFloor(exYen * (rate/100));
+        }
+      } else {
+        if (!grossYen){
+          const g = (Number.isFinite(qty)?qty:0) * (Number.isFinite(unit)?unit:0);
+          grossYen = yenFloor(g);
+        }
+        exYen = grossYen;
+      }
+
+      xmlGrossSum += grossYen;
+      lines.push({ date, supplier: supplierName, product: productName, qty: Number.isFinite(qty)?qty:null, unit: Number.isFinite(unit)?unit:null, rate, isIncl, exYen, grossYen, memo, pay });
+    }
+
+    return { header: [], idx: {}, hasPayCol: false, lines, xmlGrossSum: yenFloor(xmlGrossSum) };
+  }
+
+  function allowedPay(pay){
+    if (pay==='cash') return pmCash.checked;
+    if (pay==='bank') return pmBank.checked;
+    if (pay==='card') return pmCard.checked;
+    return pmUnknown.checked;
+  }
+
+  function buildExportRows(){
+    const grouping = groupingEl.value;
+    const calcMode = calcModeEl.value;
+
+    const filtered = state.lines.filter(l => allowedPay(l.pay));
+
+    const incSumGross = filtered.reduce((a,l)=> a + (l.grossYen||0), 0);
+    const exclSumGross = (state.xmlGrossSum||0) - incSumGross;
+    if(kIncSum) kIncSum.textContent = formatYen(incSumGross);
+    if(kExclSum) kExclSum.textContent = formatYen(exclSumGross);
+
+    let exportRows = [];
+
+    if (grouping === 'line'){
+      exportRows = filtered.map(l => {
+        const amount = (calcMode==='xml') ? l.grossYen : ( () => {
+          // per-line TLP method: ex -> floor tax once
+          const ex = l.exYen;
+          const tax = (l.rate>0) ? yenFloor(ex * (l.rate/100)) : 0;
+          return ex + tax;
+        })();
+
+        return {
+          date: l.date,
+          supplier: l.supplier,
+          pay: l.pay,
+          amount,
+          rate: l.rate,
+          memo: makeMemo(l, 1),
+          count: 1,
+        };
+      });
+    } else {
+      // slip grouping: date + supplier + pay
+      const map = new Map();
+      for (const l of filtered){
+        const key = [l.date, l.supplier, l.pay].join('||');
+        if (!map.has(key)){
+          map.set(key, { date:l.date, supplier:l.supplier, pay:l.pay, items:[], exByRate:new Map(), xmlGross:0 });
+        }
+        const g = map.get(key);
+        g.items.push(l);
+        g.xmlGross += l.grossYen;
+        const r = String(l.rate||0);
+        g.exByRate.set(r, (g.exByRate.get(r)||0) + (l.exYen||0));
+      }
+
+      exportRows = Array.from(map.values()).map(g => {
+        let amount = 0;
+        if (calcMode==='xml'){
+          amount = yenFloor(g.xmlGross);
+        } else {
+          // TLP method: sum by rate -> floor tax once per rate
+          let sum = 0;
+          for (const [r, exSum] of g.exByRate.entries()){
+            const rate = Number(r)||0;
+            const ex = yenFloor(exSum);
+            const tax = rate>0 ? yenFloor(ex * (rate/100)) : 0;
+            sum += ex + tax;
+          }
+          amount = yenFloor(sum);
+        }
+
+        return {
+          date: g.date,
+          supplier: g.supplier,
+          pay: g.pay,
+          amount,
+          rate: null,
+          memo: makeMemo(g.items[0], g.items.length, g.items),
+          count: g.items.length,
+        };
+      }).sort((a,b)=> (a.date===b.date ? a.supplier.localeCompare(b.supplier) : a.date.localeCompare(b.date)));
+    }
+
+    state.exportRows = exportRows;
+
+    const outSum = exportRows.reduce((acc,r)=>acc + (r.amount||0), 0);
+    kOutSum.textContent = formatYen(outSum);
+    // 差分表示（端数/計算方式）: 出力合計 - 出力対象合計
+    const delta = outSum - incSumGross;
+    if(kDelta){
+      const sign = delta>0 ? '+' : (delta<0 ? '−' : '');
+      kDelta.textContent = sign + formatYen(Math.abs(delta));
+    }
+
+    // 安心表示（なぜ差が出る？）
+    if(sumHint){
+      const notes = [];
+      if(exclSumGross !== 0){
+        notes.push(`支払方法フィルタで除外: ${formatYen(Math.abs(exclSumGross))}`);
+      }
+      if(delta !== 0){
+        notes.push(`端数差: ${(delta>0?'+':(delta<0?'−':''))}${formatYen(Math.abs(delta))}`);
+      }
+      sumHint.textContent = notes.length ? ('※ ' + notes.join(' / ') + '（不具合ではありません）') : '';
+      sumHint.style.display = notes.length ? 'block' : 'none';
+    }
+    if(whyBox){
+      whyBox.style.display = (delta !== 0) ? 'block' : 'none';
+    }
+    previewInfo.textContent = '出力予定: ' + exportRows.length + '件 / ' + formatYen(outSum);
+
+    renderPreview(exportRows);
+    return exportRows;
+  }
+
+  function makeMemo(line, count, items){
+    const base = `仕入 / ${line.supplier} / ${payLabel(line.pay)} / (${count}件)`;
+    if (!items || items.length<=1){
+      const p = line.product ? ` ${line.product}` : '';
+      const r = line.rate ? ` / ${line.rate}%` : '';
+      return base + p + r;
+    }
+    // include up to 3 products
+    const names = [];
+    for (const it of items){
+      if (it.product && !names.includes(it.product)) names.push(it.product);
+      if (names.length>=3) break;
+    }
+    const extra = (names.length ? ` / ${names.join('・')}${items.length>names.length?'…':''}` : '');
+    return base + extra;
+  }
+
+  function taxLabelFor(rate){
+    if (rate===8) return $('tax8').value.trim() || '8%';
+    if (rate===10) return $('tax10').value.trim() || '10%';
+    return $('tax0').value.trim() || '対象外';
+  }
+
+  function creditAccountFor(pay){
+    if (pay==='cash') return $('acc_cash').value.trim() || '現金';
+    if (pay==='bank') return $('acc_bank').value.trim() || '普通預金';
+    if (pay==='card') return $('acc_card').value.trim() || '未払金';
+    return $('acc_cash').value.trim() || '現金';
+  }
+
+  function formatYen(n){
+    const v = yenFloor(n);
+    return v.toLocaleString('ja-JP') + '円';
+  }
+
+  function renderPreview(exportRows){
+    previewBody.innerHTML = '';
+    const take = exportRows.slice(0, 40);
+    for (const r of take){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="mono">${escapeHtml(r.date)}</td>
+        <td>${escapeHtml(r.supplier)}</td>
+        <td>${escapeHtml(payLabel(r.pay))}</td>
+        <td class="right mono">${escapeHtml(String(r.amount||0))}</td>
+        <td>${escapeHtml(r.memo||'')}</td>
+      `;
+      previewBody.appendChild(tr);
+    }
+    if (exportRows.length>take.length){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td colspan="5" class="mini">... (${exportRows.length - take.length}件省略)</td>`;
+      previewBody.appendChild(tr);
+    }
+  }
+
+  function escapeHtml(s){
+    return String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  }
+
+  function csvEscape(v){
+    const s = String(v ?? '');
+    if (/[\n\r,\"]/g.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+    return s;
+  }
+
+  function download(name, text, withBom){
+    let out = text;
+    if (withBom) out = '﻿' + out;
+    const blob = new Blob([out], {type:'text/csv;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 3000);
+  }
+
+  // Exports
+  function exportMoneyForward(rows){
+    const debit = $('acc_debit').value.trim() || '仕入高';
+    const header = [
+      '取引No','取引日','借方勘定科目','借方補助科目','借方部門','借方取引先','借方税区分','借方インボイス','借方金額(円)','借方税額',
+      '貸方勘定科目','貸方補助科目','貸方部門','貸方取引先','貸方税区分','貸方インボイス','貸方金額(円)','貸方税額',
+      '摘要','仕訳メモ','タグ','MF仕訳タイプ'
+    ];
+
+    const lines = [header.map(csvEscape).join(',')];
+    for (let i=0;i<rows.length;i++){
+      const r = rows[i];
+      const credit = creditAccountFor(r.pay);
+      // Choose tax label from first line rate if line-mode; in slip-mode we don't have rate -> default 10? We'll infer by scanning original lines is complex.
+      // Safe default: keep tax区分 blank when slip-mode, or set to 10%? Better: set blank and let user adjust in MF import mapping.
+      const taxLabel = (r.rate===8||r.rate===10||r.rate===0) ? taxLabelFor(r.rate) : '';
+
+      const row = [
+        String(i+1),
+        r.date,
+        debit,
+        '',
+        '',
+        r.supplier,
+        taxLabel || taxLabelFor(10),
+        '',
+        String(r.amount||0),
+        '0',
+        credit,
+        '',
+        '',
+        '',
+        '',
+        '',
+        String(r.amount||0),
+        '0',
+        r.memo || '',
+        '',
+        '',
+        'インポート'
+      ];
+      lines.push(row.map(csvEscape).join(','));
+    }
+
+    const name = `tlp_moneyforward_${stamp()}.csv`;
+    download(name, lines.join('\r\n'), false);
+  }
+
+  function exportFreee(rows){
+    // Based on freee help: required columns include 収支区分, 発生日, 勘定科目, 税区分, 金額. Amount is gross. They also support 決済口座 etc.
+    const debit = $('acc_debit').value.trim() || '仕入高';
+    const header = [
+      '収支区分','管理番号','発生日','決済期日','取引先コード','取引先','勘定科目','税区分','金額','税計算区分','税額','備考','品目','部門','メモタグ','セグメント1','セグメント2','セグメント3','決済日','決済口座','決済金額'
+    ];
+
+    const lines = [header.map(csvEscape).join(',')];
+    for (let i=0;i<rows.length;i++){
+      const r = rows[i];
+      const taxLabel = (r.rate===8||r.rate===10||r.rate===0) ? taxLabelFor(r.rate) : taxLabelFor(10);
+      const payAcc = creditAccountFor(r.pay);
+      const row = [
+        '支出',
+        String(i+1),
+        r.date,
+        '',
+        '',
+        r.supplier,
+        debit,
+        taxLabel,
+        String(r.amount||0),
+        '',
+        '',
+        r.memo || '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        // settled for cash/bank; for card, also set (if included) but user likely excludes
+        r.date,
+        payAcc,
+        String(r.amount||0),
+      ];
+      lines.push(row.map(csvEscape).join(','));
+    }
+
+    const name = `tlp_freee_${stamp()}.csv`;
+    // freee sample is BOM付き. We'll add BOM for safety.
+    download(name, lines.join('\r\n'), true);
+  }
+
+  function exportYayoi(rows){
+    // Yayoi import format (YaYoi 05+): columns A-Y per official doc.
+    const debit = $('acc_debit').value.trim() || '仕入高';
+    const header = [
+      '識別フラグ','伝票No.','決算','取引日付','借方勘定科目','借方補助科目','借方部門','借方税区分','借方金額','借方税金額',
+      '貸方勘定科目','貸方補助科目','貸方部門','貸方税区分','貸方金額','貸方税金額',
+      '摘要','番号','期日','タイプ','生成元','仕訳メモ','付箋1','付箋2','調整'
+    ];
+
+    const lines = [header.map(csvEscape).join(',')];
+    for (let i=0;i<rows.length;i++){
+      const r = rows[i];
+      const credit = creditAccountFor(r.pay);
+      const taxLabel = (r.rate===8||r.rate===10||r.rate===0) ? taxLabelFor(r.rate) : taxLabelFor(10);
+
+      const row = [
+        '2111',
+        '',
+        '',
+        r.date,
+        debit,
+        '',
+        '',
+        taxLabel,
+        String(r.amount||0),
+        '0',
+        credit,
+        '',
+        '',
+        taxLabel,
+        String(r.amount||0),
+        '0',
+        r.memo || '',
+        '',
+        '',
+        '0',
+        '',
+        '',
+        '',
+        '',
+        'no'
+      ];
+      lines.push(row.map(csvEscape).join(','));
+    }
+
+    const name = `tlp_yayoi_${stamp()}.csv`;
+    download(name, lines.join('\r\n'), true);
+  }
+
+  function stamp(){
+    const d = new Date();
+    const pad = (n)=>String(n).padStart(2,'0');
+    return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+  }
+
+  function updateUIAfterLoad(){
+    const rows = state.lines.length;
+    kRows.textContent = String(rows);
+    kXmlSum.textContent = formatYen(state.xmlGrossSum||0);
+    kPayCol.textContent = state.hasPayCol ? 'あり（OK）' : 'なし（要確認）';
+    if(whyBody) whyBody.textContent = I18N.why_body;
+
+    colsBox.textContent = (state.cols && state.cols.length) ? state.cols.join(' / ') : '-';
+
+    // Build export rows and enable buttons
+    const out = buildExportRows();
+    const ok = out.length > 0;
+    btnMF.disabled = !ok;
+    btnFreee.disabled = !ok;
+    btnYayoi.disabled = !ok;
+
+    setPill(outInfo, ok ? 'ok' : 'warn', ok ? ('出力準備OK') : ('出力対象がありません'));
+
+    if (!state.hasPayCol){
+      setPill(statusEl, 'warn', '支払方法列が無いため、自動除外は「未設定」扱いです');
+    }
+  }
+
+  function wireRecalc(){
+    ['change','input'].forEach(ev => {
+      [groupingEl, calcModeEl, pmCash, pmBank, pmCard, pmUnknown, $('acc_debit'), $('acc_cash'), $('acc_bank'), $('acc_card'), $('tax8'), $('tax10'), $('tax0')].forEach(el => {
+        el.addEventListener(ev, () => {
+          if (!state.lines.length) return;
+          buildExportRows();
+        });
+      });
+    });
+  }
+
+  wireRecalc();
+
+  fileEl.addEventListener('change', async () => {
+    const f = fileEl.files && fileEl.files[0];
+    if (!f){
+      state = {srcType:null, lines:[], hasPayCol:false, cols:[], exportRows:[]};
+      setPill(statusEl, null, I18N.status_idle);
+      return;
+    }
+
+    setPill(statusEl, null, '読み込み中...');
+
+    try{
+      const text = await f.text();
+      const looksXML = /^\s*</.test(text) && (text.includes('<Workbook') || text.includes('<worksheet') || text.includes('urn:schemas-microsoft-com:office:spreadsheet'));
+      const looksJSON = /^\s*\{/.test(text);
+
+      let parsed;
+      if (looksXML){
+        parsed = parseSpreadsheetML(text);
+        state.srcType = 'xml';
+        state.lines = parsed.lines;
+        state.hasPayCol = parsed.hasPayCol;
+        state.cols = parsed.header;
+        state.xmlGrossSum = parsed.xmlGrossSum;
+        setPill(statusEl, 'ok', '読み込み完了（XML）');
+      } else if (looksJSON){
+        parsed = parseJSONBackup(text);
+        state.srcType = 'json';
+        state.lines = parsed.lines;
+        state.hasPayCol = false;
+        state.cols = [];
+        state.xmlGrossSum = parsed.xmlGrossSum;
+        setPill(statusEl, 'warn', '読み込み完了（JSON） ※支払方法列はこのファイルには原則無いです');
+      } else {
+        throw new Error('Unsupported file');
+      }
+
+      updateUIAfterLoad();
+
+    } catch(err){
+      console.error(err);
+      state = {srcType:null, lines:[], hasPayCol:false, cols:[], exportRows:[]};
+      setPill(statusEl, 'bad', '読み込み失敗：' + (err?.message || 'error'));
+      btnMF.disabled = btnFreee.disabled = btnYayoi.disabled = true;
+      kRows.textContent = kXmlSum.textContent = kOutSum.textContent = kPayCol.textContent = '-';
+      colsBox.textContent = '-';
+      previewBody.innerHTML = '';
+      previewInfo.textContent = '-';
+    }
+  });
+
+  btnMF.addEventListener('click', () => {
+    const rows = buildExportRows();
+    exportMoneyForward(rows);
+  });
+
+  btnFreee.addEventListener('click', () => {
+    const rows = buildExportRows();
+    exportFreee(rows);
+  });
+
+  btnYayoi.addEventListener('click', () => {
+    const rows = buildExportRows();
+    exportYayoi(rows);
+  });
+
+})();
+</script>
+</body>
+</html>
