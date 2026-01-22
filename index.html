@@ -321,6 +321,14 @@ body.mode-prev-year .hdr-pill{background:#fff;border-color:var(--danger);color:v
           <label><input type="radio" name="taxrate" value="0">非課税</label>
         </div>
       </div>
+      <div class="row">
+        <div class="row" style="gap:16px;flex-wrap:wrap">
+          <span class="label">支払</span>
+          <label><input type="radio" name="paymethod" value="cash" checked> 現金</label>
+          <label><input type="radio" name="paymethod" value="card"> カード</label>
+          <label><input type="radio" name="paymethod" value="bank"> 振込</label>
+        </div>
+      </div>
       <div><div class="label">価格履歴（直近）</div><div id="priceHistory" class="row" style="flex-wrap:wrap"></div></div>
       <div><div class="label">メモ（任意）</div><input id="inMemo"></div>
       <button class="btn ghost" id="btnAddLine" type="button">＋ 明細を追加</button>
@@ -407,7 +415,23 @@ body.mode-prev-year .hdr-pill{background:#fff;border-color:var(--danger);color:v
       </div>
       <div class="muted" style="margin-top:6px">※ 前年度（1月〜12月）の明細をExcel XMLで出力した後、前年度の明細だけを削除します（仕入れ先・商品マスタは残ります）。</div>
       <div class="label" style="margin-top:8px">※ 仕入先・商品マスタは年度に関係なく共通です。明細・集計・出力は選択年度のみ対象です。</div>
+
     </div>
+
+    
+
+    <div class="card" style="margin-top:12px">
+      <div class="section-title">支払方法の補完（未設定のみ）</div>
+      <div class="muted" style="font-size:12px">
+        旧データなどで「支払方法」が未設定の明細だけを、仕入先マスタの「既定の支払方法」で補完します。
+        既に設定済みの明細は変更しません。
+      </div>
+      <div class="row" style="margin-top:10px;justify-content:flex-end">
+        <button id="btnPayMethodBackfill" class="btn ghost" type="button">支払方法を補完（未設定のみ）</button>
+      </div>
+      <div class="mini-meta" style="margin-top:6px">※ 仕入先の既定が未設定のもの／未登録で入力した明細は対象外です。</div>
+    </div>
+
   </section>
 
   <!-- LICENSE -->
@@ -717,6 +741,8 @@ const DB = {
         theme: "light", lastBackupAt: null, plan: "free",
         autoClear: true, historyShowBoth: true, showTaxFlags: false,
         recentProducts: [],
+        lastPayMethod: 'cash',
+        lastPayMethodBySupplier: {},
         hisRange: "30",      // 新キー
         hisRangeDays: 30,     // 互換用（読みはしない）
         activeYear: new Date().getFullYear() // 追加：対象年度（手動切替用）
@@ -869,27 +895,50 @@ function _entryExAmount(e){
 
 // entries を税率ごとに税抜合計→税額計算→端数処理（1回）で集計
 function calcTotalsByRate(entries){
-  const exByRate = Object.create(null);
+  // 税率ごとに「税別入力の税抜合計」と「税込入力の税込合計」を分けて貯める
+  const netExByRate = Object.create(null);   // 税別入力（excl）：税抜合計
+  const grossInByRate = Object.create(null); // 税込入力（incl）：税込合計
+
   for (const e of (entries || [])){
     if(!e || e.deleted) continue;
     const r = Number(e.taxrate)||0;
-    const ex = _entryExAmount(e);
-    exByRate[r] = (exByRate[r] || 0) + ex;
+    const base = (Number(e.price)||0) * (Number(e.qty)||0); // 円
+    if(e.taxmode === 'incl'){
+      grossInByRate[r] = (grossInByRate[r] || 0) + base;
+    }else{
+      netExByRate[r] = (netExByRate[r] || 0) + base;
+    }
   }
-  let netRaw = 0;
+
+  let net = 0;
+  let gross = 0;
   let taxTotal = 0;
-  const taxByRate = Object.create(null);
-  for (const k in exByRate){
+
+  const keys = new Set([
+    ...Object.keys(netExByRate),
+    ...Object.keys(grossInByRate)
+  ]);
+
+  for (const k of keys){
     const r = Number(k)||0;
-    const ex = exByRate[k];
-    netRaw += ex;
-    const tax = r ? yenFloor(ex * (r/100)) : 0;
-    taxByRate[k] = tax;
-    taxTotal += tax;
+
+    const netEx = Number(netExByRate[k] || 0);       // 税別入力の税抜
+    const grossIn = Number(grossInByRate[k] || 0);   // 税込入力の税込
+
+    // 税別入力：税抜合計 → 税額（1回） → 税込
+    const taxEx = r ? yenFloor(netEx * (r/100)) : 0;
+    const grossEx = netEx + taxEx;
+
+    // 税込入力：税込合計 → 税額（1回・逆算） → 税抜（入力した税込を崩さない）
+    const taxIn = r ? yenFloor(grossIn * (r/(100+r))) : 0;
+    const netIn = grossIn - taxIn;
+
+    net += (netEx + netIn);
+    gross += (grossEx + grossIn);
+    taxTotal += (taxEx + taxIn);
   }
-  const net = yenFloor(netRaw);
-  const gross = yenFloor(netRaw + taxTotal);
-  return { net, gross, taxTotal, netRaw, exByRate, taxByRate };
+
+  return { net: yenFloor(net), gross: yenFloor(gross), taxTotal: yenFloor(taxTotal) };
 }
 
 function enableSelectOnFocus(){
@@ -1313,6 +1362,48 @@ function renderPriceHistory(pid){
 }
 const supplierName=id=>(store.suppliers.find(x=>x.id===id)||{}).name||null;
 const prodName=(id,fb)=>(store.products.find(x=>x.id===id)||{}).name||(fb||"未登録");
+const payLabel=(pm)=>{
+  const v=String(pm||'').trim();
+  if(v==='cash') return '現金';
+  if(v==='card') return 'カード';
+  if(v==='bank') return '振込';
+  return '未設定';
+};
+const supplierById = (id)=> (store.suppliers||[]).find(x=>x && x.id===id) || null;
+const supplierDefaultPayMethod = (sid)=>{
+  const s = supplierById(sid);
+  const pm = s && (s.paymethod_default || s.default_paymethod || s.payMethodDefault || '');
+  return ['cash','card','bank'].includes(String(pm)) ? String(pm) : '';
+};
+function ensurePayMethodSettings(){
+  if(!store.settings) store.settings = {};
+  const m = store.settings.lastPayMethodBySupplier;
+  if(!m || typeof m !== 'object') store.settings.lastPayMethodBySupplier = {};
+}
+function pickPayMethodForSupplier(sid){
+  try{ ensurePayMethodSettings(); }catch(_){}
+  const def = supplierDefaultPayMethod(sid);
+  if(def) return def;
+  const map = (store.settings && store.settings.lastPayMethodBySupplier) || {};
+  const lastBy = (sid && map) ? map[sid] : '';
+  if(['cash','card','bank'].includes(String(lastBy))) return String(lastBy);
+  const global = (store.settings && store.settings.lastPayMethod) || 'cash';
+  return ['cash','card','bank'].includes(String(global)) ? String(global) : 'cash';
+}
+function setPayMethodUI(pm){
+  const v = ['cash','card','bank'].includes(String(pm)) ? String(pm) : 'cash';
+  $$('input[name=paymethod]').forEach(r=>r.checked=(r.value===v));
+}
+function rememberPayMethodForSupplier(sid, pm){
+  try{
+    ensurePayMethodSettings();
+    store.settings.lastPayMethod = pm;
+    const def = supplierDefaultPayMethod(sid);
+    if(!def && sid){
+      store.settings.lastPayMethodBySupplier[sid] = pm;
+    }
+  }catch(_){}
+}
 function toggleFreeInput(){
   const on=$("#chkFree").checked;
   $("#freeFields").classList.toggle("hidden",!on);
@@ -1324,6 +1415,15 @@ function initInputPage(){
   const sid=$("#inSupplier").value;
   renderProductSelect($("#inProduct"),sid,"");
   $("#prodSearch").value=""; $("#inQty").value=1; $("#inPrice").value=""; $("#inMemo").value="";
+  // 支払方法（仕入先の既定 → 仕入先ごとの前回 → 全体の前回）
+  try{
+    const free = !!$('#chkFree')?.checked;
+    const sid2 = free ? null : ($('#inSupplier')?.value || null);
+    const pm = pickPayMethodForSupplier(sid2);
+    setPayMethodUI(pm);
+    if(!document.querySelector('input[name=paymethod]:checked')) setPayMethodUI('cash');
+  }catch(_){ }
+
   toggleFreeInput();
 }
 document.addEventListener("change",(e)=>{ if(e.target.id==="chkFree") toggleFreeInput(); });
@@ -1360,7 +1460,12 @@ document.addEventListener("click",(e)=>{
   }catch(_){}
 });
 
-document.addEventListener("change",(e)=>{ if(e.target.id==="inSupplier") renderProductSelect($("#inProduct"),e.target.value,$("#prodSearch").value||""); });
+document.addEventListener("change",(e)=>{
+  if(e.target.id!=="inSupplier") return;
+  const sid = e.target.value;
+  renderProductSelect($("#inProduct"),sid,$("#prodSearch").value||"");
+  try{ if(!$("#chkFree").checked){ setPayMethodUI(pickPayMethodForSupplier(sid)); } }catch(_){}
+});
 document.addEventListener("input",(e)=>{ if(e.target.id==="prodSearch") renderProductSelect($("#inProduct"),$("#inSupplier").value,e.target.value); });
 document.addEventListener("change",(e)=>{
   if(e.target.id==="inProduct"){
@@ -1380,10 +1485,20 @@ document.addEventListener("click",(e)=>{ if(e.target.id==="btnAddSupplier") tryA
 document.addEventListener("click",(e)=>{ if(e.target.id==="btnAddProduct"){ const sid = $("#filterProdSupplier")?.value || (store.suppliers[0]?.id || ""); tryAddProductStart(sid); }});
 function calcLineTotal(e){
   const p=Number(e.price)||0, q=Number(e.qty)||0, r=Number(e.taxrate)||0;
-  const base = p*q;
-  if(e.taxmode==="incl"){ const excl = yenFloor(base/(1+r/100)); return {excl, incl: base}; }
-  else if(e.taxmode==="excl"){ const incl = yenFloor(base*(1+r/100)); return {excl: base, incl}; }
-  else { return {excl: base, incl: base}; }
+  const base = p*q; // 入力単価×数量（円）
+  // 端数の考え方：
+  // - 税別入力: 税率ごとの合計で税額を計算する設計（表示上の1行は参考値として税込を算出）
+  // - 税込入力: 入力した税込（base）を優先して崩さない（税額を「税込合計から逆算」）
+  if(e.taxmode==="incl"){
+    const tax = r ? yenFloor(base * (r/(100+r))) : 0; // 税込合計→税額（切り捨て）
+    const excl = base - tax;
+    return {excl, incl: base};
+  }else if(e.taxmode==="excl"){
+    const incl = r ? yenFloor(base * (1+r/100)) : base;
+    return {excl: base, incl};
+  }else{
+    return {excl: base, incl: base};
+  }
 }
 function bumpRecentProduct(pid){
   if(!pid) return;
@@ -1395,27 +1510,97 @@ function bumpRecentProduct(pid){
 }
 document.addEventListener("click",(e)=>{ if(e.target.id==="btnAddLine") addLine(); });
 function addLine(){
-  const date=$("#inDate").value||todayStr();
-  const free=$("#chkFree").checked;
-  const supplier_id=free?null:($("#inSupplier").value||null);
-  const product_id=free?null:($("#inProduct").value||null);
-  const supplier_name_fallback=free?($("#freeSupplier").value||"未登録"):(supplierName(supplier_id)||"未登録");
-  const product_name_fallback=free?($("#freeProduct").value||"未登録"):null;
-  const qty=Number($("#inQty").value||1);
-  const price=Number($("#inPrice").value||0);
-  const taxrate=Number(document.querySelector('input[name=taxrate]:checked').value);
-  const taxmode=document.querySelector('input[name=taxmode]:checked').value;
-  if(!price||!qty){alert("価格と数量を入力してください");return}
-  store.entries.push({id:uid(),date,supplier_id,product_id,supplier_name_fallback,product_name_fallback,qty,price,taxrate,taxmode,memo:$("#inMemo").value||""});
+  const date = $("#inDate").value || todayStr();
+  const free = $("#chkFree").checked;
+
+  const supplierSel = $("#inSupplier");
+  const productSel  = $("#inProduct");
+
+  const supplier_id = free ? null : (supplierSel && supplierSel.value ? supplierSel.value : null);
+  const product_id  = free ? null : (productSel  && productSel.value  ? productSel.value  : null);
+
+  const freeSupplier = ($("#freeSupplier").value || "").trim();
+  const freeProduct  = ($("#freeProduct").value  || "").trim();
+
+  // 入力モードの取り違え（未登録/登録）を防ぐ
+  if(free){
+    if(!freeSupplier || !freeProduct){
+      alert("未登録で入力する場合は、仕入先名と商品名を入力してください");
+      return;
+    }
+  }else{
+    if(!supplier_id || !product_id){
+      alert("仕入先と商品を選択してください");
+      return;
+    }
+  }
+
+  const supplierText = (!free && supplierSel && supplierSel.selectedOptions && supplierSel.selectedOptions[0])
+    ? (supplierSel.selectedOptions[0].textContent || "")
+    : "";
+  const productText = (!free && productSel && productSel.selectedOptions && productSel.selectedOptions[0])
+    ? (productSel.selectedOptions[0].textContent || "")
+    : "";
+
+  const supplier_name_fallback = free
+    ? (freeSupplier || "未登録")
+    : (supplierName(supplier_id) || supplierText || "未登録");
+
+  // 登録済みでも、商品マスタが読み込めなかった等のケースに備えて名前を保持
+  const product_name_fallback = free
+    ? (freeProduct || "未登録")
+    : (productText || null);
+
+  const qty = Number($("#inQty").value || 1);
+  const price = Number($("#inPrice").value || 0);
+
+  const taxrate = Number((document.querySelector('input[name=taxrate]:checked')||{}).value || 0);
+  const taxmode = String((document.querySelector('input[name=taxmode]:checked')||{}).value || 'excl');
+  const paymethod = String((document.querySelector('input[name=paymethod]:checked')||{}).value || (store.settings.lastPayMethod||'cash'));
+
+  rememberPayMethodForSupplier(supplier_id, paymethod);
+
+  if(!price || !qty){
+    alert("価格と数量を入力してください");
+    return;
+  }
+
+  store.entries.push({
+    id: uid(),
+    date,
+    supplier_id,
+    product_id,
+    supplier_name_fallback,
+    product_name_fallback,
+    qty,
+    price,
+    taxrate,
+    taxmode,
+    paymethod,
+    memo: $("#inMemo").value || ""
+  });
+
   if(product_id){
-    const arr=store.priceHistory[product_id]||[];
-    arr.push({price,ts:Date.now(),taxrate,taxmode});
-    store.priceHistory[product_id]=arr.slice(-5);
+    const arr = store.priceHistory[product_id] || [];
+    arr.push({price, ts: Date.now(), taxrate, taxmode});
+    store.priceHistory[product_id] = arr.slice(-5);
   }
   bumpRecentProduct(product_id);
-  DB.save(store); renderTodayList(); refreshHome();
+
+  DB.save(store);
+  renderTodayList();
+  refreshHome();
+
   if(store.settings.autoClear){
-    $("#inProduct").value=""; $("#inPrice").value=""; $("#inQty").value=1; $("#inMemo").value=""; $("#priceHistory").innerHTML="";
+    $("#inProduct").value = "";
+    $("#inPrice").value = "";
+    $("#inQty").value = 1;
+    $("#inMemo").value = "";
+    $("#priceHistory").innerHTML = "";
+    if($("#chkFree").checked){
+      $("#freeSupplier").value = "";
+      $("#freeProduct").value = "";
+    }
   }
 }
 
@@ -1473,7 +1658,7 @@ function renderTodayList(){
     (group[key]=group[key]||[]).push(e);
   });
   Object.keys(group).forEach(k=>{
-    const sup=supplierName(k)||k;
+    const sup = supplierName(k) || (group[k] && group[k][0] && group[k][0].supplier_name_fallback) || k;
     const div=document.createElement("div"); div.className="list-item";
     const tt = calcTotalsByRate(group[k]); let net=tt.net, gross=tt.gross;
     let html=`<b>${sup}</b><div class="muted">税別 ${yen(net)}｜税込 ${yen(gross)}</div>`;
@@ -1651,6 +1836,76 @@ $("#modalHost :is(input,button,select,textarea,[tabindex]:not([tabindex='-1']))"
   const host=$("#modalHost"); if(!host||host.__bound) return;
   host.addEventListener("click",e=>{ if(e.target===host) closeModal(); });
   document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !host.classList.contains("hidden")) closeModal(); });
+
+
+/* ===== 支払方法：既存データの補完（未設定のみ） ===== */
+function _yearFromDateStr(ds){
+  const m = /^(\d{4})-/.exec(String(ds||''));
+  return m ? Number(m[1]) : NaN;
+}
+function backfillPayMethodMissing(scope){
+  const ay = getActiveYear();
+  const arr = Array.isArray(store.entries) ? store.entries : [];
+  let scanned=0, updated=0, skippedHas=0, skippedNoDef=0, skippedNoSupplier=0, skippedOutOfScope=0;
+  for(const e of arr){
+    if(!e || e.deleted) continue;
+    scanned++;
+    const pm = String(e.paymethod||'');
+    if(['cash','card','bank'].includes(pm)){ skippedHas++; continue; }
+    const y = _yearFromDateStr(e.date);
+    if(scope==='active' && y !== ay){ skippedOutOfScope++; continue; }
+    const sid = e.supplier_id;
+    if(!sid){ skippedNoSupplier++; continue; }
+    const def = supplierDefaultPayMethod(sid);
+    if(!def){ skippedNoDef++; continue; }
+    e.paymethod = def;
+    updated++;
+  }
+  if(updated>0) DB.save(store);
+  return { ay, scanned, updated, skippedHas, skippedNoDef, skippedNoSupplier, skippedOutOfScope };
+}
+function openPayMethodBackfillModal(){
+  const ay = getActiveYear();
+  openModalBase('支払方法を補完（未設定のみ）', `
+    <div class="muted" style="font-size:13px">
+      古いデータなどで「支払方法」が未設定の明細だけを、<b>仕入先マスタの「既定の支払方法」</b>で補完します。<br>
+      ※既定が未設定の仕入先／未登録で入力した明細は対象外です。
+    </div>
+    <div class="row" style="gap:14px;flex-wrap:wrap;margin-top:10px">
+      <label class="row" style="gap:6px"><input type="radio" name="pmfillScope" value="active" checked> 選択年度のみ（${ay}年）</label>
+      <label class="row" style="gap:6px"><input type="radio" name="pmfillScope" value="all"> 全データ（全年度）</label>
+    </div>
+    <div class="mini-meta" style="margin-top:8px">※安全のため、既に設定済みの明細は変更しません。</div>
+  `);
+  const ok = $('#modalOK');
+  ok.textContent = '実行';
+  ok.onclick = ()=>{
+    const scope = (document.querySelector('input[name=pmfillScope]:checked')||{}).value || 'active';
+    const msg = (scope==='all')
+      ? '全データの未設定明細だけを補完します。実行しますか？'
+      : `選択年度（${ay}年）の未設定明細だけを補完します。実行しますか？`;
+    if(!confirm(msg)) return;
+    const res = backfillPayMethodMissing(scope==='all' ? 'all' : 'active');
+    const lines = [
+      `完了：${res.updated}件を補完しました。`,
+      '',
+      `- 対象スキャン：${res.scanned}件`,
+      `- 既に設定済み：${res.skippedHas}件`,
+      `- 既定未設定の仕入先：${res.skippedNoDef}件`,
+      `- 未登録入力など（仕入先IDなし）：${res.skippedNoSupplier}件`,
+    ];
+    if(scope!=='all') lines.push(`- 年度対象外：${res.skippedOutOfScope}件`);
+    alert(lines.join('\n'));
+    try{ renderTodayList(); }catch(_){}
+    try{ renderHistory(); }catch(_){}
+    try{ refreshHome(); }catch(_){}
+    closeModal();
+  };
+}
+document.addEventListener('click',(e)=>{
+  if(e.target && e.target.id==='btnPayMethodBackfill') openPayMethodBackfillModal();
+});
+
   host.__bound=true;
 })();
 
@@ -1662,6 +1917,14 @@ function openSupplierModal(s){
       <div><div class="label">担当者</div><input id="mSupContact" type="text" value="${s?.contact||""}"></div>
       <div><div class="label">電話</div><input id="mSupPhone" type="text" value="${s?.phone||""}" inputmode="tel"></div>
       <div><div class="label">インボイス番号</div><input id="mSupInv" type="text" value="${s?.invoice_number||""}"></div>
+      <div><div class="label">既定の支払方法</div>
+        <select id="mSupPayDef">
+          <option value="" ${(!s?.paymethod_default?'selected':'')}>未設定（前回値を使用）</option>
+          <option value="cash" ${(s?.paymethod_default==='cash'?'selected':'')}>現金</option>
+          <option value="card" ${(s?.paymethod_default==='card'?'selected':'')}>カード</option>
+          <option value="bank" ${(s?.paymethod_default==='bank'?'selected':'')}>振込</option>
+        </select>
+      </div>
     </div>`);
   const onOK=()=>{
     const name=$("#mSupName").value.trim(); if(!name){ alert("社名を入力してください"); return; }
@@ -1673,13 +1936,18 @@ function openSupplierModal(s){
     const contact=$("#mSupContact").value.trim();
     const phone  =$("#mSupPhone").value.trim();
     const inv    =$("#mSupInv").value.trim();
-    if(s){ s.name=name; s.contact=contact; s.phone=phone; s.invoice_number=inv; }
+    const paydef = String(($("#mSupPayDef")||{}).value || "").trim();
+    const pmDef  = (["cash","card","bank"].includes(paydef) ? paydef : "");
+    if(s){
+      s.name=name; s.contact=contact; s.phone=phone; s.invoice_number=inv;
+      if(pmDef) s.paymethod_default = pmDef; else { try{ delete s.paymethod_default; }catch(_){} }
+    }
    else {  const cap = CAPS();const supCount = store.suppliers.filter(x=>!x.deleted).length;
   	if (supCount >= cap.suppliers){
     alert(`現在のプランでは仕入先は ${capLabel(cap.suppliers,'社')} までです。\nPlans からアップグレードをご検討ください。`);
     return;
   }
-  store.suppliers.push({id:uid(),name,contact,phone,invoice_number:inv});
+  store.suppliers.push(Object.assign({id:uid(),name,contact,phone,invoice_number:inv}, pmDef ? {paymethod_default: pmDef} : {}));
 }
     DB.save(store); renderSuppliers(); refreshHome(); fillSupplierSelect($("#inSupplier")); closeModal();
   };
@@ -1821,6 +2089,8 @@ function openEntryEditModalLite(entry){
   const pname = (store.products.find(p=>p.id===entry.product_id)||{}).name || (entry.product_name_fallback || "未登録");
   const sName = (store.suppliers.find(s=>s.id===entry.supplier_id)||{}).name || (entry.supplier_name_fallback || "未指定");
   const mode = (entry.taxmode || "excl");
+  const pmRaw = (entry.paymethod || entry.payMode || '');
+  const pm = (['cash','card','bank'].includes(String(pmRaw)) ? String(pmRaw) : '');
   openModalBase("明細を編集", `
     <div class="grid cols-2">
       <div style="grid-column:1/-1"><div class="label">仕入れ先</div><input type="text" value="${sName}" disabled></div>
@@ -1840,7 +2110,15 @@ function openEntryEditModalLite(entry){
           <option value="incl" ${mode==="incl"?"selected":""}>税込</option>
         </select>
       </div>
-      <div style="grid-column:1/-1" class="mini-meta">※ この画面では <b>数量・単価・税率・区分</b>を変更できます。メモは編集対象外です。</div>
+      <div><div class="label">支払方法</div>
+        <select id="mLitePay">
+          <option value="" ${pm===''?'selected':''}>未設定</option>
+          <option value="cash" ${pm==='cash'?'selected':''}>現金</option>
+          <option value="card" ${pm==='card'?'selected':''}>カード</option>
+          <option value="bank" ${pm==='bank'?'selected':''}>振込</option>
+        </select>
+      </div>
+      <div style="grid-column:1/-1" class="mini-meta">※ この画面では <b>数量・単価・税率・区分・支払方法</b>を変更できます。メモは編集対象外です。</div>
     </div>
   `);
   const ok = $("#modalOK"); const del = $("#modalDelete");
@@ -1865,12 +2143,16 @@ ok.textContent="更新";
     const p = Number($("#mLitePrice").value || 0);
     const r = Number($("#mLiteRate").value || entry.taxrate || 8);
     const m = String($("#mLiteMode").value || entry.taxmode || "excl");
+    const pm2 = String($("#mLitePay").value || "");
     if(!Number.isFinite(q) || q<=0){ alert("数量を正しく入力してください"); return; }
     if(!Number.isFinite(p) || p< 0){ alert("単価を正しく入力してください"); return; }
     if(![0,8,10].includes(r)){ alert("税率を選択してください"); return; }
     entry.qty=q; entry.price=p; entry.taxrate=r;
     if(!["excl","incl"].includes(m)){ alert("区分を選択してください"); return; }
     entry.taxmode=m;
+    if(!['cash','card','bank'].includes(pm2)){ alert('支払方法を選択してください'); return; }
+    entry.paymethod=pm2;
+    rememberPayMethodForSupplier(entry.supplier_id, pm2);
     _pushPriceHistoryIfNeeded(entry);
     DB.save(store);
     try{ renderTodayList(); }catch(_){}
@@ -1982,7 +2264,7 @@ function renderHistory(){
       const group = {};
       for (const e of byMonth[ym]){ const sk = e.supplier_id || e.supplier_name_fallback || "未指定"; (group[sk] = group[sk] || []).push(e); }
       for (const sk of Object.keys(group)){
-        const name = supplierName(sk) || sk;
+        const name = supplierName(sk) || (group[sk] && group[sk][0] && group[sk][0].supplier_name_fallback) || sk;
         const tt = calcTotalsByRate(group[sk]); let net=tt.net, gross=tt.gross;
         const head = showBoth ? `税別 ${yen(net)}｜税込 ${yen(gross)}` : `税込 ${yen(gross)}`;
         html += `<div style="margin-top:6px"><u>${name}</u> <span class="muted">${head}</span>`;
@@ -2013,7 +2295,7 @@ function renderHistory(){
     const group={};
     for (const e of byDate[dkey]){ const sk=e.supplier_id||e.supplier_name_fallback||"未指定"; (group[sk]=group[sk]||[]).push(e); }
     for (const sk of Object.keys(group)){
-      const name=supplierName(sk)||sk;
+      const name = supplierName(sk) || (group[sk] && group[sk][0] && group[sk][0].supplier_name_fallback) || sk;
       const tt = calcTotalsByRate(group[sk]); let net=tt.net, gross=tt.gross;
       const head = showBoth ? `税別 ${yen(net)}｜税込 ${yen(gross)}` : `税込 ${yen(gross)}`;
       html += `<div style="margin-top:6px"><u>${name}</u> <span class="muted">${head}</span>`;
@@ -2084,7 +2366,7 @@ function exportYearXML(year){
   const y = Number(year);
   if(!Number.isFinite(y)) return false;
 
-  const rows = [["日付","仕入れ先","商品","数量","単価","税率","区分","税込額","メモ"]];
+  const rows = [["日付","仕入れ先","商品","数量","単価","税率","区分","支払方法","税込額","メモ"]];
   const entries = (store.entries||[]).filter(e=>{
     if(!e || e.deleted || !e.date) return false;
     return String(e.date).startsWith(String(y)+"-");
@@ -2100,7 +2382,7 @@ function exportYearXML(year){
     const p = prodName(e.product_id, e.product_name_fallback);
     const g = (e.taxmode==="incl" ? e.price : e.price*(1+e.taxrate/100)) * e.qty;
     rows.push([ e.date, s, p, e.qty, e.price, e.taxrate,
-      (e.taxmode==="incl"?"税込":"税別"), yenFloor(g), e.memo||"" ]);
+      (e.taxmode==="incl"?"税込":"税別"), payLabel(e.paymethod), yenFloor(g), e.memo||"" ]);
   });
 
   const from = new Date(y,0,1);
@@ -2128,7 +2410,7 @@ function exportData(rangeKey){
   const key  = clampExportKey(rangeKey, plan);
   const range = getExportRange(key);
 
-  const rows = [["日付","仕入れ先","商品","数量","単価","税率","区分","税込額","メモ"]];
+  const rows = [["日付","仕入れ先","商品","数量","単価","税率","区分","支払方法","税込額","メモ"]];
   const ay = getActiveYear();
   const entries = (store.entries||[]).filter(e => e && !e.deleted && e.date && String(e.date).startsWith(String(ay)+"-") && (!range.from || _inRange(e.date, range)));
   if (!entries.length){ alert("選択した期間にデータがありません。"); return; }
@@ -2138,7 +2420,7 @@ function exportData(rangeKey){
     const p = prodName(e.product_id, e.product_name_fallback);
     const g = (e.taxmode==="incl" ? e.price : e.price*(1+e.taxrate/100)) * e.qty;
     rows.push([ e.date, s, p, e.qty, e.price, e.taxrate,
-      (e.taxmode==="incl"?"税込":"税別"), yenFloor(g), e.memo||"" ]);
+      (e.taxmode==="incl"?"税込":"税別"), payLabel(e.paymethod), yenFloor(g), e.memo||"" ]);
   });
 
   const base = key==='month' ? range.label : (key==='fiscal' ? `年度_${range.label}` : "全期間");
