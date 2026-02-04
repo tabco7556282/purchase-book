@@ -941,6 +941,151 @@ function calcTotalsByRate(entries){
   return { net: yenFloor(net), gross: yenFloor(gross), taxTotal: yenFloor(taxTotal) };
 }
 
+/* ===== 伝票（同日×仕入れ先）確定額：納品書優先 =======================
+  - entriesは1明細=1行だが、「同日×仕入れ先」を1伝票として扱う
+  - 伝票に doc_gross（納品書の税込合計）を設定した場合、表示上の「税込合計」は doc_gross を優先
+  - 明細の税率別集計（税別/税額）は従来計算のまま（ズレは「端数調整」として説明する）
+====================================================================== */
+function _voucherSupplierKey(e){
+  return (e && (e.supplier_id || e.supplier_name_fallback)) || "未指定";
+}
+function _voucherKey(e){
+  const docNo = (e && (e.doc_no ?? e.docNo ?? "")) || "";
+  // 同日×仕入れ先を基本キーとし、同日に複数納品書がある場合は納品書番号で分割できる
+  return String((e && e.date) || "") + "__" + String(_voucherSupplierKey(e)) + "__" + String(docNo);
+}
+function _getDocGrossFromEntries(arr){
+  for (const e of (arr || [])){
+    if(!e || e.deleted) continue;
+    const v = (e.doc_gross ?? e.docGross ?? null);
+    if(v===null || v===undefined || v==="") continue;
+    const n = Number(v);
+    if(Number.isFinite(n)) return yenFloor(n);
+  }
+  return null;
+}
+function getVoucherDocGrossByEntry(entry){
+  try{
+    const key = _voucherKey(entry);
+    const arr = (store.entries||[]).filter(e=> e && !e.deleted && _voucherKey(e)===key);
+    return _getDocGrossFromEntries(arr);
+  }catch(_){ return null; }
+}
+function setVoucherDocGrossByEntry(entry, grossOrNull){
+  const key = _voucherKey(entry);
+  const v = (grossOrNull===null || grossOrNull===undefined || grossOrNull==="") ? null : yenFloor(Number(grossOrNull));
+  const entries = (store.entries||[]);
+  let hasTarget = false;
+  for(const e of entries){ if(e && !e.deleted && _voucherKey(e)===key && e.id===entry.id){ hasTarget = true; break; } }
+  let kept = false;
+  for(const e of entries){
+    if(!e || e.deleted) continue;
+    if(_voucherKey(e)!==key) continue;
+    if(v===null || !Number.isFinite(v)){
+      delete e.doc_gross; delete e.docGross;
+      continue;
+    }
+    // 伝票内に1つだけ保持（代表行）。原則は編集中の明細に保持。
+    if(!kept && ((hasTarget && e.id===entry.id) || (!hasTarget))){
+      e.doc_gross = v; delete e.docGross;
+      kept = true;
+    }else{
+      delete e.doc_gross; delete e.docGross;
+    }
+  }
+}
+function calcVoucherTotals(arr){
+  const t = calcTotalsByRate(arr);
+  const doc = _getDocGrossFromEntries(arr);
+  if(doc!==null && doc!==undefined){
+    const adj = yenFloor(doc - t.gross);
+    return { ...t, grossCalc: t.gross, gross: yenFloor(doc), docGross: yenFloor(doc), adj };
+  }
+  return { ...t, grossCalc: t.gross, docGross: null, adj: 0 };
+}
+function sumGrossByVouchers(entries){
+  const buckets = Object.create(null);
+  for (const e of (entries || [])){
+    if(!e || e.deleted) continue;
+    const k = _voucherKey(e);
+    (buckets[k] = buckets[k] || []).push(e);
+  }
+  let gross = 0, grossCalc = 0, adj = 0;
+  for (const k of Object.keys(buckets)){
+    const vt = calcVoucherTotals(buckets[k]);
+    gross += Number(vt.gross)||0;
+    grossCalc += Number(vt.grossCalc)||0;
+    adj += Number(vt.adj)||0;
+  }
+  return { gross: yenFloor(gross), grossCalc: yenFloor(grossCalc), adj: yenFloor(adj) };
+}
+
+function calcSupplierTotals(entries){
+  const t = calcTotalsByRate(entries);
+  const s = sumGrossByVouchers(entries);
+  const hasDoc = (entries||[]).some(e=>{
+    if(!e || e.deleted) return false;
+    const v = (e.doc_gross ?? e.docGross ?? null);
+    return !(v===null || v===undefined || v==='');
+  });
+  return {
+    ...t,
+    gross: s.gross,
+    grossCalc: s.grossCalc,
+    adj: s.adj,
+    docGross: hasDoc ? 0 : null,
+    hasDoc
+  };
+}
+
+function normalizeVoucherFields(entries){
+  // 旧キー互換：docGross/docNo → doc_gross/doc_no
+  let changed = false;
+  const seen = Object.create(null);
+  for(const e of (entries||[])){
+    if(!e || e.deleted) continue;
+    if(e.docNo!=null && (e.doc_no==null || e.doc_no==='')){ e.doc_no = String(e.docNo); delete e.docNo; changed = true; }
+    if(e.docNo!=null){ delete e.docNo; changed = true; }
+    if(e.docGross!=null && (e.doc_gross==null || e.doc_gross==='')){ e.doc_gross = e.docGross; delete e.docGross; changed = true; }
+    if(e.docGross!=null){ delete e.docGross; changed = true; }
+
+    // doc_no を文字列に正規化
+    if(e.doc_no!=null && e.doc_no!==undefined){
+      const s = String(e.doc_no).trim();
+      if(s!==String(e.doc_no)) { e.doc_no = s; changed = true; }
+    }
+
+    // doc_gross を数値に正規化
+    if(e.doc_gross!=null && e.doc_gross!==undefined && e.doc_gross!==''){
+      const n = Number(e.doc_gross);
+      if(Number.isFinite(n) && n>=0){
+        const f = yenFloor(n);
+        if(f!==e.doc_gross){ e.doc_gross = f; changed = true; }
+      }else{
+        delete e.doc_gross; changed = true;
+      }
+    }
+
+    // 伝票内で doc_gross は1件だけにする
+    if(e.doc_gross!=null && e.doc_gross!==undefined && e.doc_gross!==''){
+      const k = _voucherKey(e);
+      if(seen[k]){ delete e.doc_gross; changed = true; }
+      else seen[k] = true;
+    }
+  }
+  return changed;
+}
+
+// Boot: 既存データの doc_gross 重複を自動修復
+(function(){
+  try{
+    if(store && Array.isArray(store.entries)){
+      const ch = normalizeVoucherFields(store.entries);
+      if(ch) DB.save(store);
+    }
+  }catch(e){ console.error('[normalizeVoucherFields]', e); }
+})();
+
 function enableSelectOnFocus(){
   $$('input[type="number"], input[type="text"]').forEach(inp=>{
     const sel=()=>inp.select&&inp.select();
@@ -1263,7 +1408,7 @@ function calcTotals(rangeKey){
     return (t>=from && t<=to);
   });
 
-  return calcTotalsByRate(picked).gross;
+  return sumGrossByVouchers(picked).gross;
 }
 function refreshAds(){
   const slot = $("#adSlot");
@@ -1660,8 +1805,11 @@ function renderTodayList(){
   Object.keys(group).forEach(k=>{
     const sup = supplierName(k) || (group[k] && group[k][0] && group[k][0].supplier_name_fallback) || k;
     const div=document.createElement("div"); div.className="list-item";
-    const tt = calcTotalsByRate(group[k]); let net=tt.net, gross=tt.gross;
-    let html=`<b>${sup}</b><div class="muted">税別 ${yen(net)}｜税込 ${yen(gross)}</div>`;
+    const vt = calcSupplierTotals(group[k]); let net=vt.net, gross=vt.gross;
+    const note = (vt.docGross!=null)
+      ? (` <span class="mini-meta">（${(vt.adj||0)===0 ? "納品書優先" : ("端数調整 "+((vt.adj>0)?"+":"")+String(vt.adj)+"円") }／明細合算 税込 ${yen(vt.grossCalc)}）</span>`)
+      : "";
+    let html=`<b>${sup}</b><div class="muted">税別 ${yen(net)}｜税込 ${yen(gross)}${note}</div>`;
     html+=group[k].map(e=>{
       const t=calcLineTotal(e);
       const txLabel=e.taxmode==="incl"?"税込":(e.taxrate===0?"非課税":"税別");
@@ -2091,6 +2239,8 @@ function openEntryEditModalLite(entry){
   const mode = (entry.taxmode || "excl");
   const pmRaw = (entry.paymethod || entry.payMode || '');
   const pm = (['cash','card','bank'].includes(String(pmRaw)) ? String(pmRaw) : '');
+  const docGross = getVoucherDocGrossByEntry(entry);
+  const docNo = String(entry.doc_no ?? entry.docNo ?? "");
   openModalBase("明細を編集", `
     <div class="grid cols-2">
       <div style="grid-column:1/-1"><div class="label">仕入れ先</div><input type="text" value="${sName}" disabled></div>
@@ -2117,6 +2267,17 @@ function openEntryEditModalLite(entry){
           <option value="card" ${pm==='card'?'selected':''}>カード</option>
           <option value="bank" ${pm==='bank'?'selected':''}>振込</option>
         </select>
+      </div>
+      <div style="grid-column:1/-1">
+        <div class="label">納品書番号（任意）</div>
+        <input id="mLiteDocNo" type="text" value="${docNo}" placeholder="未設定">
+        <div class="mini-meta">※ 同日同仕入れ先で複数納品書がある場合に使用します。納品書ごとに同じ番号を設定します。</div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="label">納品書合計（確定額・税込）</div>
+        <input id="mLiteDocGross" type="number" inputmode="numeric" min="0" step="1" value="${(docGross!=null)?docGross:""}" placeholder="未設定（空欄で解除）">
+        <div class="mini-meta">※ 同日×仕入れ先（納品書番号がある場合は分割）の明細合計が納品書とズレる場合、納品書の税込合計を設定すると、この伝票の「税込合計」は納品書優先になります。</div>
       </div>
       <div style="grid-column:1/-1" class="mini-meta">※ この画面では <b>数量・単価・税率・区分・支払方法</b>を変更できます。メモは編集対象外です。</div>
     </div>
@@ -2152,6 +2313,40 @@ ok.textContent="更新";
     entry.taxmode=m;
     if(!['cash','card','bank'].includes(pm2)){ alert('支払方法を選択してください'); return; }
     entry.paymethod=pm2;
+
+    // 納品書番号（任意）：同日同仕入れ先で複数納品書がある場合に分割キーとして使用
+    const dn = String($("#mLiteDocNo")?.value ?? "").trim();
+    const oldDn = String(entry.doc_no ?? entry.docNo ?? "").trim();
+    if(dn===""){
+      delete entry.doc_no; delete entry.docNo;
+    }else{
+      entry.doc_no = dn; delete entry.docNo;
+      // 未設定の明細は同じ番号へ寄せる（必要なら後から別番号へ変更可能）
+      if(oldDn===""){
+        (store.entries||[]).forEach(e=>{
+          if(!e || e.deleted) return;
+          if(e.id===entry.id) return;
+          if(String(e.date||"")!==String(entry.date||"")) return;
+          const s1 = String(e.supplier_id || e.supplier_name_fallback || "");
+          const s2 = String(entry.supplier_id || entry.supplier_name_fallback || "");
+          if(s1!==s2) return;
+          const edn = String(e.doc_no ?? e.docNo ?? "").trim();
+          if(edn!=="") return;
+          e.doc_no = dn; delete e.docNo;
+        });
+      }
+    }
+
+    // 納品書合計（確定額・税込）：同日×仕入れ先の伝票に対して一括適用
+    const dgRaw = String($("#mLiteDocGross")?.value ?? "").trim();
+    if(dgRaw===""){
+      setVoucherDocGrossByEntry(entry, null);
+    }else{
+      const dg = Number(dgRaw);
+      if(!Number.isFinite(dg) || dg < 0){ alert("納品書合計（確定額）を正しく入力してください"); return; }
+      setVoucherDocGrossByEntry(entry, dg);
+    }
+
     rememberPayMethodForSupplier(entry.supplier_id, pm2);
     _pushPriceHistoryIfNeeded(entry);
     DB.save(store);
@@ -2238,7 +2433,10 @@ function renderHistory(){
 
   // 期間と仕入れ先フィルタを反映した合計カード（先頭に表示）
   const totalT = calcTotalsByRate(entries);
-  let totalNet = totalT.net, totalGross = totalT.gross;
+  let totalNet = totalT.net, totalGrossCalc = totalT.gross;
+  const sumG = sumGrossByVouchers(entries);
+  let totalGross = sumG.gross;
+  const adjGross = yenFloor(totalGross - totalGrossCalc);
   const sumCard = document.createElement("div");
   sumCard.className = "card";
   const titleParts = ["期間合計"];
@@ -2246,7 +2444,16 @@ function renderHistory(){
     const name = supplierName(supFilter) || "";
     if (name) titleParts.push(`（${name}）`);
   }
-  const headText = showBoth ? `税別 ${yen(totalNet)}｜税込 ${yen(totalGross)}` : `税込 ${yen(totalGross)}`;
+  let headText = "";
+  if(showBoth){
+    headText = (totalGross === totalGrossCalc)
+      ? `税別 ${yen(totalNet)}｜税込 ${yen(totalGross)}`
+      : `税別(計算) ${yen(totalNet)}｜税込(納品書) ${yen(totalGross)}<br><span class="mini-meta">計算税込 ${yen(totalGrossCalc)}／端数調整 ${adjGross>0?'+':''}${adjGross}円</span>`;
+  }else{
+    headText = (totalGross === totalGrossCalc)
+      ? `税込 ${yen(totalGross)}`
+      : `税込(納品書) ${yen(totalGross)}<br><span class="mini-meta">計算税込 ${yen(totalGrossCalc)}／端数調整 ${adjGross>0?'+':''}${adjGross}円</span>`;
+  }
   sumCard.innerHTML = `<b>${titleParts.join("")}</b><div class="muted" style="margin-top:4px">${headText}</div>`;
   list.appendChild(sumCard);
 
@@ -2265,8 +2472,11 @@ function renderHistory(){
       for (const e of byMonth[ym]){ const sk = e.supplier_id || e.supplier_name_fallback || "未指定"; (group[sk] = group[sk] || []).push(e); }
       for (const sk of Object.keys(group)){
         const name = supplierName(sk) || (group[sk] && group[sk][0] && group[sk][0].supplier_name_fallback) || sk;
-        const tt = calcTotalsByRate(group[sk]); let net=tt.net, gross=tt.gross;
-        const head = showBoth ? `税別 ${yen(net)}｜税込 ${yen(gross)}` : `税込 ${yen(gross)}`;
+        const vt = calcSupplierTotals(group[sk]); let net=vt.net, gross=vt.gross;
+        const note = (vt.docGross!=null)
+          ? (` <span class="mini-meta">（${(vt.adj||0)===0 ? "納品書優先" : ("端数調整 "+((vt.adj>0)?"+":"")+String(vt.adj)+"円") }／明細合算 税込 ${yen(vt.grossCalc)}）</span>`)
+          : "";
+        const head = showBoth ? `税別 ${yen(net)}｜税込 ${yen(gross)}${note}` : `税込 ${yen(gross)}${note}`;
         html += `<div style="margin-top:6px"><u>${name}</u> <span class="muted">${head}</span>`;
         html += group[sk].map(e=>{
           const t=calcLineTotal(e);
@@ -2296,8 +2506,11 @@ function renderHistory(){
     for (const e of byDate[dkey]){ const sk=e.supplier_id||e.supplier_name_fallback||"未指定"; (group[sk]=group[sk]||[]).push(e); }
     for (const sk of Object.keys(group)){
       const name = supplierName(sk) || (group[sk] && group[sk][0] && group[sk][0].supplier_name_fallback) || sk;
-      const tt = calcTotalsByRate(group[sk]); let net=tt.net, gross=tt.gross;
-      const head = showBoth ? `税別 ${yen(net)}｜税込 ${yen(gross)}` : `税込 ${yen(gross)}`;
+      const vt = calcSupplierTotals(group[sk]); let net=vt.net, gross=vt.gross;
+      const note = (vt.docGross!=null)
+        ? (` <span class="mini-meta">（${(vt.adj||0)===0 ? "納品書優先" : ("端数調整 "+((vt.adj>0)?"+":"")+String(vt.adj)+"円") }／明細合算 税込 ${yen(vt.grossCalc)}）</span>`)
+        : "";
+      const head = showBoth ? `税別 ${yen(net)}｜税込 ${yen(gross)}${note}` : `税込 ${yen(gross)}${note}`;
       html += `<div style="margin-top:6px"><u>${name}</u> <span class="muted">${head}</span>`;
       html += group[sk].map(e=>{
         const t=calcLineTotal(e);
@@ -2609,6 +2822,7 @@ store.suppliers = data.tables.suppliers || [];
 store.products  = data.tables.products  || [];
 store.entries   = data.tables.entries   || [];
 store.priceHistory = data.tables.priceHistory || {};
+normalizeVoucherFields(store.entries);
 store.settings = Object.assign({
   theme: store.settings.theme,
   autoClear: true,
