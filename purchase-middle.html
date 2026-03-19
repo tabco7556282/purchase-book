@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ミドルを購入 | Tabco Ledger Plus</title>
+  <meta name="theme-color" content="#FF9800" />
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #fff8e1;
+      --card: #ffffff;
+      --ink: #222;
+      --muted: #666;
+      --line: #f0d7a7;
+      --accent: #ff9800;
+      --accent-ink: #2a1a00;
+      --soft: #fff1d1;
+      --ok: #137333;
+      --ng: #b3261e;
+      --shadow: 0 10px 30px rgba(0,0,0,.08);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, #fff8e1 0%, #fff3d2 100%);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+    .wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 18px 16px 40px;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.75);
+      border: 1px solid rgba(0,0,0,.06);
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .brand {
+      font-size: 12px;
+      font-weight: 800;
+      color: #8a5a00;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      border: 1px solid rgba(0,0,0,.04);
+      margin-bottom: 16px;
+    }
+    .hero {
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top right, rgba(255,152,0,.16), transparent 42%);
+      pointer-events: none;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--soft);
+      color: #8a5a00;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 14px;
+    }
+    h1 { margin: 0 0 8px; font-size: 28px; line-height: 1.2; }
+    .lead { margin: 0; line-height: 1.7; color: var(--muted); font-size: 15px; }
+    .plan-box {
+      background: #fffdf7;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+    }
+    .plan-name {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .plan-name strong { font-size: 20px; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--soft);
+      color: #8a5a00;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .features {
+      list-style: none;
+      padding: 0;
+      margin: 12px 0 0;
+      display: grid;
+      gap: 8px;
+    }
+    .features li {
+      background: #fff;
+      border: 1px solid #f0ece2;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+    .price {
+      margin: 14px 0 4px;
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+    .price-sub {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .actions { display: grid; gap: 10px; margin-top: 18px; }
+    .btn {
+      appearance: none;
+      border: 0;
+      border-radius: 14px;
+      padding: 15px 18px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      width: 100%;
+      transition: transform .08s ease, opacity .2s ease;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary {
+      background: var(--accent);
+      color: var(--accent-ink);
+      box-shadow: inset 0 -2px 0 rgba(0,0,0,.1);
+    }
+    .btn-secondary {
+      background: #fff;
+      color: var(--ink);
+      border: 1px solid #e7dcc7;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .status {
+      margin-top: 10px;
+      min-height: 24px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .status.ok { color: var(--ok); }
+    .status.ng { color: var(--ng); }
+    .note {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .help-box {
+      background: #fffdf7;
+      border: 1px solid #efe3c7;
+      border-radius: 16px;
+      padding: 16px;
+    }
+    .help-box h2,
+    .debug h2 { margin: 0 0 10px; font-size: 18px; }
+    .help-box p { margin: 8px 0; line-height: 1.7; color: var(--muted); font-size: 14px; }
+    .report-box {
+      display: block;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px dashed #e6d7b4;
+    }
+    .report-box.show { display: block; }
+    .report-box label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .report-box textarea {
+      width: 100%;
+      min-height: 96px;
+      border-radius: 12px;
+      border: 1px solid #dccba8;
+      padding: 12px;
+      font: inherit;
+      resize: vertical;
+      background: #fff;
+      color: var(--ink);
+    }
+    .report-result {
+      margin-top: 10px;
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--muted);
+      min-height: 22px;
+    }
+    .debug {
+      display: none;
+      background: #fffdf7;
+      border: 1px solid #efe3c7;
+      border-radius: 16px;
+      padding: 16px;
+    }
+    .debug.show { display: block; }
+    .debug-row { margin: 8px 0; font-size: 13px; line-height: 1.7; }
+    .mono {
+      display: inline-block;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      word-break: break-word;
+      white-space: pre-wrap;
+      background: #f7f7f7;
+      border-radius: 10px;
+      padding: 2px 6px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <a class="back" href="/?channel=play">← ホームへ戻る</a>
+      <div class="brand">Tabco Ledger Plus</div>
+    </div>
+
+    <section class="card hero">
+      <div class="eyebrow">Google Play 購入</div>
+      <h1>ミドルを購入</h1>
+      <p class="lead">Google Play でミドルプランを購入します。購入後はアプリに戻ってご利用ください。</p>
+    </section>
+
+    <section class="card">
+      <div class="plan-box">
+        <div class="plan-name">
+          <strong>ミドル</strong>
+          <span class="pill">買い切り</span>
+        </div>
+        <ul class="features">
+          <li>仕入先 15件まで</li>
+          <li>商品 200件まで</li>
+          <li>Google Play で購入</li>
+        </ul>
+        <div class="price" id="priceText">価格を確認しています...</div>
+        <p class="price-sub" id="priceSub">Google Play の商品情報から取得します。</p>
+      </div>
+
+      <div class="actions">
+        <button id="buyBtn" type="button" class="btn btn-primary">Google Playで購入する</button>
+        <a class="btn btn-secondary" href="/?channel=play">購入せずに戻る</a>
+      </div>
+      <div id="statusText" class="status"></div>
+      <p class="note">うまく進まない場合は、通信状況をご確認のうえ、もう一度お試しください。</p>
+    </section>
+
+    <section class="card help-box">
+      <h2>うまく購入できないとき</h2>
+      <p>購入画面が開かない場合は、アプリを再起動してからもう一度お試しください。</p>
+      <p>うまく進まない場合は、下の報告ボタンから状況を送信できます。必要なときだけ補足メモをご利用ください。</p>
+      <div id="reportBox" class="report-box">
+        <label for="userNote">補足メモ（任意）</label>
+        <textarea id="userNote" placeholder="例：Middleを押しても購入画面が開かない、など"></textarea>
+        <div class="actions">
+          <button id="reportBtn" type="button" class="btn btn-secondary">問題を報告する</button>
+        </div>
+        <div id="reportResult" class="report-result"></div>
+      </div>
+    </section>
+
+    <section id="debugPanel" class="card debug">
+      <h2>管理用デバッグ情報</h2>
+      <div class="debug-row">商品ID: <span class="mono" id="debugSku">middle_lifetime</span></div>
+      <div class="debug-row">Digital Goods API: <span id="debugDg">-</span></div>
+      <div class="debug-row">購入履歴: <span id="debugOwned">-</span></div>
+      <div class="debug-row">エラー名: <span class="mono" id="debugErrName">-</span></div>
+      <div class="debug-row">エラー内容: <span class="mono" id="debugErrMsg">-</span></div>
+      <div class="debug-row">詳細: <div class="mono" id="debugJson">-</div></div>
+    </section>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const PLAY_BILLING_METHOD = 'https://play.google.com/billing';
+      const SKU = 'middle_lifetime';
+      const REPORT_ENDPOINT = 'api/report_purchase_issue.php';
+      const DEBUG_MODE = new URL(location.href).searchParams.get('debug') === '1';
+
+      const $ = (id) => document.getElementById(id);
+      const el = {
+        priceText: $('priceText'),
+        priceSub: $('priceSub'),
+        buyBtn: $('buyBtn'),
+        statusText: $('statusText'),
+        reportBox: $('reportBox'),
+        userNote: $('userNote'),
+        reportBtn: $('reportBtn'),
+        reportResult: $('reportResult'),
+        debugPanel: $('debugPanel'),
+        debugDg: $('debugDg'),
+        debugOwned: $('debugOwned'),
+        debugErrName: $('debugErrName'),
+        debugErrMsg: $('debugErrMsg'),
+        debugJson: $('debugJson')
+      };
+
+      let service = null;
+      let lastDetails = null;
+      let lastError = null;
+      let lastOwnedText = '-';
+
+      if (DEBUG_MODE) el.debugPanel.classList.add('show');
+
+      function setStatus(text, cls) {
+        el.statusText.textContent = text || '';
+        el.statusText.className = 'status' + (cls ? ' ' + cls : '');
+      }
+
+      function setError(error) {
+        lastError = error || null;
+        const name = error?.name || '-';
+        const message = error?.message || '-';
+        el.debugErrName.textContent = name;
+        el.debugErrMsg.textContent = message;
+        try {
+          el.debugJson.textContent = JSON.stringify({
+            name: error?.name || null,
+            message: error?.message || null,
+            stack: error?.stack || null
+          }, null, 2);
+        } catch (_) {
+          el.debugJson.textContent = String(error || '-');
+        }
+      }
+
+      function clearError() {
+        setError(null);
+      }
+
+      function updateOwnedText(text) {
+        lastOwnedText = text;
+        el.debugOwned.textContent = text;
+      }
+
+      function formatPrice(item) {
+        if (!item || !item.price) return null;
+        return new Intl.NumberFormat(navigator.language || 'ja-JP', {
+          style: 'currency',
+          currency: item.price.currency
+        }).format(item.price.value);
+      }
+
+      async function getService() {
+        if (!('getDigitalGoodsService' in window)) {
+          throw new Error('getDigitalGoodsService is unavailable');
+        }
+        return window.getDigitalGoodsService(PLAY_BILLING_METHOD);
+      }
+
+      async function refreshInfo() {
+        clearError();
+        try {
+          el.priceText.textContent = '価格を確認しています...';
+          el.priceSub.textContent = 'Google Play の商品情報から取得します。';
+          el.debugDg.textContent = '接続中...';
+
+          service = await getService();
+          el.debugDg.textContent = '利用可能';
+          const details = await service.getDetails([SKU]);
+          lastDetails = Array.isArray(details) ? details[0] : null;
+
+          if (lastDetails) {
+            const price = formatPrice(lastDetails);
+            el.priceText.textContent = price || '価格は購入画面で確認';
+            el.priceSub.textContent = lastDetails.description || 'Google Play の購入画面で最終価格をご確認ください。';
+          } else {
+            el.priceText.textContent = '価格は購入画面で確認';
+            el.priceSub.textContent = 'Google Play の商品情報を取得できませんでした。';
+          }
+
+          if (typeof service.listPurchases === 'function') {
+            const purchases = await service.listPurchases();
+            const owned = (purchases || []).filter(p => p.itemId === SKU);
+            updateOwnedText(owned.length ? '購入履歴あり' : '購入履歴なし');
+          } else {
+            updateOwnedText('未対応');
+          }
+
+          setStatus('', '');
+        } catch (error) {
+          el.debugDg.textContent = '利用不可';
+          updateOwnedText('-');
+          el.priceText.textContent = '価格は購入画面で確認';
+          el.priceSub.textContent = 'Google Play の商品情報取得に失敗しました。';
+          setStatus('購入の準備に失敗しました。通信状況をご確認ください。', 'ng');
+          setError(error);
+          el.reportBox.classList.add('show');
+        }
+      }
+
+      async function startPurchase() {
+        clearError();
+        try {
+          setStatus('購入画面を開いています...', '');
+          const request = new PaymentRequest(
+            [{
+              supportedMethods: PLAY_BILLING_METHOD,
+              data: { sku: SKU }
+            }],
+            {
+              total: {
+                label: 'Middle',
+                amount: { currency: 'JPY', value: '0' }
+              }
+            }
+          );
+
+          const response = await request.show();
+          setStatus('購入情報を確認しています...', '');
+
+          try {
+            await response.complete('success');
+          } catch (_) {
+            // noop
+          }
+
+          await refreshInfo();
+          setStatus('購入処理が完了しました。ホームへ戻ってご確認ください。', 'ok');
+        } catch (error) {
+          setStatus('購入画面を開けませんでした。しばらくしてからもう一度お試しください。', 'ng');
+          setError(error);
+          el.reportBox.classList.add('show');
+        }
+      }
+
+      function buildReportPayload() {
+        return {
+          page: 'purchase-middle.html',
+          sku: SKU,
+          href: location.href,
+          referrer: document.referrer || '',
+          channel: new URL(location.href).searchParams.get('channel') || '',
+          title: lastDetails?.title || '',
+          price_text: el.priceText.textContent || '',
+          dg_status: el.debugDg.textContent || '',
+          owned_status: lastOwnedText,
+          status_text: el.statusText.textContent || '',
+          error_name: lastError?.name || '',
+          error_message: lastError?.message || '',
+          error_stack: lastError?.stack || '',
+          user_agent: navigator.userAgent || '',
+          language: navigator.language || '',
+          platform: navigator.platform || '',
+          timestamp: new Date().toISOString(),
+          user_note: (el.userNote.value || '').trim(),
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || ''
+        };
+      }
+
+      async function reportIssue() {
+        el.reportResult.textContent = '送信しています...';
+        try {
+          const res = await fetch(REPORT_ENDPOINT, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(buildReportPayload())
+          });
+
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.ok) {
+            throw new Error(data.error || 'report_failed');
+          }
+
+          el.reportResult.textContent = '送信しました。状況を確認のうえ対応します。';
+          el.reportResult.style.color = 'var(--ok)';
+        } catch (error) {
+          el.reportResult.textContent = '送信に失敗しました。時間をおいてもう一度お試しください。';
+          el.reportResult.style.color = 'var(--ng)';
+        }
+      }
+
+      el.buyBtn.addEventListener('click', () => {
+        void startPurchase();
+      });
+
+      el.reportBtn.addEventListener('click', () => {
+        void reportIssue();
+      });
+
+      void refreshInfo();
+    })();
+  </script>
+</body>
+</html>
