@@ -1,6 +1,23 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+<script>
+(() => {
+  const p = new URLSearchParams(location.search);
+  const isTwaRef = (document.referrer || "").startsWith("android-app://com.cafetabco.tlp");
+  const isPlay =
+    isTwaRef ||
+    (p.get("channel") === "play") ||
+    (localStorage.getItem("tlpChannel") === "play");
+
+  if (isPlay) localStorage.setItem("tlpChannel", "play");
+  document.documentElement.dataset.play = isPlay ? "1" : "0";
+})();
+</script>
+
+<style>
+  html[data-play="1"] #btnBuyPro { display: none !important; }
+</style>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
 <meta http-equiv="Content-Security-Policy"
@@ -257,13 +274,13 @@ body.mode-prev-year .hdr-pill{background:#fff;border-color:var(--danger);color:v
       <div class="card"><div class="label">今月の仕入れ合計（税込）</div><div id="kpiMonth" style="font-weight:800;font-size:20px">¥0</div></div>
     </div>
     <div class="nav-vertical" style="margin-top:12px">
-      <button class="btn primary" data-goto="input" type="button">仕入入力</button>
+      <button class="btn primary" data-goto="input" type="button">仕入れ入力</button>
       <button class="btn ghost" data-goto="history" type="button">履歴・集計</button>
       <button class="btn ghost" data-goto="suppliers" type="button">仕入れ先マスタ</button>
       <button class="btn ghost" data-goto="products" type="button">商品マスタ</button>
       <button class="btn ghost" id="btnExport" type="button">データ出力</button>
       <button class="btn ghost" data-goto="backup" type="button">バックアップ設定</button>
-      <button class="btn ghost" data-goto="license" type="button">Plans</button>
+      <button class="btn ghost" data-goto="license" type="button">使い方・Plans</button>
       <button class="btn ghost" data-goto="rights" type="button">Licenses＆Notices</button>
      <button class="btn danger" id="btnFactoryReset" type="button">データ初期化</button>
       <div class="label">※初期化の前にバックアップを取ってください。</div>
@@ -287,7 +304,7 @@ body.mode-prev-year .hdr-pill{background:#fff;border-color:var(--danger);color:v
 </section>
 
   <!-- INPUT -->
-  <section id="page-input" class="hidden" data-title="仕入入力">
+  <section id="page-input" class="hidden" data-title="仕入れ入力">
     <div class="card grid">
       <div class="grid cols-2">
         <div><div class="label" id="lblInDate">日付</div><input type="date" id="inDate"></div>
@@ -414,7 +431,7 @@ body.mode-prev-year .hdr-pill{background:#fff;border-color:var(--danger);color:v
         <button id="btnFinalizePrevYear" class="btn danger small" type="button">前年度を確定（出力→削除）</button>
       </div>
       <div class="muted" style="margin-top:6px">※ 前年度（1月〜12月）の明細をExcel XMLで出力した後、前年度の明細だけを削除します（仕入れ先・商品マスタは残ります）。</div>
-      <div class="label" style="margin-top:8px">※ 仕入先・商品マスタは年度に関係なく共通です。明細・集計・出力は選択年度のみ対象です。</div>
+      <div class="label" style="margin-top:8px">※ 仕入れ先・商品マスタは年度に関係なく共通です。明細・集計・出力は選択年度のみ対象です。</div>
 
     </div>
 
@@ -423,20 +440,42 @@ body.mode-prev-year .hdr-pill{background:#fff;border-color:var(--danger);color:v
     <div class="card" style="margin-top:12px">
       <div class="section-title">支払方法の補完（未設定のみ）</div>
       <div class="muted" style="font-size:12px">
-        旧データなどで「支払方法」が未設定の明細だけを、仕入先マスタの「既定の支払方法」で補完します。
+        旧データなどで「支払方法」が未設定の明細だけを、仕入れ先マスタの「既定の支払方法」で補完します。
         既に設定済みの明細は変更しません。
       </div>
       <div class="row" style="margin-top:10px;justify-content:flex-end">
         <button id="btnPayMethodBackfill" class="btn ghost" type="button">支払方法を補完（未設定のみ）</button>
       </div>
-      <div class="mini-meta" style="margin-top:6px">※ 仕入先の既定が未設定のもの／未登録で入力した明細は対象外です。</div>
+      <div class="mini-meta" style="margin-top:6px">※ 仕入れ先の既定が未設定のもの／未登録で入力した明細は対象外です。</div>
     </div>
 
   </section>
 
   <!-- LICENSE -->
   <section id="page-license" class="hidden" data-title="ライセンス">
-    <div class="grid" style="grid-template-columns:1fr;gap:12px">
+   <section id="howto-1min" style="margin:12px 0 16px; padding:14px; background:#FFF3C4; border:2px solid #E09B00; border-radius:16px; box-shadow:0 6px 18px rgba(0,0,0,.08);">
+  <h3 style="margin:0 0 8px;">基本的な使い方</h3>
+  <p style="margin:0 0 8px;">
+    登録した仕入れ先と商品を選んで数量を入れるだけ（価格が違う時はその場で修正）。HOMEに今週・今月・年間の合計が出ます。
+  </p>
+  <ul style="margin:0; padding-left:18px;">
+    <li>① 仕入れ先を登録（各情報・支払方法）</li>
+    <li>② 商品を登録（金額・税率・メモ）</li>
+    <li>③ 仕入れ入力（数量を入れるだけ）→明細を追加</li>
+    <li>④ HOMEや履歴で合計確認（編集可能）</li>
+    <li>⑤ バックアップを取る</li>
+  </ul>
+  <p style="margin:8px 0 0; opacity:.85;">
+    ※データは端末内に保存（バックアップで復元できます）
+　　詳しい使い方はこちら↓
+  </p>
+<p style="margin:8px 0 0;">
+  <a href="https://cafetabco.com/tabco-ledger-plus-%E3%83%9E%E3%83%8B%E3%83%A5%E3%82%A2%E3%83%AB/" target="_blank" rel="noopener">
+    詳しいマニュアル（Web）
+  </a>
+</p>
+</section> 
+<div class="grid" style="grid-template-columns:1fr;gap:12px">
       <div class="card">
         <h3>無料版</h3>
         <ul>
@@ -448,27 +487,28 @@ body.mode-prev-year .hdr-pill{background:#fff;border-color:var(--danger);color:v
       </div>
 
       <div class="card">
-        <h3>ミドル（¥700）</h3>
+        <h3>ミドル</h3>
         <ul>
           <li>広告なし</li>
           <li>仕入れ先 <b>15社</b>まで／商品<b>合計200品</b></li>
           <li>出力範囲：<b>年度（1月〜今月）</b></li>
         </ul>
-        <button id="btnEnterLicenseMiddle" class="btn ghost small" type="button">コードを入力</button>
+        <div class="muted" style="font-size:12px;margin:0 0 8px">価格は購入画面で確認</div>
+        <button id="btnEnterLicenseMiddle" class="btn ghost small" type="button">Middleを購入</button>
 　　　</div>
 
       <div class="card">
-        <h3>プロ（¥1,500）</h3>
+        <h3>プロ</h3>
         <ul>
           <li>広告なし</li>
-          <li>仕入先数・商品数に上限なし</li>
+          <li>仕入れ先数・商品数に上限なし</li>
           <li>出力範囲：<b>無制限</b></li>
         </ul>
+        <div class="muted" style="font-size:12px;margin:0 0 8px">価格は購入画面で確認</div>
         <button id="btnEnterLicense" class="btn ghost small" type="button">コードを入力</button>
       </div>
     </div>
   </section>
-
   <!-- RIGHTS（省略せず既存どおり） -->
   <div id="license-actions" style="margin:12px 0; display:flex; gap:8px; flex-wrap:wrap;">
   <button id="btnOpenLicense">コードを入力</button>
@@ -516,15 +556,24 @@ body.mode-prev-year .hdr-pill{background:#fff;border-color:var(--danger);color:v
   </div>
 </div>
 <div id="plans-cta" class="tlp-buy-btn-group" aria-live="polite">
-  <a id="btnBuyMiddle" class="tlp-buy-btn" data-plan="middle" href="https://buy.stripe.com/3cI14g5DR5r88O0bn58EM02">Middle（¥700）を購入</a>
- <a id="btnBuyPro" class="tlp-buy-btn" data-plan="pro" href="https://buy.stripe.com/28EbIU5DR1aSggs3UD8EM03">Pro（¥1,500）を購入</a>
-  <small id="purchaseNudge" class="tlp-cta-note" hidden>テスト環境：実課金は発生しません</small>
+  <a id="btnBuyMiddle" class="tlp-buy-btn" data-plan="middle" href="https://buy.stripe.com/3cI14g5DR5r88O0bn58EM02">Middleを購入</a>
+ <a id="btnBuyPro" class="tlp-buy-btn" data-plan="pro" href="https://buy.stripe.com/28EbIU5DR1aSggs3UD8EM03">Proを購入</a>
+  <small id="purchaseNudge" class="tlp-cta-note">価格は購入画面で確認</small>
 </div>
-
+<script>
+(() => {
+  const isPlay = (new URLSearchParams(location.search).get("channel") === "play")
+    || (localStorage.getItem("tlpChannel") === "play");
+  if (isPlay) {
+    localStorage.setItem("tlpChannel", "play");
+  }
+})();
+</script>
 <script>
 
   window.tlpCheckoutMiddle = "https://buy.stripe.com/3cI14g5DR5r88O0bn58EM02";
   window.tlpCheckoutPro    = "https://buy.stripe.com/28EbIU5DR1aSggs3UD8EM03";
+  window.tlpPlayMiddleCheckoutURL = "/purchase-middle.html?channel=play";
   window.tlpRedeemURL      = "https://www.cafetabco.com/api/license/redeem.php";
   window.tlpRedeemURL = 'https://www.cafetabco.com/api/license/redeem.php';
   window.tlpVerifyURL = 'https://www.cafetabco.com/api/license/verify.php';
@@ -1181,12 +1230,12 @@ function planJp(p){ return p==="pro" ? "プロ" : (p==="middle" ? "ミドル" : 
 function setHeaderTitleByPage(id){
   const map = {
     home:"仕入れ管理",
-    input:"仕入入力",
+    input:"仕入れ入力",
     suppliers:"仕入れ先マスタ",
     products:"商品マスタ",
     history:"履歴・集計",
     backup:"バックアップ設定",
-    license:"Plans",
+    license:"使い方・プラン",
     rights:"Licenses & Notices",
   };
   const el=$("#pageTitle"); if(el) el.textContent = map[id] || "";
@@ -1560,7 +1609,7 @@ function initInputPage(){
   const sid=$("#inSupplier").value;
   renderProductSelect($("#inProduct"),sid,"");
   $("#prodSearch").value=""; $("#inQty").value=1; $("#inPrice").value=""; $("#inMemo").value="";
-  // 支払方法（仕入先の既定 → 仕入先ごとの前回 → 全体の前回）
+  // 支払方法（仕入れ先の既定 → 仕入れ先ごとの前回 → 全体の前回）
   try{
     const free = !!$('#chkFree')?.checked;
     const sid2 = free ? null : ($('#inSupplier')?.value || null);
@@ -1670,12 +1719,12 @@ function addLine(){
   // 入力モードの取り違え（未登録/登録）を防ぐ
   if(free){
     if(!freeSupplier || !freeProduct){
-      alert("未登録で入力する場合は、仕入先名と商品名を入力してください");
+      alert("未登録で入力する場合は、仕入れ先名と商品名を入力してください");
       return;
     }
   }else{
     if(!supplier_id || !product_id){
-      alert("仕入先と商品を選択してください");
+      alert("仕入れ先と商品を選択してください");
       return;
     }
   }
@@ -1773,7 +1822,7 @@ document.addEventListener("click", (e) => {
   // 検索欄（存在するものだけ全て空に）
   ["#productSearch","#inProductSearch",'input[name="productSearch"]','input[placeholder*="商品"]']
     .forEach(s => set(s, ""));
-  ["#supplierSearch","#inSupplierSearch",'input[name="supplierSearch"]','input[placeholder*="仕入"]']
+  ["#supplierSearch","#inSupplierSearch",'input[name="supplierSearch"]','input[placeholder*="仕入れ"]']
     .forEach(s => set(s, ""));
 
   const ph = document.querySelector("#priceHistory");
@@ -1899,14 +1948,14 @@ document.addEventListener("click",(e)=>{
           || (host && host.getAttribute("data-id"));
 
   if (addp){
-    if (!id) return alert("仕入先IDが見つかりません");
+    if (!id) return alert("仕入れ先IDが見つかりません");
     tryAddProductStart(id);
     return;
   }
   if (edit){
-    if (!id) return alert("仕入先IDが見つかりません");
+    if (!id) return alert("仕入れ先IDが見つかりません");
     const sup = (store.suppliers||[]).find(s=>s.id===id);
-    if (!sup) return alert("仕入先が見つかりません");
+    if (!sup) return alert("仕入れ先が見つかりません");
     openSupplierModal(sup);
     return;
   }
@@ -2016,8 +2065,8 @@ function openPayMethodBackfillModal(){
   const ay = getActiveYear();
   openModalBase('支払方法を補完（未設定のみ）', `
     <div class="muted" style="font-size:13px">
-      古いデータなどで「支払方法」が未設定の明細だけを、<b>仕入先マスタの「既定の支払方法」</b>で補完します。<br>
-      ※既定が未設定の仕入先／未登録で入力した明細は対象外です。
+      古いデータなどで「支払方法」が未設定の明細だけを、<b>仕入れ先マスタの「既定の支払方法」</b>で補完します。<br>
+      ※既定が未設定の仕入れ先／未登録で入力した明細は対象外です。
     </div>
     <div class="row" style="gap:14px;flex-wrap:wrap;margin-top:10px">
       <label class="row" style="gap:6px"><input type="radio" name="pmfillScope" value="active" checked> 選択年度のみ（${ay}年）</label>
@@ -2039,8 +2088,8 @@ function openPayMethodBackfillModal(){
       '',
       `- 対象スキャン：${res.scanned}件`,
       `- 既に設定済み：${res.skippedHas}件`,
-      `- 既定未設定の仕入先：${res.skippedNoDef}件`,
-      `- 未登録入力など（仕入先IDなし）：${res.skippedNoSupplier}件`,
+      `- 既定未設定の仕入れ先：${res.skippedNoDef}件`,
+      `- 未登録入力など（仕入れ先IDなし）：${res.skippedNoSupplier}件`,
     ];
     if(scope!=='all') lines.push(`- 年度対象外：${res.skippedOutOfScope}件`);
     alert(lines.join('\n'));
@@ -2057,7 +2106,7 @@ document.addEventListener('click',(e)=>{
   host.__bound=true;
 })();
 
-/* ===== 仕入先 / 商品モーダル ===== */
+/* ===== 仕入れ先 / 商品モーダル ===== */
 function openSupplierModal(s){
   openModalBase(s?"仕入れ先を編集":"仕入れ先を追加",`
     <div class="grid cols-2">
@@ -2092,7 +2141,7 @@ function openSupplierModal(s){
     }
    else {  const cap = CAPS();const supCount = store.suppliers.filter(x=>!x.deleted).length;
   	if (supCount >= cap.suppliers){
-    alert(`現在のプランでは仕入先は ${capLabel(cap.suppliers,'社')} までです。\nPlans からアップグレードをご検討ください。`);
+    alert(`現在のプランでは仕入れ先は ${capLabel(cap.suppliers,'社')} までです。\nPlans からアップグレードをご検討ください。`);
     return;
   }
   store.suppliers.push(Object.assign({id:uid(),name,contact,phone,invoice_number:inv}, pmDef ? {paymethod_default: pmDef} : {}));
@@ -2113,7 +2162,7 @@ function openSupplierModal(s){
     }).length;
 
     var ok = confirm(
-      "仕入先「" + s.name + "」を削除します。\n" +
+      "仕入れ先「" + s.name + "」を削除します。\n" +
       "関連商品 " + prodLinked + " 件も同時に削除されます。よろしいですか？"
     );
     if (!ok) return;
@@ -2123,7 +2172,7 @@ function openSupplierModal(s){
       store.products = store.products.filter(function(p){ return p.supplier_id !== sid; });
     }
 
-    // 2) 仕入先を物理削除（配列から除去）
+    // 2) 仕入れ先を物理削除（配列から除去）
     var i = (store.suppliers || []).findIndex(function(x){ return x && x.id === sid; });
     if (i >= 0) store.suppliers.splice(i, 1);
 
@@ -2184,7 +2233,7 @@ function openProductModal(p,defaultSid){
       const total = store.products.filter(x=>!x.deleted).length;
       if(total >= rules.productTotalMax){ alert(`このプランでは商品は合計 ${rules.productTotalMax} 品までです。Plans からアップグレードをご検討ください。`); return; }
       const per = store.products.filter(x=>!x.deleted && x.supplier_id===sid).length;
-      if(per >= rules.productPerSupplierMax){ alert(`このプランでは1社あたり ${rules.productPerSupplierMax} 品までです。別カードに同じ仕入先を追加して分割も可能です（ミドル以上）。`); return; }
+      if(per >= rules.productPerSupplierMax){ alert(`このプランでは1社あたり ${rules.productPerSupplierMax} 品までです。別カードに同じ仕入れ先を追加して分割も可能です（ミドル以上）。`); return; }
     }
     const price=Number($("#mProdPrice").value||0);
     const tax_rate=Number($("#mProdRate").value||8);
@@ -2198,7 +2247,7 @@ function openProductModal(p,defaultSid){
   }
    const per = store.products.filter(x=>!x.deleted && x.supplier_id===sid).length;
    if (per >= cap.perSupplier){
-     alert(`現在のプランではこの仕入先の登録は ${capLabel(cap.perSupplier,'品/カード')} までです。`);
+     alert(`現在のプランではこの仕入れ先の登録は ${capLabel(cap.perSupplier,'品/カード')} までです。`);
      return;
   }
    store.products.push({id:uid(),supplier_id:sid,name,default_price:price,tax_rate:tax_rate,tax_mode:tax_mode,note});
@@ -2731,9 +2780,9 @@ window.isLocked = function(entity, item, index){
 // ---- Plan UI wiring (Addボタンだけ最小で無効化) ----
 window.applyPlanUI = function(){
   const btns = [
-    { sel: '#btnAddSupplier', entity: 'suppliers', label: '仕入先の追加' },
+    { sel: '#btnAddSupplier', entity: 'suppliers', label: '仕入れ先の追加' },
     { sel: '#btnAddProduct',  entity: 'products',  label: '商品の追加' },
-    { sel: '#btnAddEntry',    entity: 'entries',   label: '仕入入力の追加' },
+    { sel: '#btnAddEntry',    entity: 'entries',   label: '仕入れ入力の追加' },
   ];
   btns.forEach(({sel, entity, label})=>{
     const el = document.querySelector(sel);
@@ -2774,7 +2823,7 @@ document.addEventListener('click', (e) => {
     } else {
       const item = (store?.[entity] ?? [])[idx];
       blocked = isLocked(entity, item, idx);
-      if (blocked) alert(`この端末のプランでは、この${entity==='entries'?'仕入入力':entity==='products'?'商品':'仕入先'}は編集できません。`);
+      if (blocked) alert(`この端末のプランでは、この${entity==='entries'?'仕入れ入力':entity==='products'?'商品':'仕入れ先'}は編集できません。`);
     }
 
     if (blocked) { e.preventDefault(); e.stopPropagation(); return; }
@@ -3001,6 +3050,7 @@ function renderRights(){
 }
 function syncLicenseButtons(){
   const p = getPlan();
+  const isPlay = document.documentElement?.dataset?.play === '1';
   // --- Freeカードのボタン（このプランを使う／使用中） ---
 const btnFree = document.getElementById('btnUseFree');
 if (btnFree) {
@@ -3019,12 +3069,19 @@ const root = document.getElementById('plans-cta') || document;
       el.setAttribute('aria-hidden', (p !== 'free') ? 'true' : 'false');
     });
 
-  // Pro… Proの時だけ非表示
+  // Pro… Play時は常に非表示 / それ以外はProの時だけ非表示
   root.querySelectorAll('a.tlp-buy-btn[data-plan="pro"]')
     .forEach(el => {
-      el.toggleAttribute('hidden', p === 'pro');
-      el.setAttribute('aria-hidden', (p === 'pro') ? 'true' : 'false');
+      const shouldHide = isPlay ? true : (p === 'pro');
+      el.toggleAttribute('hidden', shouldHide);
+      el.setAttribute('aria-hidden', shouldHide ? 'true' : 'false');
     });
+
+  const proCardBtn = document.getElementById('btnEnterLicense');
+  if (proCardBtn) {
+    const proCard = proCardBtn.closest('.card');
+    if (proCard) proCard.hidden = !!isPlay;
+  }
 }
 
 document.addEventListener("click",(e)=>{ if(e.target.id==="btnUseFree") setPlan("free"); });
@@ -3624,11 +3681,11 @@ function isFlagged(o){
 // クリーンスナップショットを作る（UIで見えるデータだけ）
 function getCleanSnapshot(s){
   s = s || {};
-  // 1) 仕入先：フラグ無＆idあり
+  // 1) 仕入れ先：フラグ無＆idあり
   const suppliers = (s.suppliers||[]).filter(x => !isFlagged(x) && x && x.id);
   const supSet = new Set(suppliers.map(x => x.id));
 
-  // 2) 商品：フラグ無＆id/名前あり＆仕入先に実在リンク＆id重複排除
+  // 2) 商品：フラグ無＆id/名前あり＆仕入れ先に実在リンク＆id重複排除
   const seenProd = new Set();
   const products = [];
   for (const p of (s.products||[])) {
@@ -3836,7 +3893,7 @@ window.addEventListener('DOMContentLoaded', function () {
   // 2) 復元／マスタ遷移っぽい操作の直後に再ウォッチ
   document.addEventListener('click', (e) => {
     const t = (e.target.textContent || '').trim();
-    if (['復元', '商品マスタ', '仕入先マスタ', 'HOME', 'インポート']
+    if (['復元', '商品マスタ', '仕入れ先マスタ', 'HOME', 'インポート']
           .some(x => t.includes(x))) {
       setTimeout(() => startWatch(6000), 80);
     }
@@ -4113,6 +4170,56 @@ function updatePlanPill(){
 })();
 </script>
 
+
+<script>
+(function(){
+  function applyPlayPurchaseBridge(){
+    const isPlay = document.documentElement?.dataset?.play === '1';
+    if (!isPlay) return;
+
+    const middleHref = window.tlpPlayMiddleCheckoutURL || '/purchase-middle.html?channel=play';
+
+    const buyMiddle = document.getElementById('btnBuyMiddle');
+    if (buyMiddle) {
+      buyMiddle.textContent = 'Middleを購入';
+      buyMiddle.setAttribute('href', middleHref);
+      buyMiddle.removeAttribute('target');
+      buyMiddle.removeAttribute('rel');
+      buyMiddle.hidden = false;
+    }
+
+    const buyPro = document.getElementById('btnBuyPro');
+    if (buyPro) buyPro.hidden = true;
+
+    const middleBtn = document.getElementById('btnEnterLicenseMiddle');
+    if (middleBtn) {
+      middleBtn.textContent = 'Middleを購入';
+      middleBtn.addEventListener('click', function(ev){
+        ev.preventDefault();
+        ev.stopPropagation();
+        ev.stopImmediatePropagation?.();
+        location.href = middleHref;
+      }, true);
+    }
+
+    const proBtn = document.getElementById('btnEnterLicense');
+    if (proBtn) {
+      const proCard = proBtn.closest('.card');
+      if (proCard) proCard.hidden = true;
+    }
+
+    const nudge = document.getElementById('purchaseNudge');
+    if (nudge) {
+      nudge.hidden = false;
+      nudge.textContent = '価格は購入画面で確認';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', applyPlayPurchaseBridge);
+  window.addEventListener('pageshow', applyPlayPurchaseBridge);
+})();
+</script>
+
 <script>
 document.getElementById('btnEnterLicenseMiddle')?.addEventListener('click', function(){
   if (window.openLicenseModal) { openLicenseModal(); return; }
@@ -4231,6 +4338,27 @@ document.getElementById('btnEnterLicenseMiddle')?.addEventListener('click', func
 
   });
 </script>
+<script>
+  // 外部リンク（別ドメイン）をTWA外（Chrome）で開く
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[href]');
+    if (!a) return;
 
+    // すでに別タブ指定・ダウンロード・特殊スキームは触らない
+    const href = a.getAttribute('href') || '';
+    if (a.target === '_blank' || a.hasAttribute('download')) return;
+    if (/^(mailto:|tel:|sms:|intent:|javascript:)/i.test(href)) return;
+
+    // Ctrl/⌘クリック等のユーザー操作は尊重
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+    // 外部ドメインだけ外へ
+    const url = new URL(a.href, location.href);
+    if (url.origin !== location.origin) {
+      e.preventDefault();
+      window.open(url.href, '_blank', 'noopener,noreferrer');
+    }
+  }, true); // ← capture: 既存ハンドラより先に拾いやすい
+</script>
 </body>
 </html>
