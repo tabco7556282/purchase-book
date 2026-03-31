@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ミドルを購入 | Tabco Ledger Plus</title>
+  <title>プロを購入 | Tabco Ledger Plus</title>
   <meta name="theme-color" content="#FF9800" />
   <style>
     :root {
@@ -322,39 +322,39 @@
 
     <section class="card hero">
       <div class="eyebrow">Google Play 購入</div>
-      <h1>ミドルを購入</h1>
-      <p class="lead">Google Play でミドルを購入します。購入後に反映されない場合は、下の「購入を確認してホームへ戻る」を押してください。</p>
+      <h1>プロを購入</h1>
+      <p class="lead">Google Play でプロを購入します。ミドル利用中でも、そのままプロ購入へ進めます。</p>
     </section>
 
     <section class="card">
 
       <div class="plans">
-        <div class="plan-box" data-plan-card="middle">
+        <div class="plan-box pro" data-plan-card="pro">
           <div class="plan-name">
-            <strong>ミドル</strong>
-            <span class="pill">買い切り</span>
+            <strong>プロ</strong>
+            <span class="pill pro">買い切り</span>
           </div>
           <ul class="features">
-            <li>仕入先 15件まで</li>
-            <li>商品 200件まで</li>
+            <li>仕入先 無制限</li>
+            <li>商品 無制限</li>
             <li>Google Play で購入</li>
           </ul>
-          <div class="price" id="priceText-middle">¥980</div>
-          <p class="price-sub" id="priceSub-middle">最終価格は購入画面でご確認ください。</p>
-          <div class="current-plan" id="cardState-middle">現在の確認状態: -</div>
+          <div class="price" id="priceText-pro">価格は購入画面で確認</div>
+          <p class="price-sub" id="priceSub-pro">Pro の最終価格は購入画面でご確認ください。</p>
+          <div class="current-plan" id="cardState-pro">現在の確認状態: -</div>
           <div class="card-actions">
-            <button id="buyBtn-middle" type="button" class="btn btn-primary" data-plan="middle">ミドルを購入する</button>
+            <button id="buyBtn-pro" type="button" class="btn btn-pro" data-plan="pro">プロを購入する</button>
           </div>
         </div>
       </div>
 
       <div class="page-actions">
         <button id="restoreBtn" type="button" class="btn btn-secondary">購入を確認してホームへ戻る</button>
-        <a class="btn btn-secondary" href="/purchase-pro.html?channel=play&plan=pro">プロ購入ページへ</a>
+        <a class="btn btn-secondary" href="/purchase-middle.html?channel=play&plan=middle">ミドル購入ページへ</a>
         <a class="btn btn-secondary" href="/?channel=play">購入せずに戻る</a>
       </div>
       <div id="statusText" class="status"></div>
-      <p class="note">ミドル購入専用ページです。プロを購入したい場合は「プロ購入ページへ」から進んでください。</p>
+      <p class="note">プロ購入専用ページです。ミドル利用中でも、そのままプロ購入へ進めます。</p>
     </section>
 
     <section class="card help-box">
@@ -388,7 +388,7 @@
       </section>
     </section>
 
-    <div class="build-tag">build: pm-plan-middle-v12</div>
+    <div class="build-tag">build: pm-plan-pro-v14-1980-fix</div>
   </div>
 
   <script>
@@ -408,9 +408,9 @@
       const PLAY_LAST_ACK_KEY = 'tlpPlayLastAckAt';
       const PLAY_LAST_ACK_RESULT_KEY = 'tlpPlayLastAckResult';
       const LEGACY_PLAN_KEY = 'tlpPlan';
-      const PAGE_PLAN_KEY = 'middle';
-      const PAGE_ID = 'purchase-middle.html';
-      const PAGE_BUILD = 'pm-plan-middle-v12';
+      const PAGE_PLAN_KEY = 'pro';
+      const PAGE_ID = 'purchase-pro.html';
+      const PAGE_BUILD = 'pm-plan-pro-v14-1980-fix';
 
       const PRODUCTS = {
         middle: {
@@ -428,9 +428,9 @@
           key: 'pro',
           sku: 'pro_lifetime',
           displayName: 'プロ',
-          defaultPriceText: '価格は購入画面で確認',
-          defaultPriceSub: 'Pro の最終価格は購入画面でご確認ください。',
-          amountValue: '0',
+          defaultPriceText: '¥1,980',
+          defaultPriceSub: '最終価格は購入画面でご確認ください。',
+          amountValue: '1980',
           purchaseLabel: 'Pro',
           redirectParam: 'pro',
           buttonClass: 'btn-pro'
@@ -676,7 +676,7 @@
             productId: productId || '',
             purchaseToken,
             reason: reason || '',
-            build: 'pm-plan-shop-v8',
+            build: PAGE_BUILD,
             href: location.href
           })
         });
