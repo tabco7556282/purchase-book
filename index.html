@@ -16,7 +16,7 @@
 </script>
 
 <style>
-  html[data-play="1"] #btnBuyPro { display: none !important; }
+  html[data-play="1"] #btnOpenLicense { display: none !important; }
 </style>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
@@ -574,6 +574,7 @@ body.mode-prev-year .hdr-pill{background:#fff;border-color:var(--danger);color:v
   window.tlpCheckoutMiddle = "https://buy.stripe.com/3cI14g5DR5r88O0bn58EM02";
   window.tlpCheckoutPro    = "https://buy.stripe.com/28EbIU5DR1aSggs3UD8EM03";
   window.tlpPlayMiddleCheckoutURL = "/purchase-middle.html?channel=play";
+  window.tlpPlayProCheckoutURL = "/purchase-pro.html?channel=play";
   window.tlpRedeemURL      = "https://www.cafetabco.com/api/license/redeem.php";
   window.tlpRedeemURL = 'https://www.cafetabco.com/api/license/redeem.php';
   window.tlpVerifyURL = 'https://www.cafetabco.com/api/license/verify.php';
@@ -762,8 +763,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
       window.DEBUG_PAY = false;
- window.buyMiddle = () => window.open(window.tlpCheckoutMiddle, "_blank", "noopener");
-  window.buyPro    = () => window.open(window.tlpCheckoutPro,    "_blank", "noopener");
+ window.buyMiddle = () => {
+   const isPlay = document.documentElement?.dataset?.play === '1';
+   if (isPlay) { location.href = window.tlpCheckoutMiddle; return; }
+   window.open(window.tlpCheckoutMiddle, "_blank", "noopener");
+ };
+  window.buyPro    = () => {
+   const isPlay = document.documentElement?.dataset?.play === '1';
+   if (isPlay) { location.href = window.tlpCheckoutPro; return; }
+   window.open(window.tlpCheckoutPro, "_blank", "noopener");
+ };
     // 4D: 画面右下にテスト購入ボタン（後で削除OK）
   (() => {
     if (!window.DEBUG_PAY) return;
@@ -868,8 +877,12 @@ let store = DB.load();
   try{
     if(!store || typeof store !== 'object') return;
     store.settings = store.settings || {};
+    var playSource = String(localStorage.getItem('tlpPlayOwnedSource') || '');
+    var pp = (localStorage.getItem('tlpPlayOwnedPlan') || '').toLowerCase();
     var lp = (localStorage.getItem('tlpPlan') || '').toLowerCase();
-    var devPlan = (lp==='free'||lp==='middle'||lp==='pro') ? lp : ((localStorage.getItem('tlpPro')==='1') ? 'pro' : 'free');
+    var devPlan = (playSource.startsWith('play') && (pp==='middle'||pp==='pro'))
+      ? pp
+      : ((lp==='free'||lp==='middle'||lp==='pro') ? lp : ((localStorage.getItem('tlpPro')==='1') ? 'pro' : 'free'));
     var sp0 = (store.settings.plan || '').toLowerCase();
     var storePlan = (sp0==='free'||sp0==='middle'||sp0==='pro') ? sp0 : 'free';
     var rank = { free:0, middle:1, pro:2 };
@@ -2719,8 +2732,13 @@ document.addEventListener("click", (e)=>{ const btn = e.target.closest("#btnExpo
 // ---- Plan enforcement (端末プランに基づくロック計算) ----
 function getPlan(){
   try {
+    const playSource = String(localStorage.getItem('tlpPlayOwnedSource') || '');
+    const playPlan = String(localStorage.getItem('tlpPlayOwnedPlan') || '').toLowerCase();
+    if (playSource.startsWith('play') && (playPlan === 'pro' || playPlan === 'middle')) return playPlan;
+
     const p = (localStorage.getItem('tlpPlan') || '').toLowerCase();
     if (p === 'pro' || p === 'middle' || p === 'free') return p;
+
     // 互換: 旧キー（tlpPro=1）は pro 扱い
     return (localStorage.getItem('tlpPro') === '1') ? 'pro' : 'free';
   } catch(_) { return 'free'; }
@@ -3051,38 +3069,63 @@ function renderRights(){
 function syncLicenseButtons(){
   const p = getPlan();
   const isPlay = document.documentElement?.dataset?.play === '1';
-  // --- Freeカードのボタン（このプランを使う／使用中） ---
-const btnFree = document.getElementById('btnUseFree');
-if (btnFree) {
-  const isFree = (p === 'free');
-  btnFree.disabled = isFree;
-  btnFree.setAttribute('aria-disabled', isFree ? 'true' : 'false');
-  btnFree.textContent = isFree ? '使用中' : 'このプランを使う';
-}
 
-const root = document.getElementById('plans-cta') || document;
+  const btnFree = document.getElementById('btnUseFree');
+  if (btnFree) {
+    const isFree = (p === 'free');
+    btnFree.disabled = isFree;
+    btnFree.setAttribute('aria-disabled', isFree ? 'true' : 'false');
+    btnFree.textContent = isFree ? '使用中' : 'このプランを使う';
+  }
 
-  // Middle… Freeの時だけ表示
-  root.querySelectorAll('a.tlp-buy-btn[data-plan="middle"]')
-    .forEach(el => {
-      el.toggleAttribute('hidden', p !== 'free');
-      el.setAttribute('aria-hidden', (p !== 'free') ? 'true' : 'false');
-    });
+  const root = document.getElementById('plans-cta') || document;
+  const showMiddle = (p === 'free');
+  const showPro = (p !== 'pro');
 
-  // Pro… Play時は常に非表示 / それ以外はProの時だけ非表示
-  root.querySelectorAll('a.tlp-buy-btn[data-plan="pro"]')
-    .forEach(el => {
-      const shouldHide = isPlay ? true : (p === 'pro');
-      el.toggleAttribute('hidden', shouldHide);
-      el.setAttribute('aria-hidden', shouldHide ? 'true' : 'false');
-    });
+  root.querySelectorAll('a.tlp-buy-btn[data-plan="middle"]').forEach(el => {
+    el.toggleAttribute('hidden', !showMiddle);
+    el.setAttribute('aria-hidden', showMiddle ? 'false' : 'true');
+  });
 
-  const proCardBtn = document.getElementById('btnEnterLicense');
-  if (proCardBtn) {
-    const proCard = proCardBtn.closest('.card');
-    if (proCard) proCard.hidden = !!isPlay;
+  root.querySelectorAll('a.tlp-buy-btn[data-plan="pro"]').forEach(el => {
+    el.toggleAttribute('hidden', !showPro);
+    el.setAttribute('aria-hidden', showPro ? 'false' : 'true');
+  });
+
+  const middleBtn = document.getElementById('btnEnterLicenseMiddle');
+  if (middleBtn) {
+    const show = showMiddle;
+    middleBtn.hidden = !show;
+    middleBtn.disabled = !show;
+    middleBtn.setAttribute('aria-hidden', show ? 'false' : 'true');
+    middleBtn.textContent = isPlay ? 'Middleを購入' : 'Middleを購入';
+  }
+
+  const proBtn = document.getElementById('btnEnterLicense');
+  if (proBtn) {
+    const show = showPro;
+    proBtn.hidden = !show;
+    proBtn.disabled = !show;
+    proBtn.setAttribute('aria-hidden', show ? 'false' : 'true');
+    proBtn.textContent = isPlay ? 'Proを購入' : 'コードを入力';
+  }
+
+  const rightsActions = document.getElementById('license-actions');
+  if (rightsActions) rightsActions.hidden = !!(isPlay && p === 'free');
+
+  const btnOpen = document.getElementById('btnOpenLicense');
+  if (btnOpen) btnOpen.hidden = !!isPlay;
+
+  const btnVerify = document.getElementById('btnVerifyNow');
+  if (btnVerify) {
+    const show = !isPlay || p !== 'free';
+    btnVerify.hidden = !show;
+    btnVerify.disabled = !show;
+    btnVerify.textContent = isPlay ? '購入を確認' : '再検証';
+    btnVerify.setAttribute('aria-hidden', show ? 'false' : 'true');
   }
 }
+
 
 document.addEventListener("click",(e)=>{ if(e.target.id==="btnUseFree") setPlan("free"); });
 function openLicenseModal(){
@@ -3164,6 +3207,25 @@ document.addEventListener('click', (e)=>{
       window.syncOfflineGrace = async function (_ms) { /* no-op */ };
     }
   })();
+
+
+/* ===== Play ownership -> legacy plan sync ===== */
+(function(){
+  try{
+    const playSource = String(localStorage.getItem('tlpPlayOwnedSource') || '');
+    const playPlan = String(localStorage.getItem('tlpPlayOwnedPlan') || '').toLowerCase();
+    if (playSource.startsWith('play') && (playPlan === 'middle' || playPlan === 'pro')) {
+      localStorage.setItem('tlpPlan', playPlan);
+      if (playPlan === 'pro') localStorage.setItem('tlpPro', '1');
+      else localStorage.removeItem('tlpPro');
+      if (store && typeof store === 'object') {
+        store.settings = store.settings || {};
+        store.settings.plan = playPlan;
+        DB.save(store);
+      }
+    }
+  }catch(_){ }
+})();
 
 /* ===== Init ===== */
 function init(){
@@ -3428,7 +3490,7 @@ TLP.showEula = function(){
   const meta = window.__tlp_meta || {};
   const eulaVer = meta.eulaVersion || "2025-09-08";
   console.log("[TLP] diag boot v0.8.1 (minimal)");
-  window.__TLP_BUILD = "planfix-v9-2025-12-17";
+  window.__TLP_BUILD = "play-confirm-v16-2026-03-31";
   console.log("[TLP] build:", window.__TLP_BUILD);
   window.addEventListener("keydown", (e)=>{
     if(e.altKey && e.key.toLowerCase()==="e"){
@@ -4178,6 +4240,10 @@ function updatePlanPill(){
     if (!isPlay) return;
 
     const middleHref = window.tlpPlayMiddleCheckoutURL || '/purchase-middle.html?channel=play';
+    const proHref = window.tlpPlayProCheckoutURL || '/purchase-pro.html?channel=play';
+
+    window.tlpCheckoutMiddle = middleHref;
+    window.tlpCheckoutPro = proHref;
 
     const buyMiddle = document.getElementById('btnBuyMiddle');
     if (buyMiddle) {
@@ -4185,15 +4251,19 @@ function updatePlanPill(){
       buyMiddle.setAttribute('href', middleHref);
       buyMiddle.removeAttribute('target');
       buyMiddle.removeAttribute('rel');
-      buyMiddle.hidden = false;
     }
 
     const buyPro = document.getElementById('btnBuyPro');
-    if (buyPro) buyPro.hidden = true;
+    if (buyPro) {
+      buyPro.textContent = 'Proを購入';
+      buyPro.setAttribute('href', proHref);
+      buyPro.removeAttribute('target');
+      buyPro.removeAttribute('rel');
+    }
 
     const middleBtn = document.getElementById('btnEnterLicenseMiddle');
-    if (middleBtn) {
-      middleBtn.textContent = 'Middleを購入';
+    if (middleBtn && !middleBtn.dataset.playBound) {
+      middleBtn.dataset.playBound = '1';
       middleBtn.addEventListener('click', function(ev){
         ev.preventDefault();
         ev.stopPropagation();
@@ -4203,9 +4273,14 @@ function updatePlanPill(){
     }
 
     const proBtn = document.getElementById('btnEnterLicense');
-    if (proBtn) {
-      const proCard = proBtn.closest('.card');
-      if (proCard) proCard.hidden = true;
+    if (proBtn && !proBtn.dataset.playBound) {
+      proBtn.dataset.playBound = '1';
+      proBtn.addEventListener('click', function(ev){
+        ev.preventDefault();
+        ev.stopPropagation();
+        ev.stopImmediatePropagation?.();
+        location.href = proHref;
+      }, true);
     }
 
     const nudge = document.getElementById('purchaseNudge');
@@ -4213,6 +4288,8 @@ function updatePlanPill(){
       nudge.hidden = false;
       nudge.textContent = '価格は購入画面で確認';
     }
+
+    try { window.syncLicenseButtons?.(); } catch(_){}
   }
 
   document.addEventListener('DOMContentLoaded', applyPlayPurchaseBridge);
@@ -4252,6 +4329,16 @@ document.getElementById('btnEnterLicenseMiddle')?.addEventListener('click', func
         // 「再検証」ボタン
     if (btnVerify) {
       btnVerify.addEventListener('click', async () => {
+        const isPlay = document.documentElement?.dataset?.play === '1';
+        if (isPlay) {
+          const plan = (typeof getPlan === 'function' ? getPlan() : 'free') || 'free';
+          const href = (plan === 'pro')
+            ? (window.tlpPlayProCheckoutURL || '/purchase-pro.html?channel=play')
+            : (window.tlpPlayMiddleCheckoutURL || '/purchase-middle.html?channel=play');
+          location.href = href;
+          return;
+        }
+
         if (!window.tlpVerifyURL || typeof window.tlpDeviceId !== 'function') {
           console.warn('tlpVerifyURL / tlpDeviceId が未定義です');
           alert('再検証の設定がまだ完了していません。');
@@ -4275,13 +4362,11 @@ document.getElementById('btnEnterLicenseMiddle')?.addEventListener('click', func
           const serverPlan    = serverPlanRaw.toLowerCase();
 
           if (data.ok) {
-            // サーバーから見たライセンス情報の「新鮮さ」を控える
             try {
               localStorage.setItem('tlpLicenseFreshAt', String(Date.now()));
             } catch (e) {}
 
             if (serverPlan === 'middle' || serverPlan === 'pro') {
-              // ★ サーバー側が有料と言っている → そちらを優先して上書き
               if (serverPlan !== currentPlan) {
                 try {
                   if (typeof applyLicensed === 'function') {
@@ -4301,29 +4386,30 @@ document.getElementById('btnEnterLicenseMiddle')?.addEventListener('click', func
                 alert('再検証完了：現在のプラン（' + serverPlan + '）は有効です。');
               }
             } else {
-              // ★ サーバー側の判定が free / 不明
               if (currentPlan === 'middle' || currentPlan === 'pro') {
-                // 端末は有料表示 → 勝手にダウングレードしない
                 alert(
-                  'サーバー側にこの端末の有料プラン記録が見つかりませんでした。\n' +
-                  '安全のため、自動でプランを変更せず現在の ' + currentPlan + ' プランのままにしています。\n' +
+                  'サーバー側にこの端末の有料プラン記録が見つかりませんでした。
+' +
+                  '安全のため、自動でプランを変更せず現在の ' + currentPlan + ' プランのままにしています。
+' +
                   'ご購入済みの場合は、購入時のメールを添えてサポートまでご連絡ください。'
                 );
               } else {
                 alert(
-                  '再検証完了：この端末の有料プラン記録は見つかりませんでした。\n' +
-                  '購入済みでプランが反映されない場合は、ライセンスコード入力か、\n' +
+                  '再検証完了：この端末の有料プラン記録は見つかりませんでした。
+' +
+                  '購入済みでプランが反映されない場合は、ライセンスコード入力か、
+' +
                   '購入時のメールを添えてサポートまでご連絡ください。'
                 );
               }
             }
 
-            // プラン表示などを更新（あれば呼ぶ）
             window.applyPlanUI?.();
-            // window.refreshLicenseUI?.(); // 未実装なら一旦コメントアウト
           } else {
             alert(
-              '再検証に失敗しました。\n' +
+              '再検証に失敗しました。
+' +
               (data.message || '時間をおいて再度お試しください。')
             );
           }
@@ -4360,5 +4446,33 @@ document.getElementById('btnEnterLicenseMiddle')?.addEventListener('click', func
     }
   }, true); // ← capture: 既存ハンドラより先に拾いやすい
 </script>
+
+<script id="play-confirm-delegated-handler">
+(() => {
+  function openPlayConfirm(){
+    const isPlay = document.documentElement?.dataset?.play === '1';
+    if (!isPlay) return false;
+    const plan = (typeof getPlan === 'function' ? getPlan() : 'free') || 'free';
+    const href = (plan === 'pro')
+      ? (window.tlpPlayProCheckoutURL || '/purchase-pro.html?channel=play')
+      : (window.tlpPlayMiddleCheckoutURL || '/purchase-middle.html?channel=play');
+    location.href = href;
+    return true;
+  }
+
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('#btnVerifyNow');
+    if (!btn) return;
+    const isPlay = document.documentElement?.dataset?.play === '1';
+    if (!isPlay) return;
+    e.preventDefault();
+    e.stopPropagation();
+    openPlayConfirm();
+  }, true);
+
+  window.tlpOpenPurchaseConfirm = openPlayConfirm;
+})();
+</script>
+
 </body>
 </html>
